@@ -298,3 +298,103 @@ async function endCurrentSession(){
 }
 
 async function scoreForGame(gameId){
+  const events=(await byIndex('pointEvents','game_id',gameId)).sort((a,b)=>ms(a.timestamp)-ms(b.timestamp));
+  let me=0,opp=0; for(const e of events){ if(e.side==='me') me+=Number(e.amount)||0; else opp+=Number(e.amount)||0; }
+  return {me,opp,events};
+}
+
+async function matchGameRecord(matchId){
+  const games=(await byIndex('games','match_id',matchId)).filter(g=>g.ended_at).sort((a,b)=>a.game_number-b.game_number);
+  let me=0,opp=0; for(const g of games){ if(g.winner==='me') me++; else if(g.winner==='opponent') opp++; }
+  return {games,me,opp};
+}
+
+async function renderScorekeeper(el){
+  const [s,m,g]=[state.activeSession,state.activeMatch,state.activeGame];
+  const {deckMap,legendMap}=await lookups();
+  const deck=deckMap[m.my_deck_id], myLegend=legendMap[deck?.legend_id], oppLegend=legendMap[m.opponent_legend_id];
+  const score=await scoreForGame(g.id); const rec=await matchGameRecord(m.id); const last=score.events.at(-1);
+  el.innerHTML=`
+    <div class="session-strip"><div><div class="strong">${esc(deck?.name||'Deck')} ${deck?.version?`• ${esc(deck.version)}`:''}</div><div class="small muted">${esc(myLegend?.name||'')} vs ${esc(oppLegend?.name||'')} • ${m.format==='FREE_PLAY'?'Free Play':m.format}</div></div><div><div class="time" id="liveSessionTimer">${fmtDuration(sessionActiveMs(s))}</div><div class="tiny muted" style="text-align:right">session</div></div></div>
+    <div class="score-header"><div><div class="match-meta">Game ${g.game_number} • ${m.format==='FREE_PLAY'?`Games ${rec.me}–${rec.opp}`:`Match ${rec.me}–${rec.opp}`}</div><div class="timer" id="liveMatchTimer">${fmtDuration(Date.now()-ms(m.started_at))}</div></div><span class="chip ${s.status==='paused'?'warn':'accent'}">${s.status==='paused'?'PAUSED':'LIVE'}</span></div>
+    <div class="score-board">
+      <div class="score-side"><h3>YOU</h3><div class="score">${score.me}</div><div class="score-actions"><button class="conq scoreAdd" data-side="me" data-source="conquer">CONQ +1</button><button class="hold scoreAdd" data-side="me" data-source="hold">HOLD +1</button><button class="effect scoreEffect" data-side="me">EFFECT</button></div></div>
+      <div class="score-side"><h3>OPPONENT</h3><div class="score">${score.opp}</div><div class="score-actions"><button class="conq scoreAdd" data-side="opponent" data-source="conquer">CONQ +1</button><button class="hold scoreAdd" data-side="opponent" data-source="hold">HOLD +1</button><button class="effect scoreEffect" data-side="opponent">EFFECT</button></div></div>
+    </div>
+    <div class="undo-bar"><div class="small">${last?`Last: ${last.side==='me'?'You':'Opponent'} ${last.amount>0?'+':''}${last.amount} • ${titleCase(last.source)}`:'No point events yet'}</div><button id="undoPoint" ${last?'':'disabled'}>Undo</button></div>
+    <div class="section-head"><h3>Who started this game?</h3></div>
+    <div class="segmented" id="starterSegment"><button data-starter="me" class="${g.who_started==='me'?'active':''}">Me</button><button data-starter="opponent" class="${g.who_started==='opponent'?'active':''}">Opponent</button><button data-starter="unknown" class="${g.who_started==='unknown'?'active':''}">Unknown</button></div>
+    <div class="primary-actions"><button class="btn" id="quickNote">Quick Note</button><button class="btn" id="pauseLive">${s.status==='paused'?'Resume Session':'Pause Session'}</button></div>
+    <div class="section-head"><h3>End game</h3><div class="sub">You decide when the game is over.</div></div>
+    <div class="btn-row"><button class="btn good" id="gameWin">I Won Game</button><button class="btn danger" id="gameLoss">Opponent Won</button></div>
+    ${m.format==='FREE_PLAY'?`<button class="btn ghost full" id="finishFree" style="margin-top:10px">Finish Free Play Match</button>`:''}
+    <button class="link-btn small" id="abandonMatch" style="margin-top:18px;color:var(--danger)">Abandon current match</button>`;
+  $$('.scoreAdd',el).forEach(b=>b.onclick=()=>addPoint(b.dataset.side,b.dataset.source,1));
+  $$('.scoreEffect',el).forEach(b=>b.onclick=()=>openEffectModal(b.dataset.side));
+  $('#undoPoint').onclick=undoPoint;
+  $$('#starterSegment button',el).forEach(b=>b.onclick=()=>setStarter(b.dataset.starter));
+  $('#quickNote').onclick=openQuickNote; $('#pauseLive').onclick=togglePause;
+  $('#gameWin').onclick=()=>endGame('me'); $('#gameLoss').onclick=()=>endGame('opponent');
+  if($('#finishFree')) $('#finishFree').onclick=()=>completeFreePlayMatch();
+  $('#abandonMatch').onclick=abandonMatch;
+  if(s.status==='paused') $$('.scoreAdd,.scoreEffect,#gameWin,#gameLoss',el).forEach(b=>b.disabled=true);
+}
+
+async function addPoint(side,source,amount,effect_note=''){
+  if(!state.activeGame || state.activeSession?.status==='paused') return;
+  const e=stampBase({game_id:state.activeGame.id,side,amount:Number(amount),source,effect_note,timestamp:iso()});
+  await save('pointEvents',e); renderPlay();
+}
+
+function openEffectModal(side){
+  showModal(`${side==='me'?'Your':'Opponent'} effect points`,`
+    <label><span class="label-title">Points</span><input id="effectAmount" type="number" min="-20" max="20" step="1" value="1"></label>
+    <label><span class="label-title">Effect / card <span class="muted">(optional)</span></span><input id="effectNote" placeholder="What generated the points?"></label>
+    <button type="button" class="btn primary full" id="saveEffect">Add effect points</button>`);
+  $('#saveEffect').onclick=async()=>{ let amt=parseInt($('#effectAmount').value,10); if(!Number.isFinite(amt)||amt===0) return toast('Enter a non-zero point amount.'); amt=Math.max(-20,Math.min(20,amt)); closeModal(); await addPoint(side,'effect',amt,$('#effectNote').value.trim()); };
+}
+
+async function undoPoint(){
+  if(!state.activeGame) return; const events=(await byIndex('pointEvents','game_id',state.activeGame.id)).sort((a,b)=>ms(a.timestamp)-ms(b.timestamp)); const last=events.at(-1); if(!last) return;
+  await softDelete('pointEvents',last.id); toast('Last point event undone.'); renderPlay();
+}
+
+async function setStarter(value){
+  const g=await get('games',state.activeGame.id); g.who_started=value; await save('games',g); state.activeGame=g; renderPlay();
+}
+
+function openQuickNote(){
+  showModal('Quick note',`<label><span class="label-title">What do you want to remember?</span><textarea id="quickNoteText" placeholder="Keep it fast. The match, game and score are attached automatically."></textarea></label><button type="button" class="btn primary full" id="saveQuickNote">Save note</button>`);
+  $('#saveQuickNote').onclick=async()=>{const text=$('#quickNoteText').value.trim();if(!text)return toast('Write a note first.');const sc=await scoreForGame(state.activeGame.id);const n=stampBase({session_id:state.activeSession.id,match_id:state.activeMatch.id,game_id:state.activeGame.id,text,score_snapshot:`${sc.me}-${sc.opp}`,timestamp:iso()});await save('notes',n);closeModal();toast('Note saved.');};
+}
+
+async function endGame(winner){
+  const g=await get('games',state.activeGame.id); const sc=await scoreForGame(g.id); const end=iso();
+  g.winner=winner; g.ended_at=end; g.final_my_points=sc.me; g.final_opponent_points=sc.opp; await save('games',g);
+  const m=await get('matches',state.activeMatch.id); const rec=await matchGameRecord(m.id);
+  if(m.format==='FREE_PLAY'){
+    const next=stampBase({match_id:m.id,game_number:g.game_number+1,winner:null,who_started:'unknown',started_at:iso(),ended_at:null,final_my_points:null,final_opponent_points:null}); await save('games',next); await refreshActive(); renderPlay(); toast(`Game ${g.game_number} saved.`); return;
+  }
+  const needed={BO1:1,BO3:2,BO5:3}[m.format]||1;
+  if(rec.me>=needed||rec.opp>=needed){
+    m.ended_at=end; m.result=rec.me>rec.opp?'me':'opponent'; m.active_duration_ms=intervalActiveMs(ms(m.started_at),ms(end),state.activeSession.pause_intervals||[]); await save('matches',m); await refreshActive(); openPostMatchReview(m.id); return;
+  }
+  const next=stampBase({match_id:m.id,game_number:g.game_number+1,winner:null,who_started:'unknown',started_at:iso(),ended_at:null,final_my_points:null,final_opponent_points:null}); await save('games',next); await refreshActive(); renderPlay(); toast(`Game ${g.game_number} saved.`);
+}
+
+async function completeFreePlayMatch(){
+  const m=await get('matches',state.activeMatch.id); if(!m) return;
+  const openGames=(await byIndex('games','match_id',m.id)).filter(g=>!g.ended_at);
+  for(const g of openGames){ if(g.game_number>1 || (await byIndex('pointEvents','game_id',g.id)).length===0) await softDelete('games',g.id); }
+  const rec=await matchGameRecord(m.id); m.ended_at=iso(); m.result=null; m.free_play_record=`${rec.me}-${rec.opp}`; m.active_duration_ms=intervalActiveMs(ms(m.started_at),ms(m.ended_at),state.activeSession.pause_intervals||[]); await save('matches',m); await refreshActive(); openPostMatchReview(m.id);
+}
+
+function openPostMatchReview(matchId){
+  showModal('Match saved',`
+    <p class="small muted">Optional 10-second review. Skip it if there is nothing useful to capture.</p>
+    <label class="checkline"><input type="checkbox" id="reviewMulligan" style="width:auto;min-height:0"> Mulligan issue</label>
+    <label><span class="label-title">Uncertain decision</span><input id="reviewDecision" placeholder="Optional"></label>
+    <label><span class="label-title">Unexpected opponent action</span><input id="reviewUnexpected" placeholder="Optional"></label>
+    <label><span class="label-title">General note</span><textarea id="reviewGeneral" placeholder="Optional"></textarea></label>
+    <div class="btn-row"><button type="button" class="btn ghost" id="skipReview">Skip</button><button type="button" class="btn primary" id="saveReview">Save review</button></div>`);
+  $('#skipReview').onclick=async()=>{closeModal();await refreshActive();renderPlay();};
