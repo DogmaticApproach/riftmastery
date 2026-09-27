@@ -596,6 +596,7 @@ async function renderScorekeeper(el){
       <div class="score-side"><h3>OPPONENT</h3><div class="score">${score.opp}</div><div class="score-actions"><button class="conq scoreAdd" data-side="opponent" data-source="conquer">CONQ +1</button><button class="hold scoreAdd" data-side="opponent" data-source="hold">HOLD +1</button><button class="effect scoreEffect" data-side="opponent">EFFECT</button></div></div>
     </div>
     <div class="undo-bar"><div class="small">${last?`Last: ${last.side==='me'?'You':'Opponent'} ${last.amount>0?'+':''}${last.amount} • ${titleCase(last.source)}`:'No point events yet'}</div><button id="undoPoint" ${last?'':'disabled'}>Undo</button></div>
+    <div class="btn-row" style="margin-top:9px">${rec.games.length?`<button class="btn small ghost" id="undoLastGame">Undo Last Game Result</button>`:''}<button class="btn small ghost" id="keepAwake">${state.wakeWanted?'Screen Awake: On':'Keep Screen Awake'}</button></div>
     <div class="section-head"><h3>Who started this game?</h3></div>
     <div class="segmented" id="starterSegment"><button data-starter="me" class="${g.who_started==='me'?'active':''}">Me</button><button data-starter="opponent" class="${g.who_started==='opponent'?'active':''}">Opponent</button><button data-starter="unknown" class="${g.who_started==='unknown'?'active':''}">Unknown</button></div>
     <div class="primary-actions"><button class="btn" id="quickNote">Quick Note</button><button class="btn" id="pauseLive">${s.status==='paused'?'Resume Session':'Pause Session'}</button></div>
@@ -606,7 +607,9 @@ async function renderScorekeeper(el){
   $$('.scoreAdd',el).forEach(b=>b.onclick=()=>addPoint(b.dataset.side,b.dataset.source,1));
   $$('.scoreEffect',el).forEach(b=>b.onclick=()=>openEffectModal(b.dataset.side));
   $('#undoPoint').onclick=undoPoint;
-  $$('#starterSegment button',el).forEach(b=>b.onclick=()=>setStarter(b.dataset.starter));
+  if($('#undoLastGame')) $('#undoLastGame').onclick=()=>undoLastGameResult(m.id);
+  $('#keepAwake').onclick=toggleKeepAwake;
+  $('#starterSegment button',el).forEach(b=>b.onclick=()=>setStarter(b.dataset.starter));
   $('#quickNote').onclick=openQuickNote; $('#pauseLive').onclick=togglePause;
   $('#gameWin').onclick=()=>endGame('me'); $('#gameLoss').onclick=()=>endGame('opponent');
   if($('#finishFree')) $('#finishFree').onclick=()=>completeFreePlayMatch();
@@ -614,6 +617,43 @@ async function renderScorekeeper(el){
   if(s.status==='paused') $$('.scoreAdd,.scoreEffect,#gameWin,#gameLoss',el).forEach(b=>b.disabled=true);
 }
 
+async function requestWakeLock(){
+  if(!('wakeLock' in navigator)) return false;
+  try{
+    if(!state.wakeLock) state.wakeLock=await navigator.wakeLock.request('screen');
+    state.wakeLock.addEventListener?.('release',()=>{state.wakeLock=null;},{once:true});
+    return true;
+  }catch(err){console.warn('Wake lock unavailable',err);return false;}
+}
+
+async function toggleKeepAwake(){
+  if(!('wakeLock' in navigator)) return toast('Screen Wake Lock is not supported by this browser.');
+  state.wakeWanted=!state.wakeWanted;
+  await setMeta('keep_awake',state.wakeWanted);
+  if(state.wakeWanted){
+    const ok=await requestWakeLock(); if(!ok){state.wakeWanted=false;await setMeta('keep_awake',false);return toast('Could not keep the screen awake.');}
+    toast('Screen will stay awake during live scoring.');
+  }else{
+    if(state.wakeLock){try{await state.wakeLock.release();}catch{}state.wakeLock=null;}
+    toast('Screen wake lock off.');
+  }
+  renderPlay();
+}
+
+async function undoLastGameResult(matchId){
+  const match=await get('matches',matchId); if(!match)return;
+  const games=(await byIndex('games','match_id',matchId)).sort((a,b)=>a.game_number-b.game_number);
+  const completed=games.filter(g=>g.ended_at); const last=completed.at(-1); if(!last)return toast('No completed game to undo.');
+  const open=games.find(g=>!g.ended_at);
+  if(open && open.id!==last.id){
+    const ev=await byIndex('pointEvents','game_id',open.id);
+    if(ev.length) return toast('Current game already has scoring. Finish or edit from History instead.');
+    await softDelete('games',open.id);
+  }
+  last.winner=null; last.ended_at=null; last.final_my_points=null; last.final_opponent_points=null; await save('games',last);
+  if(match.ended_at){match.ended_at=null;match.result=null;match.active_duration_ms=null;match.free_play_record=null;await save('matches',match);}
+  closeModal(); await refreshActive(); setScreen('play'); toast('Last game result reopened.');
+}
 async function addPoint(side,source,amount,effect_note=''){
   if(!state.activeGame || state.activeSession?.status==='paused') return;
   const e=stampBase({game_id:state.activeGame.id,side,amount:Number(amount),source,effect_note,timestamp:iso()});
