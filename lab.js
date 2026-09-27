@@ -735,3 +735,61 @@ async function enhanceModal(){
     }
   }
 }
+
+async function enhanceLiveScore(){
+  const play=$('#screen-play');if(!play?.classList.contains('active'))return;
+  const sources=(await getMeta('score_sources',scoreDefaults())).filter(s=>!['conquer','hold','effect'].includes(s.id));
+  if(!sources.length)return;
+  const sides=$$('.score-side',play);
+  for(let i=0;i<sides.length;i++){
+    const side=sides[i];if($('.lab-score-more',side))continue;
+    const b=document.createElement('button');b.className='lab-score-more';b.textContent='MORE +';b.type='button';
+    b.onclick=()=>openCustomScoreModal(i===0?'me':'opponent',sources);side.appendChild(b);
+  }
+}
+async function openCustomScoreModal(side,sources){
+  modal((side==='me'?'Your':'Opponent')+' custom points',`
+    <label><span class='label-title'>Source</span><select id='customPointSource'>${sources.map(s=>`<option value='${s.id}'>${esc(s.label)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Points</span><input id='customPointAmount' type='number' min='-20' max='20' value='1'></label>
+    <label><span class='label-title'>Note <span class='muted'>(optional)</span></span><input id='customPointNote'></label>
+    <button class='btn primary full' id='customPointSave' type='button'>Add points</button>`);
+  $('#customPointSave').onclick=async()=>{
+    const ctx=await activeGameContext();if(!ctx.game)return toast('No active game.');
+    const amount=Number($('#customPointAmount').value);if(!Number.isFinite(amount)||amount===0)return toast('Enter a non-zero amount.');
+    await save('pointEvents',stampBase({game_id:ctx.game.id,side,amount,source:$('#customPointSource').value,effect_note:$('#customPointNote').value.trim(),timestamp:iso()}));
+    closeModal();document.querySelector('[data-nav="play"]')?.click();
+  };
+}
+async function sessionSummaryText(sessionId){
+  const session=await get('sessions',sessionId),{deckMap,legendMap}=await maps();
+  const matches=(await byIndex('matches','session_id',sessionId)).filter(m=>m.ended_at).sort((a,b)=>ms(a.started_at)-ms(b.started_at)),rec=recordFor(matches);
+  const ids=new Set(matches.map(m=>m.id)),games=(await all('games')).filter(g=>ids.has(g.match_id)&&g.ended_at),gw=games.filter(g=>g.winner==='me').length;
+  const decks=[...new Set(matches.map(m=>deckMap[m.my_deck_id]?.name).filter(Boolean))],opps=[...new Set(matches.map(m=>legendMap[m.opponent_legend_id]?.name).filter(Boolean))];
+  return `RiftMastery Session
+${session.event_name||title(session.context)}
+${fmtDate(session.started_at)}
+Active time: ${fmtHours(session.active_play_ms||0)}
+Match record: ${rec.w}-${rec.l} (n=${rec.n})
+Game record: ${gw}-${games.length-gw} (n=${games.length})
+Decks: ${decks.join(', ')||'—'}
+Opponents: ${opps.join(', ')||'—'}`;
+}
+async function enhanceSessionSummaryShare(){
+  const d=$('#modal');if(!d?.open||$('#modalTitle')?.textContent!=='Session summary')return;
+  const body=$('#modalBody');if(!body||$('#labShareSummary',body))return;
+  const sessions=(await all('sessions')).filter(s=>s.status==='completed').sort((a,b)=>ms(b.ended_at)-ms(a.ended_at)),session=sessions[0];if(!session)return;
+  const row=document.createElement('div');row.id='labShareSummary';row.className='btn-row';row.style.marginTop='10px';row.innerHTML="<button class='btn' id='labShareText' type='button'>Share Text</button><button class='btn' id='labDownloadSummary' type='button'>Save Summary Image</button>";body.appendChild(row);
+  $('#labShareText',body).onclick=async()=>copyOrShare(await sessionSummaryText(session.id),'RiftMastery session');
+  $('#labDownloadSummary',body).onclick=()=>downloadSessionImage(session.id);
+}
+async function downloadSessionImage(sessionId){
+  const text=await sessionSummaryText(sessionId),canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;const ctx=canvas.getContext('2d');
+  ctx.fillStyle='#0b0d10';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#85d7ff';ctx.font='bold 52px system-ui';ctx.fillText('RIFTMASTERY',70,100);ctx.fillStyle='#f4f6f8';ctx.font='38px system-ui';
+  let y=190;
+  for(const raw of text.split('\n').slice(1)){
+    const words=raw.split(' ');let line='';
+    for(const word of words){const test=line?line+' '+word:word;if(ctx.measureText(test).width>930){ctx.fillText(line,70,y);y+=58;line=word;}else line=test;}
+    if(line){ctx.fillText(line,70,y);y+=58;}y+=18;
+  }
+  const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(blob)downloadBlob(blob,'riftmastery-session.png');
+}
