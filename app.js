@@ -160,15 +160,104 @@ async function renderDecks(){
   const {legends,decks,legendMap}=await lookups();
   const activeDecks=decks.filter(d=>!d.archived).sort((a,b)=>(legendMap[a.legend_id]?.name||'').localeCompare(legendMap[b.legend_id]?.name||'')||a.name.localeCompare(b.name));
   el.innerHTML=`
-    <div class="section-head"><div><h2>Your decks</h2><div class="sub">Your deck determines your Legend in every match.</div></div><button class="btn small primary" id="newDeck">+ Deck</button></div>
+    <div class="section-head"><div><h2>Your decks</h2><div class="sub">Your deck determines your Legend in every match.</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost" id="importDeck">Import</button><button class="btn small primary" id="newDeck">+ Deck</button></div></div>
     <div class="list">${activeDecks.length?activeDecks.map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)} ${d.version?`<span class="chip">${esc(d.version)}</span>`:''}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.notes?` • ${esc(d.notes)}`:''}</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost deckEdit" data-id="${d.id}">Edit</button><button class="btn small deckVersion" data-id="${d.id}">New version</button></div></div>`).join(''):`<div class="empty">No decks yet. Add the deck you are currently testing or playing.</div>`}</div>
     ${decks.some(d=>d.archived)?`<div class="section-head"><h3>Archived</h3></div><div class="list">${decks.filter(d=>d.archived).map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class="btn small ghost deckRestore" data-id="${d.id}">Restore</button></div>`).join('')}</div>`:''}`;
+  $('#importDeck').onclick=()=>openDeckImportModal();
   $('#newDeck').onclick=()=>openDeckModal();
   $$('.deckEdit',el).forEach(b=>b.onclick=()=>openDeckModal(b.dataset.id));
   $$('.deckVersion',el).forEach(b=>b.onclick=()=>openDeckVersionModal(b.dataset.id));
   $$('.deckRestore',el).forEach(b=>b.onclick=async()=>{ const d=await get('decks',b.dataset.id); d.archived=false; await save('decks',d); renderDecks(); });
 }
 
+function detectLegendFromImportedText(text, legends){
+  const hay=(text||'').toLowerCase();
+  const matches=legends.filter(l=>!l.archived && hay.includes(l.name.toLowerCase())).sort((a,b)=>b.name.length-a.name.length);
+  return matches[0]?.id||'';
+}
+
+async function openDeckImportModal(){
+  const data=await lookups();
+  const legends=data.legends;
+  const activeLegends=legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  let options='<option value="">Select Legend…</option>';
+  for(const l of activeLegends) options+='<option value="'+l.id+'">'+esc(l.name)+'</option>';
+  const html=
+    '<label><span class="label-title">Import from</span><select id="deckImportSource">'+
+      '<option value="riftatlas">Rift Atlas</option>'+
+      '<option value="riftdecks">RiftDecks</option>'+
+      '<option value="piltover">Piltover Archive</option>'+
+    '</select></label>'+
+    '<div class="card" id="deckImportHelp" style="margin-bottom:12px"></div>'+
+    '<label><span class="label-title">Deck export / code</span><textarea id="deckImportRaw" rows="13" placeholder="Paste the deck list or deck code from the selected site."></textarea></label>'+
+    '<label><span class="label-title">Deck name</span><input id="deckImportName" placeholder="e.g. Radiance Control"></label>'+
+    '<label><span class="label-title">Version <span class="muted">(optional)</span></span><input id="deckImportVersion" placeholder="e.g. v1, Sep 27"></label>'+
+    '<label><span class="label-title">My Legend</span><select id="deckImportLegend">'+options+'</select></label>'+
+    '<div class="small muted" id="deckImportStatus"></div>'+
+    '<button type="button" class="btn primary full" id="doDeckImport">Import deck</button>';
+  showModal('Import deck',html);
+
+  const renderHelp=()=>{
+    const source=$('#deckImportSource').value;
+    const help={
+      riftatlas:'Paste the exported deck text or compact deck code from Rift Atlas.',
+      riftdecks:'Use RiftDecks → Text Decklist / Export this Deck, then paste the exported text here.',
+      piltover:'Paste a Piltover Archive text export, deck code, or a deckbuilder link containing ?code=…'
+    };
+    $('#deckImportHelp').innerHTML='<div class="small">'+help[source]+'</div>';
+  };
+  renderHelp();
+  $('#deckImportSource').onchange=renderHelp;
+
+  $('#deckImportRaw').oninput=()=>{
+    const raw=$('#deckImportRaw').value;
+    const detected=detectLegendFromImportedText(raw,legends);
+    if(detected && !$('#deckImportLegend').value){
+      $('#deckImportLegend').value=detected;
+      $('#deckImportStatus').textContent='Legend detected from the pasted deck list.';
+    }
+  };
+
+  $('#doDeckImport').onclick=async()=>{
+    const source=$('#deckImportSource').value;
+    const raw=$('#deckImportRaw').value.trim();
+    const name=$('#deckImportName').value.trim();
+    let legendId=$('#deckImportLegend').value;
+    if(!raw) return toast('Paste a deck export or deck code.');
+    if(!name) return toast('Give the imported deck a name.');
+    if(!legendId) legendId=detectLegendFromImportedText(raw,legends);
+    if(!legendId) return toast('Choose the Legend for this deck.');
+
+    let deckList=raw;
+    let sourceUrl='';
+    if(/^https?:\/\//i.test(raw)){
+      sourceUrl=raw;
+      try{
+        const u=new URL(raw);
+        const code=u.searchParams.get('code');
+        if(code) deckList=code;
+        else return toast('That link has no embedded deck code. Use the site export and paste the text here.');
+      }catch{ return toast('That link could not be read.'); }
+    }
+
+    const row=stampBase({
+      legend_id:legendId,
+      name:name,
+      version:$('#deckImportVersion').value.trim(),
+      deck_list:deckList,
+      notes:'',
+      archived:false,
+      import_source:source,
+      import_raw:raw,
+      import_url:sourceUrl
+    });
+    await save('decks',row);
+    await setMeta('last_deck_id',row.id);
+    closeModal();
+    renderDecks();
+    toast('Deck imported from '+(source==='riftatlas'?'Rift Atlas':source==='riftdecks'?'RiftDecks':'Piltover Archive')+'.');
+  };
+}
 async function openDeckModal(id=null){
   const {legends}=await lookups();
   const deck=id?await get('decks',id):null;
