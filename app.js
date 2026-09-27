@@ -621,7 +621,7 @@ async function renderScorekeeper(el){
   $('#undoPoint').onclick=undoPoint;
   if($('#undoLastGame')) $('#undoLastGame').onclick=()=>undoLastGameResult(m.id);
   $('#keepAwake').onclick=toggleKeepAwake;
-  $('#starterSegment button',el).forEach(b=>b.onclick=()=>setStarter(b.dataset.starter));
+  $$('#starterSegment button',el).forEach(b=>b.onclick=()=>setStarter(b.dataset.starter));
   $('#quickNote').onclick=openQuickNote; $('#pauseLive').onclick=togglePause;
   $('#gameWin').onclick=()=>endGame('me'); $('#gameLoss').onclick=()=>endGame('opponent');
   if($('#finishFree')) $('#finishFree').onclick=()=>completeFreePlayMatch();
