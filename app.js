@@ -744,30 +744,40 @@ async function renderOnlineSession(el){
 }
 
 async function openOnlineMatchModal(session=null){
-  const {decks,legends,legendMap}=await lookups(); const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
-  const lastDeck=await getMeta('last_deck_id',''), lastOpp=await getMeta('last_opp_legend_id','');
-  showModal(session?'Log online match':'Log online match',`
-    ${session?'':`<label><span class="label-title">Context</span><select id="onlineContext"><option value="online_ranked">Online Ranked</option><option value="testing">Testing</option><option value="tournament">Tournament</option><option value="casual">Casual</option></select></label>`}
-    <label><span class="label-title">My deck</span><select id="onlineDeck">${activeDecks.map(d=>`<option value="${d.id}" ${d.id===lastDeck?'selected':''}>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
-    <label><span class="label-title">Opponent Legend</span><select id="onlineOpp">${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${l.id}" ${l.id===lastOpp?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
-    <label><span class="label-title">Format</span><select id="onlineFormat"><option>BO1</option><option selected>BO3</option><option>BO5</option><option value="FREE_PLAY">Free Play</option></select></label>
-    <div class="grid-2"><label><span class="label-title">Games won</span><input id="onlineGW" type="number" min="0" max="20" value="2"></label><label><span class="label-title">Games lost</span><input id="onlineGL" type="number" min="0" max="20" value="1"></label></div>
-    ${session?'':`<label><span class="label-title">Approx. match duration (minutes) <span class="muted">optional</span></span><input id="onlineDuration" type="number" min="0" max="600" placeholder="e.g. 35"></label>`}
-    <label><span class="label-title">Notes <span class="muted">optional</span></span><textarea id="onlineMatchNotes"></textarea></label>
-    <button type="button" class="btn primary full" id="saveOnlineMatch">Save match</button>`);
+  const {decks,legends,legendMap}=await lookups();
+  const lastDeck=await getMeta('last_deck_id',''), lastOpp=await getMeta('last_opp_legend_id',''), lastFormat=await getMeta('last_format','BO3');
+  const recentOpps=await getMeta('recent_opponents',[]);
+  const activeDecks=orderDeckChoices(decks.filter(d=>!d.deleted_at&&!d.archived),lastDeck); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
+  const oppChoices=orderOpponentChoices(legends.filter(l=>!l.archived),lastOpp,recentOpps);
+  const formats=optionOrder(['BO1','BO3','BO5','FREE_PLAY'],lastFormat);
+  const lastContext=await getMeta('last_session_context_online','online_ranked');
+  const contexts=optionOrder(['online_ranked','testing','tournament','casual'],lastContext);
+  showModal('Log online match',`
+    ${session?'':`<label><span class='label-title'>Context</span><select id='onlineContext'>${contexts.map(x=>`<option value='${x}'>${titleCase(x)}</option>`).join('')}</select></label><label><span class='label-title'>Date & time</span><input id='onlineDate' type='datetime-local' value='${toLocalInput(new Date())}'></label>`}
+    <label><span class='label-title'>My deck</span><select id='onlineDeck'>${activeDecks.map(d=>`<option value='${d.id}'>${d.pinned?'★ ':''}${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent Legend</span><select id='onlineOpp'>${oppChoices.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Format</span><select id='onlineFormat'>${formats.map(x=>`<option value='${x}'>${x==='FREE_PLAY'?'Free Play':x}</option>`).join('')}</select></label>
+    <div class='grid-2'><label><span class='label-title'>Games won</span><input id='onlineGW' type='number' min='0' max='20' value='2'></label><label><span class='label-title'>Games lost</span><input id='onlineGL' type='number' min='0' max='20' value='1'></label></div>
+    ${session?'':`<label><span class='label-title'>Approx. match duration (minutes) <span class='muted'>optional</span></span><input id='onlineDuration' type='number' min='0' max='600' value='35'></label>`}
+    <label><span class='label-title'>Notes <span class='muted'>optional</span></span><textarea id='onlineMatchNotes'></textarea></label>
+    <button type='button' class='btn primary full' id='saveOnlineMatch'>Save match</button>`);
   $('#saveOnlineMatch').onclick=async()=>{
     const format=$('#onlineFormat').value; const gw=Math.max(0,parseInt($('#onlineGW').value||'0',10)); const gl=Math.max(0,parseInt($('#onlineGL').value||'0',10)); if(gw===gl && format!=='FREE_PLAY') return toast('Formal match result cannot be tied.');
-    let sess=session;
-    const durationMin=session?null:Math.max(0,parseInt($('#onlineDuration')?.value||'0',10));
-    if(!sess){ const start=new Date(Date.now()-durationMin*60000).toISOString(); sess=stampBase({mode:'online',context:$('#onlineContext').value,event_name:'',started_at:start,ended_at:iso(),pause_intervals:[],paused_at:null,status:'completed',active_play_ms:durationMin*60000}); await save('sessions',sess); }
-    const started=session?iso():sess.started_at; const ended=iso();
-    const match=stampBase({session_id:sess.id,mode:'online',context:sess.context,my_deck_id:$('#onlineDeck').value,opponent_legend_id:$('#onlineOpp').value,opponent_build:'',format,started_at:started,ended_at:ended,result:format==='FREE_PLAY'?null:(gw>gl?'me':'opponent'),free_play_record:format==='FREE_PLAY'?`${gw}-${gl}`:null,notes:$('#onlineMatchNotes').value.trim(),active_duration_ms:session?0:(durationMin*60000)}); await save('matches',match);
+    let sess=session; let started=iso(), ended=iso(), durationMin=0;
+    if(!sess){
+      durationMin=Math.max(0,parseInt($('#onlineDuration')?.value||'0',10));
+      const chosen=new Date($('#onlineDate').value); if(Number.isNaN(chosen.getTime()))return toast('Choose a valid date.');
+      started=chosen.toISOString(); ended=new Date(chosen.getTime()+durationMin*60000).toISOString();
+      const context=$('#onlineContext').value; sess=stampBase({mode:'online',context,event_name:'',started_at:started,ended_at:ended,pause_intervals:[],paused_at:null,status:'completed',active_play_ms:durationMin*60000}); await save('sessions',sess); await setMeta('last_session_context_online',context);
+    }
+    const deckId=$('#onlineDeck').value, opp=$('#onlineOpp').value;
+    const match=stampBase({session_id:sess.id,mode:'online',context:sess.context,my_deck_id:deckId,opponent_legend_id:opp,opponent_build:'',format,started_at:started,ended_at:ended,result:format==='FREE_PLAY'?null:(gw>gl?'me':'opponent'),free_play_record:format==='FREE_PLAY'?`${gw}-${gl}`:null,notes:$('#onlineMatchNotes').value.trim(),active_duration_ms:session?0:(durationMin*60000)}); await save('matches',match);
     let n=1; for(let i=0;i<gw;i++) await save('games',stampBase({match_id:match.id,game_number:n++,winner:'me',who_started:'unknown',started_at:started,ended_at:ended,final_my_points:null,final_opponent_points:null})); for(let i=0;i<gl;i++) await save('games',stampBase({match_id:match.id,game_number:n++,winner:'opponent',who_started:'unknown',started_at:started,ended_at:ended,final_my_points:null,final_opponent_points:null}));
-    if(match.notes) await save('notes',stampBase({session_id:sess.id,match_id:match.id,game_id:null,text:match.notes,timestamp:iso()}));
-    await Promise.all([setMeta('last_deck_id',match.my_deck_id),setMeta('last_opp_legend_id',match.opponent_legend_id)]); closeModal(); await refreshActive(); if(state.screen==='play')renderPlay(); toast('Online match saved.');
+    if(match.notes) await save('notes',stampBase({session_id:sess.id,match_id:match.id,game_id:null,text:match.notes,timestamp:started}));
+    const deck=await get('decks',deckId);if(deck){deck.last_used_at=started;await save('decks',deck);}
+    await Promise.all([setMeta('last_deck_id',deckId),setMeta('last_opp_legend_id',opp),setMeta('last_format',format),updateRecentOpponent(opp)]); closeModal(); await refreshActive(); if(state.screen==='play')renderPlay(); toast('Online match saved.');
   };
 }
-
 async function renderHistory(){
   const el=$('#screen-history'); const {legends,decks,legendMap,deckMap}=await lookups(); const sessions=await all('sessions'); const sessionMap=Object.fromEntries(sessions.map(s=>[s.id,s]));
   const f=state.historyFilters;
