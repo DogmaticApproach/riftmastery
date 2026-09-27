@@ -485,16 +485,46 @@ async function renderToolsTab(){
       <div class='lab-title'>Global Search</div><div class='lab-meta'>Search decks, notes, opponents, events, and testing blocks.</div>
       <div class='btn-row' style='margin-top:9px'><input id='globalSearch' placeholder='Search RiftMastery'><button class='btn primary' id='globalSearchGo' type='button'>Search</button></div>
     </div>
+    <div class='lab-card'><div class='lab-title'>ChatGPT Analysis Brief</div><div class='lab-meta'>Build a structured snapshot of your recent development data without paying for an in-app AI API.</div><button class='btn full' id='copyAnalysisBrief' type='button' style='margin-top:9px'>Copy analysis brief</button></div>
     <div class='lab-card'><div class='lab-title'>Old Match Import</div><div class='lab-meta'>Import a RiftMastery-format CSV or a CSV with matching column names.</div><button class='btn full' id='importMatchCsv' type='button' style='margin-top:9px'>Import match CSV</button></div>
     <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Scoring Sources</div><div class='lab-meta'>Conquer / Hold / Effect stay built in. Add extra labels for special scoring.</div></div><button class='btn small primary' id='addScoreSource' type='button'>+ Source</button></div><div class='lab-wrap' style='margin-top:9px'>${scoreSources.map(s=>`<span class='lab-chip'>${esc(s.label)}${['conquer','hold','effect'].includes(s.id)?'':` <button class='link-btn removeScoreSource' data-id='${s.id}' type='button'>×</button>`}</span>`).join('')}</div></div>
     <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Review Tags</div><div class='lab-meta'>Tags feed the recurring-pattern tracker.</div></div><button class='btn small primary' id='addLeakTag' type='button'>+ Tag</button></div><div class='lab-wrap' style='margin-top:9px'>${leakTags.map(t=>`<span class='lab-chip'>${esc(t)}</span>`).join('')}</div></div>
   `;
   $('#globalSearchGo').onclick=()=>openGlobalSearch($('#globalSearch').value);
   $('#globalSearch').onkeydown=e=>{if(e.key==='Enter')openGlobalSearch(e.target.value);};
+  $('#copyAnalysisBrief').onclick=copyDevelopmentAnalysisBrief;
   $('#importMatchCsv').onclick=importMatchCsv;
   $('#addScoreSource').onclick=openScoreSourceModal;
   $$('.removeScoreSource',p).forEach(b=>b.onclick=()=>removeScoreSource(b.dataset.id));
   $('#addLeakTag').onclick=openLeakTagModal;
+}
+
+async function copyDevelopmentAnalysisBrief(){
+  const {deckMap,legendMap}=await maps();
+  const matches=(await all('matches')).filter(m=>m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,50);
+  const rec=recordFor(matches),leaks=await leakCountsForMatches(matches.map(m=>m.id));
+  const goals=(await all('goals')).filter(g=>g.status==='active');
+  const experiments=(await all('experiments')).filter(e=>e.status==='active');
+  const notes=(await all('matchupNotes')).filter(n=>n.favorite||Number(n.confidence)>0);
+  const byDeck={};
+  for(const m of matches){const d=deckMap[m.my_deck_id],key=d?(d.name+' '+(d.version||'')):'Unknown';byDeck[key]=byDeck[key]||[];byDeck[key].push(m);}
+  const lines=[
+    'RiftMastery Development Analysis Brief',
+    'Recent formal record: '+rec.w+'-'+rec.l+' across '+rec.n+' matches',
+    '',
+    'Recent deck samples:'
+  ];
+  for(const [name,rows] of Object.entries(byDeck)){const r=recordFor(rows);lines.push('- '+name+': '+r.w+'-'+r.l+' (n='+r.n+')');}
+  lines.push('','Recurring review patterns:');
+  if(leaks.length)for(const x of leaks.slice(0,8))lines.push('- '+x.tag+': '+x.count);else lines.push('- None tagged/inferred yet');
+  lines.push('','Active goals:');
+  if(goals.length)for(const g of goals)lines.push('- '+g.label+' — target '+g.target_value+' '+g.goal_type);else lines.push('- None');
+  lines.push('','Active deck experiments:');
+  if(experiments.length)for(const e of experiments)lines.push('- '+e.name+': '+(deckMap[e.baseline_deck_id]?.name||'baseline')+' vs '+(deckMap[e.variant_deck_id]?.name||'variant')+' — '+(e.hypothesis||'no hypothesis noted'));else lines.push('- None');
+  lines.push('','Saved matchup confidence:');
+  if(notes.length)for(const n of notes)lines.push('- '+(legendMap[n.my_legend_id]?.name||'Mine')+' vs '+(legendMap[n.opponent_legend_id]?.name||'Opp')+': '+(n.confidence||0)+'/5');else lines.push('- None');
+  lines.push('','Please identify repeated development patterns, questions worth investigating, and drills to test next. Do not assume correlation proves causation.');
+  await copyOrShare(lines.join('\n'),'RiftMastery analysis brief');
 }
 async function openGlobalSearch(query){
   const q=(query||'').trim().toLowerCase();if(!q)return toast('Enter something to search.');
