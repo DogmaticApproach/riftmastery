@@ -793,3 +793,65 @@ async function downloadSessionImage(sessionId){
   }
   const blob=await new Promise(resolve=>canvas.toBlob(resolve,'image/png'));if(blob)downloadBlob(blob,'riftmastery-session.png');
 }
+
+async function assignPendingOnlineBlock(){
+  const pending=await getMeta('pending_online_block',null);if(!pending)return;
+  const matches=(await all('matches')).filter(m=>ms(m.created_at||m.started_at)>=pending.at-4000).sort((a,b)=>ms(b.created_at||b.started_at)-ms(a.created_at||a.started_at));
+  const match=matches[0];if(!match)return;
+  if(pending.testing_block_id){
+    const block=await get('testingBlocks',pending.testing_block_id);
+    if(block&&block.deck_id===match.my_deck_id){match.testing_block_id=block.id;await save('matches',match);}
+  }
+  await setMeta('pending_online_block',null);
+}
+async function enhanceOnlineLogModal(){
+  const d=$('#modal');if(!d?.open||$('#modalTitle')?.textContent!=='Log online match')return;
+  const body=$('#modalBody');if(!body||$('#labOnlineExtras',body))return;
+  const deckSel=$('#onlineDeck',body),btn=$('#saveOnlineMatch',body);if(!deckSel||!btn)return;
+  const holder=document.createElement('div');holder.id='labOnlineExtras';
+  const refresh=async()=>{
+    const blocks=(await all('testingBlocks')).filter(b=>b.status==='active'&&b.deck_id===deckSel.value);
+    const tags=await getMeta('leak_tags',leakDefaults());
+    holder.innerHTML=`<label><span class='label-title'>Testing block <span class='muted'>(optional)</span></span><select id='labOnlineBlock'><option value=''>None</option>${blocks.map(b=>`<option value='${b.id}'>${esc(b.name)}</option>`).join('')}</select></label>
+      <div class='small muted' style='margin:8px 0 5px'>Review tags</div><div class='lab-tag-grid' id='labOnlineTags'>${tags.map(t=>`<label><input type='checkbox' value='${esc(t)}'>${esc(t)}</label>`).join('')}</div>`;
+  };
+  await refresh();deckSel.addEventListener('change',refresh);btn.parentNode.insertBefore(holder,btn);
+  btn.addEventListener('click',async()=>{
+    const blockId=$('#labOnlineBlock',body)?.value||'',tags=$$('#labOnlineTags input:checked',body).map(x=>x.value);
+    if(blockId)await setMeta('pending_online_block',{testing_block_id:blockId,at:Date.now()});
+    if(tags.length)await setMeta('pending_leak_tags',{tags,at:Date.now(),session_id:(await latestActiveSession())?.id||null,match_id:null,game_id:null});
+    setTimeout(assignPendingOnlineBlock,900);if(tags.length)setTimeout(resolvePendingLeakTags,1100);
+  },{capture:true});
+}
+async function periodicSync(){
+  try{
+    await assignPendingSessionTags();
+    await assignPendingMatchContext();
+    await assignPendingOnlineBlock();
+    await resolvePendingLeakTags();
+    await syncTournamentAssignments();
+    await syncTestingTargets();
+  }catch(err){console.warn('RiftMastery lab sync',err);}
+}
+async function labTick(){
+  clearTimeout(refreshTimer);
+  refreshTimer=setTimeout(async()=>{
+    try{
+      await ensureLabShell();
+      await enhanceOnlineLogModal();
+      await enhanceSessionSummaryShare();
+    }catch(err){console.warn('RiftMastery lab UI',err);}
+  },80);
+}
+async function labInit(){
+  await seedLab();
+  await periodicSync();
+  await ensureLabShell();
+  await enhanceOnlineLogModal();
+  await enhanceSessionSummaryShare();
+  const observer=new MutationObserver(labTick);
+  observer.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['class','open']});
+  setInterval(periodicSync,1800);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){periodicSync();labTick();}});
+}
+labInit().catch(err=>console.error('RiftMastery Development Lab failed',err));
