@@ -548,3 +548,73 @@ async function openTrainingAreaModal(id=null){
   $('#trainingSave').onclick=async()=>{const name=$('#trainingName').value.trim();if(!name)return toast('Name the training area.');const x=row||stampBase({rating:0,archived:false});x.name=name;x.notes=$('#trainingNotes').value.trim();await save('skillAreas',x);closeModal();renderLab();};
   if(row)$('#trainingArchive').onclick=async()=>{row.archived=true;await save('skillAreas',row);closeModal();renderLab();};
 }
+
+function localDayKey(v){
+  const d=new Date(v),p=n=>String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}`;
+}
+function streakStats(days){
+  const sorted=[...new Set(days)].sort();
+  if(!sorted.length)return {current:0,longest:0};
+  let longest=1,run=1;
+  for(let i=1;i<sorted.length;i++){
+    const prev=new Date(sorted[i-1]+'T12:00:00'),cur=new Date(sorted[i]+'T12:00:00');
+    if((cur-prev)/86400000===1){run++;longest=Math.max(longest,run);}else run=1;
+  }
+  const set=new Set(sorted),today=new Date(),todayKey=localDayKey(today),y=new Date(today);y.setDate(y.getDate()-1);let cursor=set.has(todayKey)?today:set.has(localDayKey(y))?y:null,current=0;
+  while(cursor&&set.has(localDayKey(cursor))){current++;const n=new Date(cursor);n.setDate(n.getDate()-1);cursor=n;}
+  return {current,longest};
+}
+async function calendarHtml(){
+  const sessions=(await all('sessions')).filter(s=>s.started_at);
+  const matches=await all('matches');
+  const now=new Date(),year=now.getFullYear(),month=now.getMonth();
+  const first=new Date(year,month,1),daysIn=new Date(year,month+1,0).getDate(),offset=first.getDay();
+  const byDay={};
+  for(const s of sessions){
+    const d=new Date(s.started_at);if(d.getFullYear()!==year||d.getMonth()!==month)continue;
+    const k=d.getDate();byDay[k]=byDay[k]||{ms:0,matches:0};byDay[k].ms+=s.active_play_ms||0;
+  }
+  for(const m of matches){const d=new Date(m.started_at);if(d.getFullYear()!==year||d.getMonth()!==month)continue;const k=d.getDate();byDay[k]=byDay[k]||{ms:0,matches:0};byDay[k].matches++;}
+  let cells='';for(let i=0;i<offset;i++)cells+="<div class='lab-day' style='opacity:.25'></div>";
+  for(let d=1;d<=daysIn;d++){const x=byDay[d];cells+=`<div class='lab-day ${x?'active':''}'><strong>${d}</strong>${x?`<span>${x.matches}m</span><br><span>${Math.round(x.ms/60000)} min</span>`:''}</div>`;}
+  return `<div class='small muted' style='margin-bottom:6px'>${first.toLocaleString([], {month:'long',year:'numeric'})}</div><div class='lab-calendar'>${cells}</div>`;
+}
+async function enhanceStats(stats){
+  let extra=$('#labStatsExtra',stats);if(!extra){extra=document.createElement('div');extra.id='labStatsExtra';extra.className='lab-shell';stats.appendChild(extra);}
+  const scope=$('#statsScope')?.value||'overall',parts=scope.split(':'),type=parts[0],id=parts[1];
+  const {deckMap,legendMap}=await maps();
+  let matches=(await all('matches')).filter(m=>m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at));
+  if(type==='legend')matches=matches.filter(m=>deckMap[m.my_deck_id]?.legend_id===id);
+  if(type==='deck')matches=matches.filter(m=>m.my_deck_id===id);
+  const formal=matches.filter(m=>m.result==='me'||m.result==='opponent');
+  const matchIds=new Set(matches.map(m=>m.id)),games=(await all('games')).filter(g=>matchIds.has(g.match_id)&&g.ended_at);
+  const first=games.filter(g=>g.who_started==='me'),second=games.filter(g=>g.who_started==='opponent');
+  const trend=n=>{const rows=formal.slice(0,n),w=rows.filter(m=>m.result==='me').length;return {n:rows.length,w,l:rows.length-w};};
+  const t10=trend(10),t25=trend(25),t50=trend(50);
+  const sessions=(await all('sessions')).filter(s=>(s.active_play_ms||0)>0||s.status==='active'),days=sessions.map(s=>localDayKey(s.started_at)),streak=streakStats(days);
+  const leaks=await leakCountsForMatches(matches.map(m=>m.id));
+  let fav='';
+  if(type==='legend'){
+    const notes=(await all('matchupNotes')).filter(n=>n.my_legend_id===id&&n.favorite);
+    if(notes.length)fav=`<div class='section-head'><h3>Favorite Matchups</h3></div><div class='lab-wrap'>${notes.map(n=>`<button class='btn small ghost labFavMu' data-opp='${n.opponent_legend_id}'>${esc(legendMap[n.opponent_legend_id]?.name||'Opponent')} • ${n.confidence||0}/5</button>`).join('')}</div>`;
+  }
+  extra.innerHTML=`
+    <div class='section-head'><h3>Rolling Form</h3><div class='sub'>Recent formal matches</div></div>
+    <div class='lab-trend'>${[[10,t10],[25,t25],[50,t50]].map(([n,x])=>`<div class='lab-mini'><div class='tiny muted'>LAST ${n}</div><div class='big'>${x.w}–${x.l}</div><div class='tiny muted'>${pct(x.w,x.n)} • n=${x.n}</div></div>`).join('')}</div>
+    <div class='section-head'><h3>First / Second</h3><div class='sub'>Game results</div></div>
+    <div class='grid-2'><div class='lab-card'><div class='tiny muted'>GOING FIRST</div><div class='lab-title'>${first.filter(g=>g.winner==='me').length}–${first.filter(g=>g.winner==='opponent').length}</div><div class='lab-meta'>n=${first.length}</div></div><div class='lab-card'><div class='tiny muted'>GOING SECOND</div><div class='lab-title'>${second.filter(g=>g.winner==='me').length}–${second.filter(g=>g.winner==='opponent').length}</div><div class='lab-meta'>n=${second.length}</div></div></div>
+    <div class='section-head'><h3>Development Rhythm</h3></div>
+    <div class='grid-2'><div class='lab-card'><div class='tiny muted'>CURRENT STREAK</div><div class='lab-title'>${streak.current} day${streak.current===1?'':'s'}</div></div><div class='lab-card'><div class='tiny muted'>LONGEST STREAK</div><div class='lab-title'>${streak.longest} day${streak.longest===1?'':'s'}</div></div></div>
+    <div class='section-head'><h3>Calendar</h3></div>${await calendarHtml()}
+    ${fav}
+    <div class='section-head'><h3>Repeated Review Tags</h3></div>${leaks.length?`<div class='lab-wrap'>${leaks.slice(0,8).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>`:`<div class='empty'>No tagged review patterns in this scope yet.</div>`}
+  `;
+  $$('.labFavMu',extra).forEach(b=>b.onclick=()=>openMatchupPage(id,b.dataset.opp));
+  if(type==='legend'){
+    $$('.matrixRow',stats).forEach(row=>{
+      if(row.dataset.labBound)return;row.dataset.labBound='1';
+      row.addEventListener('click',e=>{e.preventDefault();e.stopImmediatePropagation();openMatchupPage(id,row.dataset.opp);},true);
+    });
+  }
+}
