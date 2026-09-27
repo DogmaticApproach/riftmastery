@@ -831,7 +831,7 @@ Active time: ${fmtHours(session.active_play_ms||0)}
 Match record: ${rec.w}-${rec.l} (n=${rec.n})
 Game record: ${gw}-${games.length-gw} (n=${games.length})
 Decks: ${decks.join(', ')||'—'}
-Opponents: ${opps.join(', ')||'—'}`;
+Opponents: ${opps.join(', ')||'—'}\nTags: ${(session.tags||[]).join(', ')||'—'}`;
 }
 async function enhanceSessionSummaryShare(){
   const d=$('#modal');if(!d?.open||$('#modalTitle')?.textContent!=='Session summary')return;
