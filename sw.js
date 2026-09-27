@@ -1,4 +1,4 @@
-const CACHE='riftmastery-v0.3.3';
+const CACHE='riftmastery-v0.3.4';
 const SCOPE=self.registration.scope;
 const INDEX=new URL('./index.html',SCOPE).href;
 const ASSETS=[
