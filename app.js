@@ -204,6 +204,66 @@ async function deleteDeck(id){
     toast('Deck deleted.');
   },'Delete deck');
 }
+async function copyText(text){
+  try{ await navigator.clipboard.writeText(text); toast('Copied to clipboard.'); }
+  catch{
+    showModal('Copy deck list',`<label><span class='label-title'>Select and copy</span><textarea rows='14' readonly id='copyFallback'>${esc(text)}</textarea></label>`);
+    setTimeout(()=>{const t=$('#copyFallback');if(t){t.focus();t.select();}},50);
+  }
+}
+
+function diffDeckLists(previous,current){
+  const clean=t=>(t||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const a=clean(previous), b=clean(current);
+  const count=list=>{const m=new Map();for(const line of list)m.set(line,(m.get(line)||0)+1);return m;};
+  const am=count(a), bm=count(b), added=[], removed=[];
+  for(const [line,n] of bm){const d=n-(am.get(line)||0);for(let i=0;i<d;i++)added.push(line);}
+  for(const [line,n] of am){const d=n-(bm.get(line)||0);for(let i=0;i<d;i++)removed.push(line);}
+  return {added,removed};
+}
+
+async function openDeckViewModal(id){
+  const deck=await get('decks',id); if(!deck)return;
+  const {legendMap}=await lookups();
+  let parent=null; if(deck.parent_deck_id) parent=await get('decks',deck.parent_deck_id);
+  showModal(deck.name+(deck.version?' • '+deck.version:''),`
+    <div class='btn-row' style='margin-bottom:10px'><span class='chip'>${esc(legendMap[deck.legend_id]?.name||'Unknown Legend')}</span>${deck.pinned?`<span class='chip accent'>Pinned</span>`:''}${deck.import_source?`<span class='chip'>Imported: ${esc(titleCase(deck.import_source))}</span>`:''}</div>
+    ${parent?`<div class='small muted' style='margin-bottom:10px'>Version lineage: ${esc(parent.name)} ${esc(parent.version||'previous')} → ${esc(deck.version||'current')}</div>`:''}
+    <label><span class='label-title'>Deck list</span><textarea rows='16' readonly id='viewDeckList'>${esc(deck.deck_list||'No deck list saved.')}</textarea></label>
+    ${deck.notes?`<div class='note'>${esc(deck.notes)}</div>`:''}
+    <div class='btn-row' style='margin-top:10px'><button type='button' class='btn primary' id='copyDeckList'>Copy list</button>${parent?`<button type='button' class='btn' id='comparePrevious'>Compare previous</button>`:''}<button type='button' class='btn ghost' id='editFromView'>Edit</button></div>`);
+  $('#copyDeckList').onclick=()=>copyText(deck.deck_list||'');
+  $('#editFromView').onclick=()=>{closeModal();openDeckModal(id);};
+  if(parent) $('#comparePrevious').onclick=()=>openDeckComparison(parent,deck);
+}
+
+function openDeckComparison(previous,current){
+  const diff=diffDeckLists(previous.deck_list,current.deck_list);
+  showModal('Version comparison',`
+    <p class='small muted'>${esc(previous.name)} ${esc(previous.version||'previous')} → ${esc(current.version||'current')}</p>
+    <div class='grid-2'><div class='card'><div class='strong'>Added</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.added.length?diff.added.map(x=>'+ '+esc(x)).join('\n'):'No added lines'}</div></div><div class='card'><div class='strong'>Removed</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.removed.length?diff.removed.map(x=>'− '+esc(x)).join('\n'):'No removed lines'}</div></div></div>`);
+}
+
+async function toggleDeckPin(id){
+  const deck=await get('decks',id); if(!deck)return;
+  deck.pinned=!deck.pinned; await save('decks',deck); await renderDecks(); toast(deck.pinned?'Deck pinned.':'Deck unpinned.');
+}
+
+async function openDuplicateDeckModal(id){
+  const old=await get('decks',id); if(!old)return;
+  showModal('Duplicate deck',`
+    <p class='small muted'>Create a separate experiment from this list without linking it as the next version.</p>
+    <label><span class='label-title'>Deck name</span><input id='dupDeckName' value='${esc(old.name)} copy'></label>
+    <label><span class='label-title'>Version <span class='muted'>(optional)</span></span><input id='dupDeckVersion' value='${esc(old.version||'')}'></label>
+    <label><span class='label-title'>Deck list</span><textarea id='dupDeckList' rows='12'>${esc(old.deck_list||'')}</textarea></label>
+    <label><span class='label-title'>Notes</span><textarea id='dupDeckNotes'>${esc(old.notes||'')}</textarea></label>
+    <button type='button' class='btn primary full' id='saveDuplicateDeck'>Create duplicate</button>`);
+  $('#saveDuplicateDeck').onclick=async()=>{
+    const name=$('#dupDeckName').value.trim();if(!name)return toast('Give the duplicate a name.');
+    const row=stampBase({name,legend_id:old.legend_id,version:$('#dupDeckVersion').value.trim(),deck_list:$('#dupDeckList').value.trim(),notes:$('#dupDeckNotes').value.trim(),archived:false,pinned:false,forked_from_deck_id:old.id});
+    await save('decks',row);await setMeta('last_deck_id',row.id);closeModal();renderDecks();toast('Deck duplicated.');
+  };
+}
 function detectLegendFromImportedText(text, legends){
   const hay=(text||'').toLowerCase();
   const matches=legends.filter(l=>!l.archived && hay.includes(l.name.toLowerCase())).sort((a,b)=>b.name.length-a.name.length);
