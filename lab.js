@@ -344,3 +344,63 @@ async function openTournamentSummary(id){
     <div class='list'>${pr.matches.length?pr.matches.map(m=>`<div class='list-item'><div><div class='title'>Round ${m.round_number||'?'} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${m.result==='me'?'Win':'Loss'} • ${fmtDate(m.started_at)}</div></div></div>`).join(''):`<div class='empty'>No rounds logged yet.</div>`}</div>
     ${t.notes?`<div class='note' style='margin-top:10px'>${esc(t.notes)}</div>`:''}`);
 }
+
+function deckListDiff(a,b){
+  const clean=t=>(t||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const count=list=>{const m=new Map();for(const line of list)m.set(line,(m.get(line)||0)+1);return m;};
+  const am=count(clean(a)),bm=count(clean(b)),added=[],removed=[];
+  for(const [line,n] of bm){const d=n-(am.get(line)||0);for(let i=0;i<d;i++)added.push(line);}
+  for(const [line,n] of am){const d=n-(bm.get(line)||0);for(let i=0;i<d;i++)removed.push(line);}
+  return {added,removed};
+}
+async function experimentDeckStats(deckId,targetOppId,startAt){
+  let matches=(await all('matches')).filter(m=>m.my_deck_id===deckId&&m.ended_at&&ms(m.started_at)>=ms(startAt));
+  if(targetOppId)matches=matches.filter(m=>m.opponent_legend_id===targetOppId);
+  return {...recordFor(matches),matches};
+}
+async function renderExperimentsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const {deckMap,legendMap}=await maps();
+  const rows=(await all('experiments')).sort((a,b)=>(a.status==='active'?-1:1)-(b.status==='active'?-1:1)||ms(b.created_at)-ms(a.created_at));
+  let html="<div class='lab-row'><div><div class='strong'>Deck Experiments</div><div class='small muted'>Compare samples without treating correlation as causation.</div></div><button class='btn small primary' id='newExperiment'>+ Experiment</button></div>";
+  if(!rows.length)html+="<div class='empty'>No A/B deck experiments yet.</div>";
+  for(const e of rows){
+    const a=await experimentDeckStats(e.baseline_deck_id,e.target_legend_id,e.started_at),b=await experimentDeckStats(e.variant_deck_id,e.target_legend_id,e.started_at);
+    const base=deckMap[e.baseline_deck_id],variant=deckMap[e.variant_deck_id],target=e.target_legend_id?legendMap[e.target_legend_id]?.name:'All matchups';
+    html+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(e.name||'Deck experiment')}</div><div class='lab-meta'>${esc(base?.name||'Baseline')} → ${esc(variant?.name||'Variant')} • ${esc(target||'')}</div></div><span class='lab-chip'>${title(e.status||'active')}</span></div>
+      <div class='lab-grid' style='margin-top:10px'><div class='lab-mini'><div class='tiny muted'>BASELINE</div><div class='big'>${a.w}–${a.l}</div><div class='tiny muted'>n=${a.n}</div></div><div class='lab-mini'><div class='tiny muted'>VARIANT</div><div class='big'>${b.w}–${b.l}</div><div class='tiny muted'>n=${b.n}</div></div></div>
+      ${e.hypothesis?`<div class='small muted' style='margin-top:8px'>Hypothesis: ${esc(e.hypothesis)}</div>`:''}
+      <div class='lab-wrap' style='margin-top:9px'><button class='btn small ghost expCompare' data-id='${e.id}'>Compare lists</button>${e.status==='active'?`<button class='btn small expComplete' data-id='${e.id}'>Complete</button>`:''}</div></div>`;
+  }
+  p.innerHTML=html;
+  $('#newExperiment').onclick=openExperimentModal;
+  $$('.expCompare',p).forEach(b=>b.onclick=()=>openExperimentComparison(b.dataset.id));
+  $$('.expComplete',p).forEach(b=>b.onclick=async()=>{const e=await get('experiments',b.dataset.id);e.status='completed';e.ended_at=iso();await save('experiments',e);renderLab();});
+}
+async function openExperimentModal(){
+  const {decks,legends,legendMap}=await maps(),active=decks.filter(d=>!d.deleted_at&&!d.archived);
+  if(active.length<2)return toast('You need at least two active deck versions/builds.');
+  const opts=active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('');
+  modal('New deck experiment',`
+    <label><span class='label-title'>Experiment name</span><input id='exName' placeholder='e.g. Jayce v3 vs v4'></label>
+    <label><span class='label-title'>Baseline deck</span><select id='exBase'>${opts}</select></label>
+    <label><span class='label-title'>Variant deck</span><select id='exVariant'>${opts}</select></label>
+    <label><span class='label-title'>Target opponent <span class='muted'>(optional)</span></span><select id='exTarget'><option value=''>All matchups</option>${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Hypothesis</span><textarea id='exHypothesis' placeholder='What should this version improve?'></textarea></label>
+    <button class='btn primary full' id='exSave' type='button'>Start experiment</button>`);
+  $('#exSave').onclick=async()=>{
+    const base=$('#exBase').value,variant=$('#exVariant').value;if(base===variant)return toast('Choose two different decks.');
+    const baseDeck=await get('decks',base),variantDeck=await get('decks',variant);
+    if(baseDeck?.legend_id!==variantDeck?.legend_id)return toast('A/B experiments should compare decks from the same Legend.');
+    const row=stampBase({name:$('#exName').value.trim()||'Deck experiment',baseline_deck_id:base,variant_deck_id:variant,target_legend_id:$('#exTarget').value||null,hypothesis:$('#exHypothesis').value.trim(),status:'active',started_at:iso(),ended_at:null});
+    await save('experiments',row);closeModal();renderLab();toast('Experiment started.');
+  };
+}
+async function openExperimentComparison(id){
+  const e=await get('experiments',id);if(!e)return;
+  const {deckMap}=await maps(),a=deckMap[e.baseline_deck_id],b=deckMap[e.variant_deck_id],diff=deckListDiff(a?.deck_list,b?.deck_list);
+  modal('Deck experiment comparison',`
+    <p class='small muted'>${esc(a?.name||'Baseline')} ${esc(a?.version||'')} → ${esc(b?.name||'Variant')} ${esc(b?.version||'')}</p>
+    <div class='lab-grid'><div class='lab-card'><div class='strong'>Added</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.added.length?diff.added.map(x=>'+ '+esc(x)).join('\n'):'No added lines'}</div></div><div class='lab-card'><div class='strong'>Removed</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.removed.length?diff.removed.map(x=>'− '+esc(x)).join('\n'):'No removed lines'}</div></div></div>
+    <div class='small muted' style='margin-top:10px'>Use the samples as evidence to investigate. RiftMastery does not assume the deck change caused a result difference.</div>`);
+}
