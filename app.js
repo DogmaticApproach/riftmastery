@@ -509,17 +509,22 @@ async function renderPlay(){
 
 async function renderSessionHub(el){
   const s=state.activeSession;
-  const sessionMatches=(await byIndex('matches','session_id',s.id)).filter(m=>m.ended_at);
+  const sessionMatches=(await byIndex('matches','session_id',s.id)).filter(m=>m.ended_at).sort((a,b)=>ms(a.started_at)-ms(b.started_at));
+  const lastMatch=sessionMatches.at(-1)||null;
   const {deckMap,legendMap}=await lookups();
   el.innerHTML=`
-    <div class="session-strip"><div><div class="strong">${esc(s.event_name||titleCase(s.context))}</div><div class="small muted">Paper • ${s.status==='paused'?'Paused':'Active'}</div></div><div class="time" id="hubTimer">${fmtDuration(sessionActiveMs(s))}</div></div>
-    <div class="hero"><h2>${sessionMatches.length} match${sessionMatches.length===1?'':'es'} logged</h2><p>Keep the same session running and switch decks freely between matches.</p></div>
-    <div class="primary-actions"><button class="btn primary" id="hubNewMatch">New Match</button><button class="btn" id="hubPause">${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class="btn danger" id="hubEnd">End Session</button></div>
-    <div class="section-head"><h3>This session</h3><div class="sub">${fmtHours(sessionActiveMs(s))} active</div></div>
-    <div class="list">${sessionMatches.length?sessionMatches.slice().reverse().map(m=>`<div class="list-item"><div><div class="title">${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class="meta">${titleCase(m.format)} • ${fmtDuration(m.active_duration_ms||0)}</div></div><span class="chip ${m.result==='me'?'good':m.result==='opponent'?'warn':''}">${m.result==='me'?'W':m.result==='opponent'?'L':'—'}</span></div>`).join(''):`<div class="empty">No completed matches yet.</div>`}</div>`;
-  $('#hubNewMatch').onclick=()=>openMatchSetup(s); $('#hubPause').onclick=togglePause; $('#hubEnd').onclick=endCurrentSession;
+    <div class='session-strip'><div><div class='strong'>${esc(s.event_name||titleCase(s.context))}</div><div class='small muted'>Paper • ${s.status==='paused'?'Paused':'Active'}</div></div><div class='time' id='hubTimer'>${fmtDuration(sessionActiveMs(s))}</div></div>
+    <div class='hero'><h2>${sessionMatches.length} match${sessionMatches.length===1?'':'es'} logged</h2><p>Keep the same session running and switch decks freely between matches.</p></div>
+    <div class='primary-actions'><button class='btn primary' id='hubNewMatch'>New Match</button>${lastMatch?`<div class='btn-row'><button class='btn' id='hubRematch'>Rematch same setup</button><button class='btn ghost' id='hubSameOpp'>Same opponent</button></div>`:''}<button class='btn' id='hubPause'>${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class='btn danger' id='hubEnd'>End Session</button></div>
+    <div class='section-head'><h3>This session</h3><div class='sub'>${fmtHours(sessionActiveMs(s))} active</div></div>
+    <div class='list'>${sessionMatches.length?sessionMatches.slice().reverse().map(m=>`<div class='list-item'><div><div class='title'>${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${titleCase(m.format)} • ${fmtDuration(m.active_duration_ms||0)}</div></div><span class='chip ${m.result==='me'?'good':m.result==='opponent'?'warn':''}'>${m.result==='me'?'W':m.result==='opponent'?'L':'—'}</span></div>`).join(''):`<div class='empty'>No completed matches yet.</div>`}</div>`;
+  $('#hubNewMatch').onclick=()=>openMatchSetup(s);
+  if(lastMatch){
+    $('#hubRematch').onclick=()=>startRematch(s,lastMatch);
+    $('#hubSameOpp').onclick=()=>openMatchSetup(s,{opponent_legend_id:lastMatch.opponent_legend_id,opponent_build:lastMatch.opponent_build||'',format:lastMatch.format});
+  }
+  $('#hubPause').onclick=togglePause; $('#hubEnd').onclick=endCurrentSession;
 }
-
 async function togglePause(){
   const s=await get('sessions',state.activeSession.id); if(!s) return;
   if(s.status==='active'){
