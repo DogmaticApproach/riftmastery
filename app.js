@@ -24,6 +24,7 @@ const state = {
   deckFilters: {query:'',legend:''},
   statsScope: 'overall',
   notesQuery: '',
+  globalSearch: '',
   wakeLock: null,
   wakeWanted: false
 };
