@@ -176,12 +176,12 @@ async function openDeckModal(id=null){
     <label><span class="label-title">Legend</span><select id="deckLegend">${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${l.id}" ${deck?.legend_id===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
     <label><span class="label-title">Deck name</span><input id="deckName" value="${esc(deck?.name||'')}" placeholder="e.g. Radiance Control"></label>
     <label><span class="label-title">Version</span><input id="deckVersion" value="${esc(deck?.version||'')}" placeholder="e.g. v1, LA list, Sep 27"></label>
-    <label><span class="label-title">Notes <span class="muted">(optional)</span></span><textarea id="deckNotes" placeholder="What makes this version different?">${esc(deck?.notes||'')}</textarea></label>
+    <label><span class="label-title">Deck list <span class="muted">(paste the full list)</span></span><textarea id="deckList" rows="12" placeholder="Paste your deck list here exactly as exported from your deck builder or client.">${esc(deck?.deck_list||'')}</textarea></label>\n    <label><span class="label-title">Notes <span class="muted">(optional)</span></span><textarea id="deckNotes" placeholder="What makes this version different?">${esc(deck?.notes||'')}</textarea></label>
     <div class="btn-row">${deck?`<button type="button" class="btn danger" id="archiveDeck">Archive</button>`:''}<button type="button" class="btn primary" id="saveDeck">Save deck</button></div>`);
   $('#saveDeck').onclick=async()=>{
     const name=$('#deckName').value.trim(); if(!name) return toast('Give the deck a name.');
     const row=deck||stampBase({});
-    Object.assign(row,{legend_id:$('#deckLegend').value,name,version:$('#deckVersion').value.trim(),notes:$('#deckNotes').value.trim(),archived:false});
+    Object.assign(row,{legend_id:$('#deckLegend').value,name,version:$('#deckVersion').value.trim(),deck_list:$('#deckList').value.trim(),notes:$('#deckNotes').value.trim(),archived:false});
     await save('decks',row); await setMeta('last_deck_id',row.id); closeModal(); renderDecks(); toast('Deck saved.');
   };
   if(deck) $('#archiveDeck').onclick=()=>confirmModal('Archive deck',`Archive ${deck.name}? Historical matches will stay intact.`,async()=>{deck.archived=true;await save('decks',deck);renderDecks();},'Archive');
@@ -193,11 +193,11 @@ async function openDeckVersionModal(id){
     <p class="small muted">This keeps ${esc(old.name)} ${esc(old.version||'')} frozen in history and creates a separate version for future matches.</p>
     <label><span class="label-title">Deck name</span><input id="newVersionName" value="${esc(old.name)}"></label>
     <label><span class="label-title">New version label</span><input id="newVersionLabel" placeholder="e.g. v2"></label>
-    <label><span class="label-title">Notes</span><textarea id="newVersionNotes">${esc(old.notes||'')}</textarea></label>
+    <label><span class="label-title">Deck list</span><textarea id="newVersionList" rows="12" placeholder="Paste or edit the full list for this version.">${esc(old.deck_list||'')}</textarea></label>\n    <label><span class="label-title">Notes</span><textarea id="newVersionNotes">${esc(old.notes||'')}</textarea></label>
     <button type="button" class="btn primary full" id="createVersion">Create version</button>`);
   $('#createVersion').onclick=async()=>{
     const version=$('#newVersionLabel').value.trim(); if(!version) return toast('Add a version label.');
-    const row=stampBase({name:$('#newVersionName').value.trim()||old.name,legend_id:old.legend_id,version,notes:$('#newVersionNotes').value.trim(),archived:false,parent_deck_id:old.id});
+    const row=stampBase({name:$('#newVersionName').value.trim()||old.name,legend_id:old.legend_id,version,deck_list:$('#newVersionList').value.trim(),notes:$('#newVersionNotes').value.trim(),archived:false,parent_deck_id:old.id});
     await save('decks',row); await setMeta('last_deck_id',row.id); closeModal(); renderDecks(); toast('New version created.');
   };
 }
@@ -529,12 +529,12 @@ async function renderMore(){
     <div class="section-head"><div><h2>Legends</h2><div class="sub">Editable so new releases never require a rebuild.</div></div><button class="btn small primary" id="addLegend">+ Legend</button></div>
     <div class="list">${legends.map(l=>`<div class="list-item"><div><div class="title">${esc(l.name)}</div><div class="meta">${l.archived?'Archived':'Active'}</div></div><button class="btn small ghost legendToggle" data-id="${l.id}">${l.archived?'Restore':'Archive'}</button></div>`).join('')}</div>
     <div class="section-head"><h2>Data</h2></div>
-    <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">V1 is local-first. Export is your manual backup until cloud sync is added.</p></div>
+    <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">V1 is local-first. Export is your manual backup until cloud sync is added.</p></div>
     <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.1 local-first PWA</div></div><span class="chip">Placeholder name</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">This permanently clears the local database on this device.</p><button class="btn danger full" id="resetData">Reset all local data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
-  $('#exportJson').onclick=downloadJSON; $('#exportCsv').onclick=downloadCSV; $('#resetData').onclick=()=>confirmModal('Reset all data','This deletes every local Legend, deck, session, match, game, point event and note from this browser. Export a backup first if you care about the data.',async()=>{await clearAll();await seedLegends();state.activeSession=state.activeMatch=state.activeGame=null;setScreen('home');toast('Local data reset.');},'Delete everything');
+  $('#exportJson').onclick=downloadJSON; $('#importJson').onclick=openImportBackup; $('#exportCsv').onclick=downloadCSV; $('#resetData').onclick=()=>confirmModal('Reset all data','This deletes every local Legend, deck, session, match, game, point event and note from this browser. Export a backup first if you care about the data.',async()=>{await clearAll();await seedLegends();state.activeSession=state.activeMatch=state.activeGame=null;setScreen('home');toast('Local data reset.');},'Delete everything');
 }
 
 function openLegendModal(){
@@ -544,7 +544,40 @@ function openLegendModal(){
 
 function downloadBlob(blob,name){ const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000); }
 async function downloadJSON(){ const data=await exportAll(); downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),`riftmastery-backup-${new Date().toISOString().slice(0,10)}.json`); }
-async function downloadCSV(){
+async function openImportBackup(){
+  const input=document.createElement('input');
+  input.type='file';
+  input.accept='application/json,.json';
+  input.onchange=async()=>{
+    const file=input.files?.[0]; if(!file) return;
+    let payload;
+    try{ payload=JSON.parse(await file.text()); }catch{ return toast('That file is not valid JSON.'); }
+    if(!payload?.data || typeof payload.data!=='object') return toast('Not a RiftMastery backup.');
+    const allowed=['legends','decks','sessions','matches','games','pointEvents','notes','meta'];
+    const counts=allowed.reduce((n,k)=>n+(Array.isArray(payload.data[k])?payload.data[k].length:0),0);
+    showModal('Import backup',
+      '<p class="small muted">Found <strong>'+counts+'</strong> records in <strong>'+esc(file.name)+'</strong>.</p>'+
+      '<p class="small muted"><strong>Merge</strong> keeps your current data and updates matching IDs. <strong>Replace</strong> clears this device first, then restores the backup.</p>'+
+      '<div class="btn-row"><button type="button" class="btn" id="mergeBackup">Merge</button><button type="button" class="btn danger" id="replaceBackup">Replace local data</button></div>'
+    );
+    const runImport=async replace=>{
+      closeModal(); markSaving();
+      try{
+        if(replace) await clearAll();
+        for(const store of allowed){
+          const rows=Array.isArray(payload.data[store])?payload.data[store]:[];
+          for(const row of rows){ if(row?.id) await put(store,row); }
+        }
+        await seedLegends(); await refreshActive(); markSaved(); await renderCurrent();
+        toast(replace?'Backup restored.':'Backup merged.');
+      }catch(err){ console.error(err); markSaved(); toast('Import failed.'); }
+    };
+    $('#mergeBackup').onclick=()=>runImport(false);
+    $('#replaceBackup').onclick=()=>confirmModal('Replace local data','This clears the current RiftMastery database on this device and restores the selected backup.',()=>runImport(true),'Replace & restore');
+  };
+  input.click();
+}
+\nasync function downloadCSV(){
   const {deckMap,legendMap}=await lookups(); const matches=await all('matches'); const games=await all('games'); const rows=[['match_id','date','mode','context','format','my_deck','my_deck_version','my_legend','opponent_legend','result','games_won','games_lost','active_minutes','notes']];
   for(const m of matches){const d=deckMap[m.my_deck_id],gs=games.filter(g=>g.match_id===m.id&&g.ended_at),gw=gs.filter(g=>g.winner==='me').length,gl=gs.filter(g=>g.winner==='opponent').length;rows.push([m.id,m.started_at,m.mode,m.context,m.format,d?.name||'',d?.version||'',legendMap[d?.legend_id]?.name||'',legendMap[m.opponent_legend_id]?.name||'',m.result||'',gw,gl,Math.round((m.active_duration_ms||0)/60000),m.notes||'']);}
   const csv=rows.map(r=>r.map(v=>`"${String(v??'').replaceAll('"','""')}"`).join(',')).join('\n'); downloadBlob(new Blob([csv],{type:'text/csv'}),`riftmastery-matches-${new Date().toISOString().slice(0,10)}.csv`);
