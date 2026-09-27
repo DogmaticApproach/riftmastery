@@ -51,7 +51,12 @@ export function openDB(){
         }
       }
     };
-    req.onsuccess = () => resolve(req.result);
+    req.onsuccess = () => {
+      const db=req.result;
+      db.onversionchange=()=>db.close();
+      resolve(db);
+    };
+    req.onblocked = () => reject(new Error('RiftMastery storage upgrade is blocked by another open RiftMastery tab or Home Screen app. Close other copies, then reload.'));
     req.onerror = () => reject(req.error);
   });
   return dbPromise;
