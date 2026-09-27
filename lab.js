@@ -529,13 +529,13 @@ async function copyDevelopmentAnalysisBrief(){
 async function openGlobalSearch(query){
   const q=(query||'').trim().toLowerCase();if(!q)return toast('Enter something to search.');
   const {deckMap,legendMap}=await maps();
-  const [decks,notes,matches,events,blocks]=await Promise.all([all('decks',{includeDeleted:true}),all('notes'),all('matches'),all('tournaments'),all('testingBlocks')]);
+  const [decks,notes,matches,events,blocks,sessions]=await Promise.all([all('decks',{includeDeleted:true}),all('notes'),all('matches'),all('tournaments'),all('testingBlocks'),all('sessions')]);
   const results=[];
   for(const d of decks)if([d.name,d.version,d.notes,d.deck_list].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Deck',title:d.name+(d.version?' '+d.version:''),meta:legendMap[d.legend_id]?.name||''});
   for(const n of notes)if(String(n.text||'').toLowerCase().includes(q))results.push({type:'Note',title:n.text.slice(0,90),meta:fmtDate(n.timestamp)});
   for(const m of matches){const hay=[deckMap[m.my_deck_id]?.name,legendMap[m.opponent_legend_id]?.name,m.notes,m.context,m.format].join(' ').toLowerCase();if(hay.includes(q))results.push({type:'Match',title:(deckMap[m.my_deck_id]?.name||'Deck')+' vs '+(legendMap[m.opponent_legend_id]?.name||'Opponent'),meta:fmtDate(m.started_at)});}
   for(const e of events)if([e.name,e.notes].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Event',title:e.name,meta:fmtDate(e.event_date)});
-  for(const b of blocks)if([b.name,b.hypothesis].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Testing',title:b.name,meta:title(b.status)});
+  for(const b of blocks)if([b.name,b.hypothesis].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Testing',title:b.name,meta:title(b.status)});\n  for(const s of sessions){const hay=[s.event_name,s.context,...(s.tags||[])].join(' ').toLowerCase();if(hay.includes(q))results.push({type:'Session',title:s.event_name||title(s.context),meta:fmtDate(s.started_at)});}
   modal('Search results',results.length?`<div class='list'>${results.slice(0,100).map(r=>`<div class='list-item'><div><div class='title'>${esc(r.title)}</div><div class='meta'>${esc(r.type)} • ${esc(r.meta)}</div></div></div>`).join('')}</div>`:`<div class='empty'>No results for “${esc(query)}”.</div>`);
 }
 async function openScoreSourceModal(){
