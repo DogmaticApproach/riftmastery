@@ -1,11 +1,13 @@
-const CACHE='riftmastery-v0.2.2';
+const CACHE='riftmastery-v0.3.0';
 const SCOPE=self.registration.scope;
 const INDEX=new URL('./index.html',SCOPE).href;
 const ASSETS=[
   new URL('./',SCOPE).href,
   INDEX,
   new URL('./styles.css',SCOPE).href,
+  new URL('./lab.css',SCOPE).href,
   new URL('./app.js',SCOPE).href,
+  new URL('./lab.js',SCOPE).href,
   new URL('./db.js',SCOPE).href,
   new URL('./manifest.webmanifest',SCOPE).href,
   new URL('./icon.svg',SCOPE).href
