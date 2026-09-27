@@ -176,6 +176,17 @@ function detectLegendFromImportedText(text, legends){
   return matches[0]?.id||'';
 }
 
+async function decodeCompactDeckCodeToText(code){
+  const mod=await import('https://cdn.jsdelivr.net/npm/@piltoverarchive/riftbound-deck-codes@1.5.0/+esm');
+  const decoded=mod.getDeckFromCode(code);
+  const lines=[];
+  if(decoded.chosenChampion){ lines.push('Champion'); lines.push('1 '+decoded.chosenChampion); lines.push(''); }
+  if(decoded.additionalLegends?.length){ lines.push('Additional Legends'); for(const cardCode of decoded.additionalLegends) lines.push('1 '+cardCode); lines.push(''); }
+  lines.push('Main Deck');
+  for(const card of (decoded.mainDeck||[])) lines.push(card.count+' '+card.cardCode);
+  if(decoded.sideboard?.length){ lines.push(''); lines.push('Sideboard'); for(const card of decoded.sideboard) lines.push(card.count+' '+card.cardCode); }
+  return lines.join('\n');
+}
 async function openDeckImportModal(){
   const data=await lookups();
   const legends=data.legends;
@@ -230,14 +241,26 @@ async function openDeckImportModal(){
 
     let deckList=raw;
     let sourceUrl='';
+    let compactCode='';
     if(/^https?:\/\//i.test(raw)){
       sourceUrl=raw;
       try{
         const u=new URL(raw);
-        const code=u.searchParams.get('code');
-        if(code) deckList=code;
-        else return toast('That link has no embedded deck code. Use the site export and paste the text here.');
+        compactCode=(u.searchParams.get('code')||'').trim();
+        if(!compactCode) return toast('That link has no embedded deck code. Use the site export and paste the text here.');
       }catch{ return toast('That link could not be read.'); }
+    }else{
+      const squeezed=raw.replace(/\s+/g,'');
+      if(squeezed.length>30 && /^[A-Z2-7]+$/i.test(squeezed)) compactCode=squeezed.toUpperCase();
+    }
+    if(compactCode){
+      $('#deckImportStatus').textContent='Decoding compact deck code…';
+      try{
+        deckList=await decodeCompactDeckCodeToText(compactCode);
+      }catch(err){
+        console.error(err);
+        return toast('Could not decode that deck code. Paste the text export instead.');
+      }
     }
 
     const row=stampBase({
