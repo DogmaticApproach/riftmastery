@@ -11,8 +11,8 @@
   <link rel="manifest" href="./manifest.webmanifest" />
   <link rel="icon" href="./icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="./icon.svg" />
-  <link rel="stylesheet" href="./styles.css?v=0.4.5" />
-  <link rel="stylesheet" href="./lab.css?v=0.4.5" />
+  <link rel="stylesheet" href="./styles.css?v=0.4.6" />
+  <link rel="stylesheet" href="./lab.css?v=0.4.6" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -56,27 +56,20 @@
   <div id="toast" class="toast" role="status" aria-live="polite"></div>
 
   <script>
-    // Self-heal a stale service-worker cache without touching IndexedDB match data.
-    if (navigator.onLine) {
-      setTimeout(async () => {
-        const home = document.getElementById('screen-home');
-        const hasContent = home && home.textContent.trim().length > 0;
-        const alreadyRecovered = sessionStorage.getItem('riftmastery-boot-recovery') === '1';
-        if (!hasContent && !alreadyRecovered && 'serviceWorker' in navigator) {
-          sessionStorage.setItem('riftmastery-boot-recovery','1');
-          try {
-            const regs = await navigator.serviceWorker.getRegistrations();
-            await Promise.all(regs.map(r => r.unregister()));
-            const keys = await caches.keys();
-            await Promise.all(keys.filter(k => k.startsWith('riftmastery-')).map(k => caches.delete(k)));
-          } catch {}
-          location.reload();
-        }
-      }, 4000);
+    // Cloud-sync rollout: retire older RiftMastery service workers/caches without touching IndexedDB data.
+    if (navigator.onLine && 'serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations()
+        .then(regs => Promise.all(regs.map(r => r.unregister())))
+        .catch(() => {});
+      if ('caches' in window) {
+        caches.keys()
+          .then(keys => Promise.all(keys.filter(k => k.startsWith('riftmastery-')).map(k => caches.delete(k))))
+          .catch(() => {});
+      }
     }
   </script>
-  <script type="module" src="./app.js?v=0.4.5"></script>
-  <script type="module" src="./lab.js?v=0.4.5"></script>
-  <script type="module" src="./sync.js?v=0.4.5"></script>
+  <script type="module" src="./app.js?v=0.4.6"></script>
+  <script type="module" src="./lab.js?v=0.4.6"></script>
+  <script type="module" src="./sync.js?v=0.4.6"></script>
 </body>
 </html>
