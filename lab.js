@@ -278,3 +278,69 @@ Tests next: ${$('#muNext').value.trim()}`;
     await copyOrShare(text,'RiftMastery matchup brief');
   };
 }
+
+async function tournamentProgress(t){
+  const matches=(await all('matches')).filter(m=>m.tournament_id===t.id&&m.ended_at).sort((a,b)=>(a.round_number||999)-(b.round_number||999));
+  const rec=recordFor(matches);return {matches,rec};
+}
+async function renderEventsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const {deckMap,legendMap}=await maps();
+  const events=(await all('tournaments')).sort((a,b)=>ms(b.event_date||b.created_at)-ms(a.event_date||a.created_at));
+  let html="<div class='lab-row'><div><div class='strong'>Tournament Mode</div><div class='small muted'>Rounds, fixed deck, event record, and prep checklist.</div></div><button class='btn small primary' id='newEvent'>+ Event</button></div>";
+  if(!events.length)html+="<div class='empty'>No tournament events yet.</div>";
+  for(const t of events){
+    const pr=await tournamentProgress(t),deck=deckMap[t.deck_id],done=(t.checklist||[]).filter(x=>x.done).length,total=(t.checklist||[]).length;
+    html+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(t.name)}</div><div class='lab-meta'>${fmtDate(t.event_date)} • ${esc(deck?.name||'Deck')} ${esc(deck?.version||'')} • ${esc(t.format||'BO3')}</div></div><span class='lab-chip'>${title(t.status||'planned')}</span></div>
+      <div class='lab-row' style='margin-top:9px'><div class='small'>${pr.rec.w}–${pr.rec.l} • ${pr.matches.length}/${t.total_rounds||'?'} rounds • Prep ${done}/${total}</div><div class='lab-wrap'><button class='btn small ghost eventChecklist' data-id='${t.id}'>Prep</button><button class='btn small ghost eventView' data-id='${t.id}'>View</button>${t.status==='planned'?`<button class='btn small primary eventStart' data-id='${t.id}'>Start Event</button>`:''}${t.status==='active'?`<button class='btn small eventComplete' data-id='${t.id}'>Complete</button>`:''}</div></div></div>`;
+  }
+  p.innerHTML=html;
+  $('#newEvent').onclick=openTournamentModal;
+  $$('.eventChecklist',p).forEach(b=>b.onclick=()=>openTournamentChecklist(b.dataset.id));
+  $$('.eventView',p).forEach(b=>b.onclick=()=>openTournamentSummary(b.dataset.id));
+  $$('.eventStart',p).forEach(b=>b.onclick=()=>startTournament(b.dataset.id));
+  $$('.eventComplete',p).forEach(b=>b.onclick=async()=>{const t=await get('tournaments',b.dataset.id);t.status='completed';t.ended_at=iso();await save('tournaments',t);await setMeta('active_tournament_id','');renderLab();});
+}
+async function openTournamentModal(){
+  const {decks,legendMap}=await maps(),active=decks.filter(d=>!d.deleted_at&&!d.archived);
+  if(!active.length)return toast('Create a deck first.');
+  const date=new Date(),pad=n=>String(n).padStart(2,'0'),dateValue=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+  modal('Create tournament event',`
+    <label><span class='label-title'>Event name</span><input id='evName' placeholder='e.g. Dallas Regional'></label>
+    <label><span class='label-title'>Event date</span><input id='evDate' type='date' value='${dateValue}'></label>
+    <label><span class='label-title'>Registered deck</span><select id='evDeck'>${active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></label>
+    <div class='grid-2'><label><span class='label-title'>Format</span><select id='evFormat'><option>BO3</option><option>BO1</option><option>BO5</option></select></label><label><span class='label-title'>Rounds</span><input id='evRounds' type='number' min='1' max='30' value='7'></label></div>
+    <label><span class='label-title'>Notes <span class='muted'>(optional)</span></span><textarea id='evNotes'></textarea></label>
+    <button class='btn primary full' id='evSave' type='button'>Save event</button>`);
+  $('#evSave').onclick=async()=>{
+    const name=$('#evName').value.trim();if(!name)return toast('Name the event.');
+    const checklist=checklistDefaults().map(text=>({id:crypto.randomUUID(),text,done:false}));
+    const row=stampBase({name,event_date:new Date($('#evDate').value+'T09:00:00').toISOString(),deck_id:$('#evDeck').value,format:$('#evFormat').value,total_rounds:Number($('#evRounds').value)||7,notes:$('#evNotes').value.trim(),status:'planned',checklist,started_at:null,ended_at:null});
+    await save('tournaments',row);closeModal();renderLab();toast('Tournament event saved.');
+  };
+}
+async function openTournamentChecklist(id){
+  const t=await get('tournaments',id);if(!t)return;
+  const items=t.checklist?.length?t.checklist:checklistDefaults().map(text=>({id:crypto.randomUUID(),text,done:false}));
+  modal('Event prep checklist',`
+    <div class='lab-panel'>${items.map((x,i)=>`<label class='lab-card' style='display:flex;align-items:center;gap:9px;margin:0'><input type='checkbox' class='evCheck' data-i='${i}' style='width:auto;min-height:0' ${x.done?'checked':''}><span>${esc(x.text)}</span></label>`).join('')}</div>
+    <button class='btn primary full' style='margin-top:10px' id='evCheckSave' type='button'>Save checklist</button>`);
+  $('#evCheckSave').onclick=async()=>{items.forEach((x,i)=>x.done=$(`.evCheck[data-i='${i}']`)?.checked||false);t.checklist=items;await save('tournaments',t);closeModal();renderLab();};
+}
+async function startTournament(id){
+  const active=await latestActiveSession();if(active)return toast('End the current session before starting a tournament.');
+  const t=await get('tournaments',id);if(!t)return;
+  const deck=await get('decks',t.deck_id);if(!deck||deck.deleted_at||deck.archived)return toast('The registered deck is not active.');
+  t.status='active';t.started_at=iso();await save('tournaments',t);
+  const session=stampBase({mode:'paper',context:'tournament',event_name:t.name,tournament_id:t.id,started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null,tags:['tournament']});
+  await save('sessions',session);await setMeta('active_tournament_id',t.id);toast('Tournament started.');setTimeout(()=>location.reload(),250);
+}
+async function openTournamentSummary(id){
+  const t=await get('tournaments',id);if(!t)return;
+  const pr=await tournamentProgress(t),{deckMap,legendMap}=await maps();
+  modal(t.name,`
+    <div class='grid-2'><div class='card stat-card'><div class='k'>Record</div><div class='v'>${pr.rec.w}–${pr.rec.l}</div></div><div class='card stat-card'><div class='k'>Rounds</div><div class='v'>${pr.matches.length}/${t.total_rounds||'?'}</div></div></div>
+    <p class='small'><strong>Deck:</strong> ${esc(deckMap[t.deck_id]?.name||'Unknown')} ${esc(deckMap[t.deck_id]?.version||'')}</p>
+    <div class='list'>${pr.matches.length?pr.matches.map(m=>`<div class='list-item'><div><div class='title'>Round ${m.round_number||'?'} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${m.result==='me'?'Win':'Loss'} • ${fmtDate(m.started_at)}</div></div></div>`).join(''):`<div class='empty'>No rounds logged yet.</div>`}</div>
+    ${t.notes?`<div class='note' style='margin-top:10px'>${esc(t.notes)}</div>`:''}`);
+}
