@@ -118,6 +118,24 @@ async function sendPasswordReset(){
   if(error)return setAuthMsg(error.message,true);
   setAuthMsg('Password reset email sent.');
 }
+
+function openRecoveryModal(){
+  showModal('Set new password',`
+    <p class="small muted">Choose a new password for your RiftMastery account.</p>
+    <label><span class="label-title">New password</span><input id="cloudNewPassword" type="password" minlength="8" autocomplete="new-password"></label>
+    <label><span class="label-title">Confirm password</span><input id="cloudNewPassword2" type="password" minlength="8" autocomplete="new-password"></label>
+    <button class="btn primary full" id="cloudSavePassword" type="button">Update password</button>
+    <div id="cloudRecoveryMsg" class="small muted" style="margin-top:10px"></div>`);
+  $('#cloudSavePassword').onclick=async()=>{
+    const p1=$('#cloudNewPassword').value,p2=$('#cloudNewPassword2').value,msg=$('#cloudRecoveryMsg');
+    if(p1.length<8){msg.textContent='Use at least 8 characters.';return;}
+    if(p1!==p2){msg.textContent='Passwords do not match.';return;}
+    msg.textContent='Updating password…';
+    const {error}=await supabase.auth.updateUser({password:p1});
+    if(error){msg.textContent=error.message;msg.style.color='var(--warn)';return;}
+    closeModal();toast('Password updated.');
+  };
+}
 function setAuthMsg(msg,isError=false){
   const el=$('#cloudAuthMsg');if(!el)return;
   el.textContent=msg;el.style.color=isError?'var(--warn)':'var(--muted)';
@@ -232,6 +250,9 @@ async function initAuth(){
     currentUser=session?.user||null;
     lastError='';
     renderCloudCard();
+    if(event==='PASSWORD_RECOVERY'){
+      setTimeout(openRecoveryModal,50);
+    }
     if(currentUser){
       await requestPersistentStorage();
       setTimeout(()=>syncNow(),50);
