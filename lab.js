@@ -664,7 +664,12 @@ async function enhanceStats(stats){
     ${fav}
     <div class='section-head'><h3>Repeated Review Tags</h3></div>${leaks.length?`<div class='lab-wrap'>${leaks.slice(0,8).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>`:`<div class='empty'>No tagged review patterns in this scope yet.</div>`}
   `;
-  $$('.labFavMu',extra).forEach(b=>b.onclick=()=>openMatchupPage(id,b.dataset.opp));
+  const gameIds=new Set(games.map(g=>g.id));
+  const pointEvents=(await all('pointEvents')).filter(e=>gameIds.has(e.game_id)&&Number(e.amount)>0);
+  const sources=await getMeta('score_sources',scoreDefaults());
+  const custom=sources.filter(s=>!['conquer','hold','effect'].includes(s.id)).map(s=>({label:s.label,me:pointEvents.filter(e=>e.side==='me'&&e.source===s.id).reduce((a,e)=>a+Number(e.amount),0),opp:pointEvents.filter(e=>e.side==='opponent'&&e.source===s.id).reduce((a,e)=>a+Number(e.amount),0)})).filter(x=>x.me||x.opp);
+  if(custom.length)extra.insertAdjacentHTML('beforeend',`<div class='section-head'><h3>Custom Scoring Sources</h3></div><div class='lab-panel'>${custom.map(x=>`<div class='lab-card lab-row'><span>${esc(x.label)}</span><span class='small muted'>You ${x.me} • Opp ${x.opp}</span></div>`).join('')}</div>`);
+  $('.labFavMu',extra).forEach(b=>b.onclick=()=>openMatchupPage(id,b.dataset.opp));
   if(type==='legend'){
     $$('.matrixRow',stats).forEach(row=>{
       if(row.dataset.labBound)return;row.dataset.labBound='1';
