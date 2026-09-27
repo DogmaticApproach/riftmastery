@@ -163,19 +163,32 @@ async function renderHome(){
 async function renderDecks(){
   const el=$('#screen-decks');
   const {legends,decks,legendMap}=await lookups();
-  const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived).sort((a,b)=>(legendMap[a.legend_id]?.name||'').localeCompare(legendMap[b.legend_id]?.name||'')||a.name.localeCompare(b.name));
+  const q=(state.deckFilters.query||'').toLowerCase().trim();
+  const legendFilter=state.deckFilters.legend||'';
+  const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived).filter(d=>{
+    if(legendFilter && d.legend_id!==legendFilter) return false;
+    if(!q) return true;
+    const hay=[d.name,d.version,d.notes,legendMap[d.legend_id]?.name].filter(Boolean).join(' ').toLowerCase();
+    return hay.includes(q);
+  }).sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||(ms(b.last_used_at)-ms(a.last_used_at))||((legendMap[a.legend_id]?.name||'').localeCompare(legendMap[b.legend_id]?.name||''))||a.name.localeCompare(b.name));
+  const archived=decks.filter(d=>!d.deleted_at&&d.archived);
   el.innerHTML=`
-    <div class="section-head"><div><h2>Your decks</h2><div class="sub">Your deck determines your Legend in every match.</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost" id="importDeck">Import</button><button class="btn small primary" id="newDeck">+ Deck</button></div></div>
-    <div class="list">${activeDecks.length?activeDecks.map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)} ${d.version?`<span class="chip">${esc(d.version)}</span>`:''}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.notes?` • ${esc(d.notes)}`:''}</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost deckEdit" data-id="${d.id}">Edit</button><button class="btn small deckVersion" data-id="${d.id}">New version</button><button class="btn small danger deckDelete" data-id="${d.id}">Delete</button></div></div>`).join(''):`<div class="empty">No decks yet. Add the deck you are currently testing or playing.</div>`}</div>
-    ${decks.some(d=>!d.deleted_at&&d.archived)?`<div class="section-head"><h3>Archived</h3></div><div class="list">${decks.filter(d=>!d.deleted_at&&d.archived).map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class="btn small ghost deckRestore" data-id="${d.id}">Restore</button></div>`).join('')}</div>`:''}`;
+    <div class='section-head'><div><h2>Your decks</h2><div class='sub'>Pin current builds, branch versions, and keep historical results separated.</div></div><div class='btn-row' style='flex:0 0 auto'><button class='btn small ghost' id='importDeck'>Import</button><button class='btn small primary' id='newDeck'>+ Deck</button></div></div>
+    <div class='grid-2' style='margin-bottom:10px'><input id='deckSearch' placeholder='Search decks' value='${esc(state.deckFilters.query||'')}'><select id='deckLegendFilter'><option value=''>All Legends</option>${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value='${l.id}' ${legendFilter===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></div>
+    <div class='list'>${activeDecks.length?activeDecks.map(d=>`<div class='list-item deck-library-item'><div style='min-width:0;flex:1'><div class='title'>${d.pinned?'★ ':''}${esc(d.name)} ${d.version?`<span class='chip'>${esc(d.version)}</span>`:''}</div><div class='meta'>${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.parent_deck_id?' • versioned':''}${d.deck_list?` • ${d.deck_list.split(/\n/).filter(Boolean).length} list lines`:''}${d.notes?` • ${esc(d.notes)}`:''}</div><div class='deck-action-row'><button class='btn small ghost deckView' data-id='${d.id}'>View list</button><button class='btn small ghost deckPin' data-id='${d.id}'>${d.pinned?'Unpin':'Pin'}</button><button class='btn small ghost deckDuplicate' data-id='${d.id}'>Duplicate</button><button class='btn small deckVersion' data-id='${d.id}'>New version</button><button class='btn small ghost deckEdit' data-id='${d.id}'>Edit</button><button class='btn small danger deckDelete' data-id='${d.id}'>Delete</button></div></div></div>`).join(''):`<div class='empty'>No decks match this filter.</div>`}</div>
+    ${archived.length?`<div class='section-head'><h3>Archived</h3></div><div class='list'>${archived.map(d=>`<div class='list-item'><div><div class='title'>${esc(d.name)} ${d.version?`<span class='chip'>${esc(d.version)}</span>`:''}</div><div class='meta'>${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class='btn small ghost deckRestore' data-id='${d.id}'>Restore</button></div>`).join('')}</div>`:''}`;
   $('#importDeck').onclick=()=>openDeckImportModal();
   $('#newDeck').onclick=()=>openDeckModal();
+  $('#deckSearch').oninput=e=>{state.deckFilters.query=e.target.value;clearTimeout(state._deckSearchTimer);state._deckSearchTimer=setTimeout(renderDecks,140);};
+  $('#deckLegendFilter').onchange=e=>{state.deckFilters.legend=e.target.value;renderDecks();};
+  $$('.deckView',el).forEach(b=>b.onclick=()=>openDeckViewModal(b.dataset.id));
+  $$('.deckPin',el).forEach(b=>b.onclick=()=>toggleDeckPin(b.dataset.id));
+  $$('.deckDuplicate',el).forEach(b=>b.onclick=()=>openDuplicateDeckModal(b.dataset.id));
   $$('.deckEdit',el).forEach(b=>b.onclick=()=>openDeckModal(b.dataset.id));
-  $('.deckVersion',el).forEach(b=>b.onclick=()=>openDeckVersionModal(b.dataset.id));
-  $('.deckDelete',el).forEach(b=>b.onclick=()=>deleteDeck(b.dataset.id));
-  $('.deckRestore',el).forEach(b=>b.onclick=async()=>{ const d=await get('decks',b.dataset.id); d.archived=false; await save('decks',d); renderDecks(); });
+  $$('.deckVersion',el).forEach(b=>b.onclick=()=>openDeckVersionModal(b.dataset.id));
+  $$('.deckDelete',el).forEach(b=>b.onclick=()=>deleteDeck(b.dataset.id));
+  $$('.deckRestore',el).forEach(b=>b.onclick=async()=>{ const d=await get('decks',b.dataset.id); d.archived=false; await save('decks',d); renderDecks(); });
 }
-
 async function deleteDeck(id){
   const deck=await get('decks',id);
   if(!deck) return;
