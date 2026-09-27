@@ -854,10 +854,20 @@ async function openMatchDetail(id){
 
 async function openEditMatch(id){
   const m=await get('matches',id); const {legends}=await lookups();
-  showModal('Edit match',`<label><span class="label-title">Opponent Legend</span><select id="editOpp">${legends.map(l=>`<option value="${l.id}" ${l.id===m.opponent_legend_id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label><label><span class="label-title">Opponent build</span><input id="editOppBuild" value="${esc(m.opponent_build||'')}"></label><label><span class="label-title">Notes</span><textarea id="editMatchNotes">${esc(m.notes||'')}</textarea></label><button type="button" class="btn primary full" id="saveMatchEdit">Save changes</button>`);
-  $('#saveMatchEdit').onclick=async()=>{m.opponent_legend_id=$('#editOpp').value;m.opponent_build=$('#editOppBuild').value.trim();m.notes=$('#editMatchNotes').value.trim();await save('matches',m);closeModal();renderHistory();toast('Match updated.');};
+  showModal('Edit match',`
+    <label><span class='label-title'>Date & time</span><input id='editMatchDate' type='datetime-local' value='${toLocalInput(m.started_at)}'></label>
+    <label><span class='label-title'>Opponent Legend</span><select id='editOpp'>${legends.map(l=>`<option value='${l.id}' ${l.id===m.opponent_legend_id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent build</span><input id='editOppBuild' value='${esc(m.opponent_build||'')}'></label>
+    <label><span class='label-title'>Notes</span><textarea id='editMatchNotes'>${esc(m.notes||'')}</textarea></label>
+    <button type='button' class='btn primary full' id='saveMatchEdit'>Save changes</button>`);
+  $('#saveMatchEdit').onclick=async()=>{
+    const oldStart=ms(m.started_at); const chosen=new Date($('#editMatchDate').value); if(Number.isNaN(chosen.getTime()))return toast('Choose a valid date.');
+    const delta=chosen.getTime()-oldStart; m.started_at=chosen.toISOString(); if(m.ended_at)m.ended_at=new Date(ms(m.ended_at)+delta).toISOString();
+    m.opponent_legend_id=$('#editOpp').value;m.opponent_build=$('#editOppBuild').value.trim();m.notes=$('#editMatchNotes').value.trim();await save('matches',m);
+    const games=await byIndex('games','match_id',m.id); for(const g of games){if(g.started_at)g.started_at=new Date(ms(g.started_at)+delta).toISOString();if(g.ended_at)g.ended_at=new Date(ms(g.ended_at)+delta).toISOString();await save('games',g);}
+    closeModal();renderHistory();toast('Match updated.');
+  };
 }
-
 async function renderStats(){
   const el=$('#screen-stats'); const {legends,decks,deckMap,legendMap}=await lookups(); const [matches,games,events,sessions]=await Promise.all([all('matches'),all('games'),all('pointEvents'),all('sessions')]);
   if(state.statsScope==='overall' && !state._statsInit){ state._statsInit=true; }
