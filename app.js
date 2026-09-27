@@ -108,7 +108,7 @@ function setScreen(name){
 $$('.nav-item').forEach(b=>b.addEventListener('click',()=>setScreen(b.dataset.nav)));
 
 async function lookups(){
-  const [legends,decks]=await Promise.all([all('legends'),all('decks')]);
+  const [legends,decks]=await Promise.all([all('legends'),all('decks',{includeDeleted:true})]);
   return {
     legends, decks,
     legendMap:Object.fromEntries(legends.map(x=>[x.id,x])),
@@ -158,18 +158,34 @@ async function renderHome(){
 async function renderDecks(){
   const el=$('#screen-decks');
   const {legends,decks,legendMap}=await lookups();
-  const activeDecks=decks.filter(d=>!d.archived).sort((a,b)=>(legendMap[a.legend_id]?.name||'').localeCompare(legendMap[b.legend_id]?.name||'')||a.name.localeCompare(b.name));
+  const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived).sort((a,b)=>(legendMap[a.legend_id]?.name||'').localeCompare(legendMap[b.legend_id]?.name||'')||a.name.localeCompare(b.name));
   el.innerHTML=`
     <div class="section-head"><div><h2>Your decks</h2><div class="sub">Your deck determines your Legend in every match.</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost" id="importDeck">Import</button><button class="btn small primary" id="newDeck">+ Deck</button></div></div>
-    <div class="list">${activeDecks.length?activeDecks.map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)} ${d.version?`<span class="chip">${esc(d.version)}</span>`:''}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.notes?` • ${esc(d.notes)}`:''}</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost deckEdit" data-id="${d.id}">Edit</button><button class="btn small deckVersion" data-id="${d.id}">New version</button></div></div>`).join(''):`<div class="empty">No decks yet. Add the deck you are currently testing or playing.</div>`}</div>
-    ${decks.some(d=>d.archived)?`<div class="section-head"><h3>Archived</h3></div><div class="list">${decks.filter(d=>d.archived).map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class="btn small ghost deckRestore" data-id="${d.id}">Restore</button></div>`).join('')}</div>`:''}`;
+    <div class="list">${activeDecks.length?activeDecks.map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)} ${d.version?`<span class="chip">${esc(d.version)}</span>`:''}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.notes?` • ${esc(d.notes)}`:''}</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost deckEdit" data-id="${d.id}">Edit</button><button class="btn small deckVersion" data-id="${d.id}">New version</button><button class="btn small danger deckDelete" data-id="${d.id}">Delete</button></div></div>`).join(''):`<div class="empty">No decks yet. Add the deck you are currently testing or playing.</div>`}</div>
+    ${decks.some(d=>!d.deleted_at&&d.archived)?`<div class="section-head"><h3>Archived</h3></div><div class="list">${decks.filter(d=>!d.deleted_at&&d.archived).map(d=>`<div class="list-item"><div><div class="title">${esc(d.name)}</div><div class="meta">${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class="btn small ghost deckRestore" data-id="${d.id}">Restore</button></div>`).join('')}</div>`:''}`;
   $('#importDeck').onclick=()=>openDeckImportModal();
   $('#newDeck').onclick=()=>openDeckModal();
   $$('.deckEdit',el).forEach(b=>b.onclick=()=>openDeckModal(b.dataset.id));
-  $$('.deckVersion',el).forEach(b=>b.onclick=()=>openDeckVersionModal(b.dataset.id));
-  $$('.deckRestore',el).forEach(b=>b.onclick=async()=>{ const d=await get('decks',b.dataset.id); d.archived=false; await save('decks',d); renderDecks(); });
+  $('.deckVersion',el).forEach(b=>b.onclick=()=>openDeckVersionModal(b.dataset.id));
+  $('.deckDelete',el).forEach(b=>b.onclick=()=>deleteDeck(b.dataset.id));
+  $('.deckRestore',el).forEach(b=>b.onclick=async()=>{ const d=await get('decks',b.dataset.id); d.archived=false; await save('decks',d); renderDecks(); });
 }
 
+async function deleteDeck(id){
+  const deck=await get('decks',id);
+  if(!deck) return;
+  if(state.activeMatch?.my_deck_id===id) return toast('Finish or abandon the current match before deleting this deck.');
+  const used=(await all('matches')).filter(m=>m.my_deck_id===id).length;
+  const message=used
+    ? 'Delete '+deck.name+' from your active deck library? Its '+used+' historical match'+(used===1?'':'es')+' will stay intact in History and Stats.'
+    : 'Delete '+deck.name+'? This removes it from your deck library.';
+  confirmModal('Delete deck',message,async()=>{
+    await softDelete('decks',id);
+    if((await getMeta('last_deck_id',''))===id) await setMeta('last_deck_id','');
+    await renderDecks();
+    toast('Deck deleted.');
+  },'Delete deck');
+}
 function detectLegendFromImportedText(text, legends){
   const hay=(text||'').toLowerCase();
   const matches=legends.filter(l=>!l.archived && hay.includes(l.name.toLowerCase())).sort((a,b)=>b.name.length-a.name.length);
@@ -318,7 +334,7 @@ async function openStartSession(mode){
   await refreshActive();
   if(state.activeSession){ toast('Finish the current session first.'); return setScreen('play'); }
   const {decks}=await lookups();
-  if(!decks.filter(d=>!d.archived).length){
+  if(!decks.filter(d=>!d.deleted_at&&!d.archived).length){
     showModal('Create a deck first','<p class="muted small">RiftMastery logs your side by deck, so you need at least one saved deck before starting.</p><button type="button" class="btn primary full" id="makeDeckFirst">Create deck</button>');
     $('#makeDeckFirst').onclick=()=>{closeModal();setScreen('decks');openDeckModal();}; return;
   }
@@ -337,7 +353,7 @@ async function openStartSession(mode){
 async function openMatchSetup(session=state.activeSession){
   if(!session) return;
   const {legends,decks,legendMap}=await lookups();
-  const activeDecks=decks.filter(d=>!d.archived);
+  const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived);
   const lastDeck=await getMeta('last_deck_id',''); const lastOpp=await getMeta('last_opp_legend_id',''); const lastFormat=await getMeta('last_format','BO3');
   showModal('New match',`
     <label><span class="label-title">My deck</span><select id="matchDeck">${activeDecks.map(d=>`<option value="${d.id}" ${d.id===lastDeck?'selected':''}>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
@@ -536,7 +552,7 @@ async function renderOnlineSession(el){
 }
 
 async function openOnlineMatchModal(session=null){
-  const {decks,legends,legendMap}=await lookups(); const activeDecks=decks.filter(d=>!d.archived); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
+  const {decks,legends,legendMap}=await lookups(); const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
   const lastDeck=await getMeta('last_deck_id',''), lastOpp=await getMeta('last_opp_legend_id','');
   showModal(session?'Log online match':'Log online match',`
     ${session?'':`<label><span class="label-title">Context</span><select id="onlineContext"><option value="online_ranked">Online Ranked</option><option value="testing">Testing</option><option value="tournament">Tournament</option><option value="casual">Casual</option></select></label>`}
@@ -572,7 +588,7 @@ async function renderHistory(){
   el.innerHTML=`
     <div class="section-head"><div><h2>Match history</h2><div class="sub">${matches.length} matching record${matches.length===1?'':'s'}</div></div><button class="btn small ghost" id="toggleFilters">Filters</button></div>
     <div id="historyFilterBox" class="card filters" style="display:${f._open?'grid':'none'}">
-      <div class="row"><select id="hfLegend"><option value="">My Legend — all</option>${legends.map(l=>`<option value="${l.id}" ${f.legend===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfDeck"><option value="">My Deck — all</option>${decks.map(d=>`<option value="${d.id}" ${f.deck===d.id?'selected':''}>${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></div>
+      <div class="row"><select id="hfLegend"><option value="">My Legend — all</option>${legends.map(l=>`<option value="${l.id}" ${f.legend===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfDeck"><option value="">My Deck — all</option>${decks.map(d=>`<option value="${d.id}" ${f.deck===d.id?'selected':''}>${esc(d.name)} ${esc(d.version||'')}${d.deleted_at?' (deleted)':''}</option>`).join('')}</select></div>
       <div class="row"><select id="hfOpp"><option value="">Opponent — all</option>${legends.map(l=>`<option value="${l.id}" ${f.opp===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfMode"><option value="">Paper/Online — all</option><option value="paper" ${f.mode==='paper'?'selected':''}>Paper</option><option value="online" ${f.mode==='online'?'selected':''}>Online</option></select></div>
       <div class="row"><select id="hfContext"><option value="">Context — all</option>${['testing','local','tournament','online_ranked','casual'].map(x=>`<option value="${x}" ${f.context===x?'selected':''}>${titleCase(x)}</option>`).join('')}</select><select id="hfFormat"><option value="">Format — all</option>${['BO1','BO3','BO5','FREE_PLAY'].map(x=>`<option value="${x}" ${f.format===x?'selected':''}>${x==='FREE_PLAY'?'Free Play':x}</option>`).join('')}</select></div>
       <div class="row"><select id="hfResult"><option value="">Result — all</option><option value="me" ${f.result==='me'?'selected':''}>Win</option><option value="opponent" ${f.result==='opponent'?'selected':''}>Loss</option></select><button class="btn small ghost" id="clearFilters">Clear</button></div>
@@ -617,7 +633,7 @@ async function renderStats(){
   let timeMs=0; if(type==='overall'){timeMs=sessions.filter(s=>s.status==='completed').reduce((a,s)=>a+(s.active_play_ms??sessionActiveMs(s)),0)+(state.activeSession?sessionActiveMs(state.activeSession):0);} else timeMs=scoped.reduce((a,m)=>a+(m.active_duration_ms||0),0);
   const mySource={conquer:0,hold:0,effect:0}, oppSource={conquer:0,hold:0,effect:0}; for(const e of scopedEvents){if(!['conquer','hold','effect'].includes(e.source)||e.amount<=0)continue;(e.side==='me'?mySource:oppSource)[e.source]+=e.amount;}
   const myTotal=mySource.conquer+mySource.hold+mySource.effect,oppTotal=oppSource.conquer+oppSource.hold+oppSource.effect;
-  const scopeOptions=[`<option value="overall" ${state.statsScope==='overall'?'selected':''}>Overall</option>`,...legends.map(l=>`<option value="legend:${l.id}" ${state.statsScope===`legend:${l.id}`?'selected':''}>Legend — ${esc(l.name)}</option>`),...decks.map(d=>`<option value="deck:${d.id}" ${state.statsScope===`deck:${d.id}`?'selected':''}>Deck — ${esc(d.name)} ${esc(d.version||'')}</option>`)].join('');
+  const scopeOptions=[`<option value="overall" ${state.statsScope==='overall'?'selected':''}>Overall</option>`,...legends.map(l=>`<option value="legend:${l.id}" ${state.statsScope===`legend:${l.id}`?'selected':''}>Legend — ${esc(l.name)}</option>`),...decks.map(d=>`<option value="deck:${d.id}" ${state.statsScope===`deck:${d.id}`?'selected':''}>Deck — ${esc(d.name)} ${esc(d.version||'')}${d.deleted_at?' (deleted)':''}</option>`)].join('');
   let matrix=''; if(type==='legend'){
     const rows=legends.map(opp=>{const msx=scoped.filter(m=>m.opponent_legend_id===opp.id);if(!msx.length)return null;const f=msx.filter(m=>m.result);const w=f.filter(m=>m.result==='me').length;const ids=new Set(msx.map(m=>m.id));const gs=scopedGames.filter(g=>ids.has(g.match_id));const gw=gs.filter(g=>g.winner==='me').length;const pf=gs.reduce((a,g)=>a+(Number(g.final_my_points)||0),0),pa=gs.reduce((a,g)=>a+(Number(g.final_opponent_points)||0),0);return `<tr class="matrixRow" data-opp="${opp.id}"><td>${esc(opp.name)}</td><td>${msx.length}</td><td>${w}–${f.length-w}</td><td>${gs.length}</td><td>${gw}–${gs.length-gw}</td><td>${avg(pf,gs.length)}</td><td>${avg(pa,gs.length)}</td></tr>`;}).filter(Boolean).join(''); matrix=rows?`<div class="section-head"><h3>Matchup matrix</h3><div class="sub">Tap a row for filtered history</div></div><div class="table-wrap"><table class="matrix"><thead><tr><th>Opponent</th><th>Matches</th><th>W-L</th><th>Games</th><th>Game W-L</th><th>Avg PF</th><th>Avg PA</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No matchup data for this Legend yet.</div>`; }
   el.innerHTML=`
