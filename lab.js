@@ -638,6 +638,10 @@ async function enhanceStats(stats){
   if(type==='legend')matches=matches.filter(m=>deckMap[m.my_deck_id]?.legend_id===id);
   if(type==='deck')matches=matches.filter(m=>m.my_deck_id===id);
   const formal=matches.filter(m=>m.result==='me'||m.result==='opponent');
+  const statsNotes=await all('notes'),statsMu=await all('matchupNotes'),statsSessions=await all('sessions');
+  const labKey=[scope,matches.length,matches[0]?.updated_at||'',statsNotes.length,statsNotes.at(-1)?.updated_at||'',statsMu.length,statsMu.at(-1)?.updated_at||'',statsSessions.length,statsSessions.at(-1)?.updated_at||''].join('|');
+  if(extra.dataset.labKey===labKey)return;
+  extra.dataset.labKey=labKey;
   const matchIds=new Set(matches.map(m=>m.id)),games=(await all('games')).filter(g=>matchIds.has(g.match_id)&&g.ended_at);
   const first=games.filter(g=>g.who_started==='me'),second=games.filter(g=>g.who_started==='opponent');
   const trend=n=>{const rows=formal.slice(0,n),w=rows.filter(m=>m.result==='me').length;return {n:rows.length,w,l:rows.length-w};};
