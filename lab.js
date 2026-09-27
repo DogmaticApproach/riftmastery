@@ -192,3 +192,89 @@ async function leakCountsForMatches(matchIds){
   for(const n of notes){if(n.match_id&&!ids.has(n.match_id))continue;for(const tag of (n.leak_tags||[]))counts[tag]=(counts[tag]||0)+1;}
   return Object.entries(counts).map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count);
 }
+
+async function matchupStats(myLegendId,oppId){
+  const {deckMap}=await maps();
+  const matches=(await all('matches')).filter(m=>m.ended_at&&m.opponent_legend_id===oppId&&deckMap[m.my_deck_id]?.legend_id===myLegendId);
+  const ids=new Set(matches.map(m=>m.id));
+  const games=(await all('games')).filter(g=>ids.has(g.match_id)&&g.ended_at);
+  const rec=recordFor(matches),gameWins=games.filter(g=>g.winner==='me').length;
+  const first=games.filter(g=>g.who_started==='me'),second=games.filter(g=>g.who_started==='opponent');
+  const pointGames=games.filter(g=>g.final_my_points!=null&&g.final_opponent_points!=null);
+  const pf=pointGames.reduce((a,g)=>a+Number(g.final_my_points),0),pa=pointGames.reduce((a,g)=>a+Number(g.final_opponent_points),0);
+  return {
+    matches,games,rec,gameWins,
+    first:{n:first.length,w:first.filter(g=>g.winner==='me').length},
+    second:{n:second.length,w:second.filter(g=>g.winner==='me').length},
+    avgPf:pointGames.length?(pf/pointGames.length).toFixed(1):'—',
+    avgPa:pointGames.length?(pa/pointGames.length).toFixed(1):'—'
+  };
+}
+async function findMatchupNote(myLegendId,oppId){
+  return (await all('matchupNotes')).find(x=>x.my_legend_id===myLegendId&&x.opponent_legend_id===oppId)||null;
+}
+async function renderMatchupsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const {legends}=await maps();
+  const notes=await all('matchupNotes');
+  const favorites=notes.filter(n=>n.favorite);
+  const leaks=await leakCountsForMatches((await all('matches')).map(m=>m.id));
+  p.innerHTML=`
+    <div class='lab-row'><div><div class='strong'>Matchup Notebook</div><div class='small muted'>Persistent matchup plans backed by your own results.</div></div><button class='btn small primary' id='openMatchup'>Open matchup</button></div>
+    ${favorites.length?`<div class='section-head'><h3>Favorites</h3></div><div class='lab-panel'>${favorites.map(n=>`<button class='lab-card favoriteMatchup' data-me='${n.my_legend_id}' data-opp='${n.opponent_legend_id}' style='text-align:left;color:inherit'><div class='lab-title'>${esc(legends.find(l=>l.id===n.my_legend_id)?.name||'My Legend')} vs ${esc(legends.find(l=>l.id===n.opponent_legend_id)?.name||'Opponent')}</div><div class='lab-meta'>Confidence ${n.confidence||0}/5</div></button>`).join('')}</div>`:''}
+    <div class='section-head'><h3>Recurring Leak Tracker</h3><div class='sub'>Based on tagged notes</div></div>
+    ${leaks.length?`<div class='lab-card'><div class='lab-wrap'>${leaks.slice(0,9).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>${leaks[0]?.count>=3?`<div class='small muted' style='margin-top:9px'>Most repeated pattern: ${esc(leaks[0].tag)}. Treat this as a review signal, not proof of cause.</div>`:''}</div>`:`<div class='empty'>Tag notes during matches to build your leak tracker.</div>`}
+  `;
+  $('#openMatchup').onclick=()=>openMatchupPicker();
+  $$('.favoriteMatchup',p).forEach(b=>b.onclick=()=>openMatchupPage(b.dataset.me,b.dataset.opp));
+}
+async function openMatchupPicker(){
+  const {legends}=await maps(),active=legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  modal('Open matchup',`
+    <label><span class='label-title'>My Legend</span><select id='muMine'>${active.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent Legend</span><select id='muOpp'>${active.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <button class='btn primary full' id='muOpen' type='button'>Open matchup page</button>`);
+  $('#muOpen').onclick=()=>{const a=$('#muMine').value,b=$('#muOpp').value;closeModal();openMatchupPage(a,b);};
+}
+async function openMatchupPage(myLegendId,oppId){
+  const {legendMap}=await maps(),s=await matchupStats(myLegendId,oppId);
+  let note=await findMatchupNote(myLegendId,oppId);
+  if(!note) note=stampBase({my_legend_id:myLegendId,opponent_legend_id:oppId,favorite:false,confidence:0,mulligan_priorities:'',key_windows:'',respect_cards:'',what_beats_me:'',tests_next:''});
+  modal((legendMap[myLegendId]?.name||'My Legend')+' vs '+(legendMap[oppId]?.name||'Opponent'),`
+    <div class='lab-grid'>
+      <div class='lab-card'><div class='tiny muted'>MATCH RECORD</div><div class='lab-title'>${s.rec.w}–${s.rec.l} <span class='muted'>${pct(s.rec.w,s.rec.n)}</span></div><div class='lab-meta'>n=${s.rec.n}</div></div>
+      <div class='lab-card'><div class='tiny muted'>GAME RECORD</div><div class='lab-title'>${s.gameWins}–${s.games.length-s.gameWins}</div><div class='lab-meta'>n=${s.games.length}</div></div>
+      <div class='lab-card'><div class='tiny muted'>GOING FIRST</div><div class='lab-title'>${s.first.w}–${s.first.n-s.first.w}</div><div class='lab-meta'>n=${s.first.n}</div></div>
+      <div class='lab-card'><div class='tiny muted'>GOING SECOND</div><div class='lab-title'>${s.second.w}–${s.second.n-s.second.w}</div><div class='lab-meta'>n=${s.second.n}</div></div>
+    </div>
+    <div class='small muted' style='margin:10px 0'>Avg tracked points: ${s.avgPf} for / ${s.avgPa} against</div>
+    <div class='lab-notebook'>
+      <label><span class='label-title'>Mulligan priorities</span><textarea id='muMulligan'>${esc(note.mulligan_priorities||'')}</textarea></label>
+      <label><span class='label-title'>Key scoring / contest windows</span><textarea id='muWindows'>${esc(note.key_windows||'')}</textarea></label>
+      <label><span class='label-title'>Cards / lines to respect</span><textarea id='muRespect'>${esc(note.respect_cards||'')}</textarea></label>
+      <label><span class='label-title'>What usually beats me</span><textarea id='muBeats'>${esc(note.what_beats_me||'')}</textarea></label>
+      <label><span class='label-title'>Things to test next</span><textarea id='muNext'>${esc(note.tests_next||'')}</textarea></label>
+      <label><span class='label-title'>Confidence</span><select id='muConfidence'>${[0,1,2,3,4,5].map(n=>`<option value='${n}' ${Number(note.confidence)===n?'selected':''}>${n}/5</option>`).join('')}</select></label>
+      <label style='display:flex;align-items:center;gap:8px'><input type='checkbox' id='muFavorite' style='width:auto;min-height:0' ${note.favorite?'checked':''}> Favorite matchup</label>
+    </div>
+    <div class='btn-row'><button class='btn primary' id='muSave' type='button'>Save matchup page</button><button class='btn' id='muBrief' type='button'>Copy analysis brief</button></div>`);
+  $('#muSave').onclick=async()=>{
+    Object.assign(note,{mulligan_priorities:$('#muMulligan').value.trim(),key_windows:$('#muWindows').value.trim(),respect_cards:$('#muRespect').value.trim(),what_beats_me:$('#muBeats').value.trim(),tests_next:$('#muNext').value.trim(),confidence:Number($('#muConfidence').value),favorite:$('#muFavorite').checked});
+    await save('matchupNotes',note);closeModal();if(labTab==='matchups')renderLab();toast('Matchup page saved.');
+  };
+  $('#muBrief').onclick=async()=>{
+    const text=`RiftMastery matchup brief
+${legendMap[myLegendId]?.name||'My Legend'} vs ${legendMap[oppId]?.name||'Opponent'}
+Match record: ${s.rec.w}-${s.rec.l} (n=${s.rec.n})
+Game record: ${s.gameWins}-${s.games.length-s.gameWins}
+Going first: ${s.first.w}-${s.first.n-s.first.w} (n=${s.first.n})
+Going second: ${s.second.w}-${s.second.n-s.second.w} (n=${s.second.n})
+Avg tracked points: ${s.avgPf} for / ${s.avgPa} against
+Mulligan priorities: ${$('#muMulligan').value.trim()}
+Key windows: ${$('#muWindows').value.trim()}
+Respect: ${$('#muRespect').value.trim()}
+What beats me: ${$('#muBeats').value.trim()}
+Tests next: ${$('#muNext').value.trim()}`;
+    await copyOrShare(text,'RiftMastery matchup brief');
+  };
+}
