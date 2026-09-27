@@ -925,13 +925,16 @@ async function renderMore(){
     <div class="list" style="margin-top:10px">${shown.length?shown.slice(0,50).map(n=>`<div class="note">${esc(n.text)}<div class="context">${n.score_snapshot?`Score ${esc(n.score_snapshot)} • `:''}${fmtDate(n.timestamp)}</div></div>`).join(''):`<div class="empty">No notes${q?' match that search':' yet'}.</div>`}</div>
     <div class="section-head"><div><h2>Legends</h2><div class="sub">Editable so new releases never require a rebuild.</div></div><button class="btn small primary" id="addLegend">+ Legend</button></div>
     <div class="list">${legends.map(l=>`<div class="list-item"><div><div class="title">${esc(l.name)}</div><div class="meta">${l.archived?'Archived':'Active'}</div></div><button class="btn small ghost legendToggle" data-id="${l.id}">${l.archived?'Restore':'Archive'}</button></div>`).join('')}</div>
+    <div class="section-head"><h2>Cloud</h2></div>
+    <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
-    <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">V1 is local-first. Export is your manual backup until cloud sync is added.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.3 Development Lab</div></div><span class="chip">Placeholder name</span></div></div>
+    <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4 Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">This permanently clears the local database on this device.</p><button class="btn danger full" id="resetData">Reset all local data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
   $('#exportJson').onclick=downloadJSON; $('#importJson').onclick=openImportBackup; $('#exportCsv').onclick=downloadCSV; $('#resetData').onclick=()=>confirmModal('Reset all data','This deletes every local Legend, deck, session, match, game, point event and note from this browser. Export a backup first if you care about the data.',async()=>{await clearAll();await seedLegends();state.activeSession=state.activeMatch=state.activeGame=null;setScreen('home');toast('Local data reset.');},'Delete everything');
+  window.dispatchEvent(new Event('riftmastery:more-rendered'));
 }
 
 function openLegendModal(){
