@@ -543,10 +543,34 @@ async function endCurrentSession(){
     const row=await get('sessions',s.id); const end=iso();
     if(row.status==='paused' && row.pause_intervals?.length && !row.pause_intervals.at(-1).ended_at) row.pause_intervals[row.pause_intervals.length-1].ended_at=end;
     row.ended_at=end; row.active_play_ms=sessionActiveMs(row,ms(end)); row.status='completed'; row.paused_at=null;
-    await save('sessions',row); await refreshActive(); setScreen('home'); toast('Session saved.');
+    await save('sessions',row);
+    if(state.wakeLock){ try{await state.wakeLock.release();}catch{} state.wakeLock=null; }
+    await refreshActive(); setScreen('home'); await openSessionSummary(row.id);
   },'End session');
 }
 
+async function openSessionSummary(sessionId){
+  const session=await get('sessions',sessionId); if(!session)return;
+  const {deckMap,legendMap}=await lookups();
+  const matches=(await byIndex('matches','session_id',sessionId)).filter(m=>m.ended_at).sort((a,b)=>ms(a.started_at)-ms(b.started_at));
+  const matchIds=new Set(matches.map(m=>m.id));
+  const games=(await all('games')).filter(g=>matchIds.has(g.match_id)&&g.ended_at);
+  const gameIds=new Set(games.map(g=>g.id));
+  const events=(await all('pointEvents')).filter(e=>gameIds.has(e.game_id)&&e.amount>0);
+  const formal=matches.filter(m=>m.result==='me'||m.result==='opponent');
+  const mw=formal.filter(m=>m.result==='me').length, gw=games.filter(g=>g.winner==='me').length;
+  const deckNames=[...new Set(matches.map(m=>{const d=deckMap[m.my_deck_id];return d?(d.name+(d.version?' '+d.version:'')):'Unknown deck';}))];
+  const oppNames=[...new Set(matches.map(m=>legendMap[m.opponent_legend_id]?.name||'Unknown'))];
+  const mine={conquer:0,hold:0,effect:0}, theirs={conquer:0,hold:0,effect:0};
+  for(const e of events){if(!['conquer','hold','effect'].includes(e.source))continue;(e.side==='me'?mine:theirs)[e.source]+=e.amount;}
+  const totalMine=mine.conquer+mine.hold+mine.effect,totalTheirs=theirs.conquer+theirs.hold+theirs.effect;
+  showModal('Session summary',`
+    <div class='grid-2'><div class='card stat-card'><div class='k'>Active time</div><div class='v'>${fmtHours(session.active_play_ms||0)}</div></div><div class='card stat-card'><div class='k'>Matches</div><div class='v'>${matches.length}</div></div><div class='card stat-card'><div class='k'>Match W-L</div><div class='v'>${mw}–${formal.length-mw}</div></div><div class='card stat-card'><div class='k'>Game W-L</div><div class='v'>${gw}–${games.length-gw}</div></div></div>
+    <div class='section-head'><h3>Decks used</h3></div><div class='small muted'>${deckNames.length?deckNames.map(esc).join(' • '):'None'}</div>
+    <div class='section-head'><h3>Opponents</h3></div><div class='small muted'>${oppNames.length?oppNames.map(esc).join(' • '):'None'}</div>
+    <div class='section-head'><h3>Your scoring</h3><div class='sub'>${totalMine} tracked points</div></div>${sourceBars(mine,totalMine)}
+    <div class='section-head'><h3>Opponent scoring</h3><div class='sub'>${totalTheirs} tracked points</div></div>${sourceBars(theirs,totalTheirs)}`);
+}
 async function scoreForGame(gameId){
   const events=(await byIndex('pointEvents','game_id',gameId)).sort((a,b)=>ms(a.timestamp)-ms(b.timestamp));
   let me=0,opp=0; for(const e of events){ if(e.side==='me') me+=Number(e.amount)||0; else opp+=Number(e.amount)||0; }
