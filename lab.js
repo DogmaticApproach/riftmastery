@@ -618,3 +618,68 @@ async function enhanceStats(stats){
     });
   }
 }
+
+async function activeGameContext(){
+  const session=await latestActiveSession();if(!session)return {};
+  const matches=(await byIndex('matches','session_id',session.id)).filter(m=>!m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at));
+  const match=matches[0]||null;if(!match)return {session};
+  const games=(await byIndex('games','match_id',match.id)).filter(g=>!g.ended_at).sort((a,b)=>a.game_number-b.game_number);
+  return {session,match,game:games[0]||null};
+}
+async function leakChooserHtml(){
+  const tags=await getMeta('leak_tags',leakDefaults());
+  return `<div id='labLeakChooser'><div class='small muted' style='margin:10px 0 6px'>Review tags</div><div class='lab-tag-grid'>${tags.map(t=>`<label><input type='checkbox' value='${esc(t)}'>${esc(t)}</label>`).join('')}</div></div>`;
+}
+async function queueLeakTags(tags){
+  if(!tags.length)return;
+  const ctx=await activeGameContext();
+  await setMeta('pending_leak_tags',{tags,at:Date.now(),session_id:ctx.session?.id||null,match_id:ctx.match?.id||null,game_id:ctx.game?.id||null});
+  setTimeout(resolvePendingLeakTags,900);
+}
+async function resolvePendingLeakTags(){
+  const pending=await getMeta('pending_leak_tags',null);if(!pending)return;
+  const notes=(await all('notes')).filter(n=>ms(n.created_at||n.timestamp)>=pending.at-2500).sort((a,b)=>ms(b.created_at||b.timestamp)-ms(a.created_at||a.timestamp));
+  let note=notes.find(n=>(!pending.match_id||n.match_id===pending.match_id)&&(!pending.game_id||!n.game_id||n.game_id===pending.game_id));
+  if(note){note.leak_tags=[...new Set([...(note.leak_tags||[]),...pending.tags])];await save('notes',note);}
+  else await save('notes',stampBase({session_id:pending.session_id,match_id:pending.match_id,game_id:pending.game_id,text:'Tagged review: '+pending.tags.join(', '),leak_tags:pending.tags,timestamp:iso(),review_type:'tag_only'}));
+  await setMeta('pending_leak_tags',null);
+}
+async function assignPendingSessionTags(){
+  const pending=await getMeta('pending_session_tags',null);if(!pending)return;
+  const session=await latestActiveSession();if(!session)return;
+  session.tags=[...new Set([...(session.tags||[]),...pending.tags])];await save('sessions',session);await setMeta('pending_session_tags',null);
+}
+async function assignPendingMatchContext(){
+  const pending=await getMeta('pending_match_context',null);if(!pending)return;
+  const session=await latestActiveSession();if(!session)return;
+  const matches=(await byIndex('matches','session_id',session.id)).sort((a,b)=>ms(b.started_at)-ms(a.started_at));
+  const match=matches[0];if(!match||ms(match.started_at)<pending.at-4000)return;
+  if(pending.testing_block_id){
+    const block=await get('testingBlocks',pending.testing_block_id);
+    if(block&&block.deck_id===match.my_deck_id)match.testing_block_id=block.id;
+  }
+  if(session.tournament_id){
+    match.tournament_id=session.tournament_id;
+    const eventMatches=(await all('matches')).filter(m=>m.tournament_id===session.tournament_id&&m.id!==match.id).sort((a,b)=>ms(a.started_at)-ms(b.started_at));
+    match.round_number=eventMatches.length+1;
+  }
+  if(pending.tags?.length)match.tags=[...new Set([...(match.tags||[]),...pending.tags])];
+  await save('matches',match);await setMeta('pending_match_context',null);
+}
+async function syncTournamentAssignments(){
+  const sessions=(await all('sessions')).filter(s=>s.tournament_id);
+  for(const session of sessions){
+    const matches=(await byIndex('matches','session_id',session.id)).sort((a,b)=>ms(a.started_at)-ms(b.started_at));
+    for(let i=0;i<matches.length;i++){
+      const m=matches[i];if(m.tournament_id!==session.tournament_id||m.round_number!==i+1){m.tournament_id=session.tournament_id;m.round_number=i+1;await save('matches',m);}
+    }
+    if(session.status==='completed'){
+      const t=await get('tournaments',session.tournament_id);
+      if(t&&t.status==='active'){t.status='completed';t.ended_at=session.ended_at||iso();await save('tournaments',t);if((await getMeta('active_tournament_id',''))===t.id)await setMeta('active_tournament_id','');}
+    }
+  }
+}
+async function syncTestingTargets(){
+  const blocks=(await all('testingBlocks')).filter(b=>b.status==='active');
+  for(const b of blocks){const pr=await blockProgress(b),target=Number(b.target_games)||10;if(pr.count>=target&&!b.target_reached_at){b.target_reached_at=iso();await save('testingBlocks',b);}}
+}
