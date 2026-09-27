@@ -187,9 +187,29 @@ async function openTenMatchReview(deckId,blockNumber){
     closeModal();renderLab();toast('10-match review saved.');
   };
 }
+function inferLeakTags(text){
+  const s=String(text||'').toLowerCase(),out=[];
+  const rules=[
+    ['Mulligan',/mulligan|keep hand|opening hand/],
+    ['Sequencing',/sequenc|order of|played .* first|played .* before/],
+    ['Resource Use',/resource|mana|spent too|overpay|underpay/],
+    ['Contest Choice',/contest|battlefield|fight for|gave up point/],
+    ['Missed Hold',/missed hold|should have held|hold point/],
+    ['Overextension',/overextend|overcommitted|too many units/],
+    ['Scoring Timing',/score too|scoring window|point timing|should have scored/],
+    ['Unknown Card',/didn.?t know|unknown card|forgot .* card/],
+    ['Opponent Read',/misread|read opponent|expected .* but/]
+  ];
+  for(const [tag,re] of rules)if(re.test(s))out.push(tag);
+  return out;
+}
 async function leakCountsForMatches(matchIds){
   const ids=new Set(matchIds),notes=await all('notes'),counts={};
-  for(const n of notes){if(n.match_id&&!ids.has(n.match_id))continue;for(const tag of (n.leak_tags||[]))counts[tag]=(counts[tag]||0)+1;}
+  for(const n of notes){
+    if(n.match_id&&!ids.has(n.match_id))continue;
+    const tags=[...new Set([...(n.leak_tags||[]),...inferLeakTags(n.text)])];
+    for(const tag of tags)counts[tag]=(counts[tag]||0)+1;
+  }
   return Object.entries(counts).map(([tag,count])=>({tag,count})).sort((a,b)=>b.count-a.count);
 }
 
