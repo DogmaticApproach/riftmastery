@@ -69,8 +69,11 @@ function syncCardHtml(){
 }
 function renderCloudCard(){
   const more=$('#screen-more');if(!more)return;
+  const sig=JSON.stringify([currentUser?.id||'',currentUser?.email||'',syncing,lastError,lastSyncAt]);
   let card=$('#cloudSyncCard',more);
+  if(card?.dataset.cloudSig===sig)return;
   const wrap=document.createElement('div');wrap.innerHTML=syncCardHtml();const next=wrap.firstElementChild;
+  next.dataset.cloudSig=sig;
   if(card)card.replaceWith(next);else more.prepend(next);
   if(!currentUser){
     $('#cloudSignIn',more)?.addEventListener('click',openAuthModal);
@@ -272,8 +275,10 @@ async function initAuth(){
   });
 }
 function watchUi(){
-  const observer=new MutationObserver(()=>renderCloudCard());
   const more=$('#screen-more');
+  const observer=new MutationObserver(()=>{
+    if(more && !$('#cloudSyncCard',more))renderCloudCard();
+  });
   if(more)observer.observe(more,{childList:true});
   window.addEventListener('online',()=>{if(currentUser)syncNow();});
   window.addEventListener('riftmastery:localchange',()=>{if(currentUser){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(),1200);}});
