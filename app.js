@@ -408,6 +408,33 @@ async function openDeckVersionModal(id){
   };
 }
 
+async function updateRecentOpponent(id){
+  const recent=await getMeta('recent_opponents',[]);
+  const next=[id,...recent.filter(x=>x!==id)].slice(0,8);
+  await setMeta('recent_opponents',next);
+}
+
+function orderDeckChoices(decks,preferred){
+  return [...decks].sort((a,b)=>(Number(b.pinned)-Number(a.pinned))||(a.id===preferred?-1:b.id===preferred?1:0)||(ms(b.last_used_at)-ms(a.last_used_at))||a.name.localeCompare(b.name));
+}
+
+function orderOpponentChoices(legends,preferred,recent=[]){
+  const rank=id=>id===preferred?-100:(recent.indexOf(id)>=0?recent.indexOf(id):999);
+  return [...legends].sort((a,b)=>rank(a.id)-rank(b.id)||a.name.localeCompare(b.name));
+}
+
+async function createLiveMatch(session,setup){
+  const started=setup.started_at||iso();
+  const match=stampBase({session_id:session.id,mode:session.mode,context:session.context,my_deck_id:setup.my_deck_id,opponent_legend_id:setup.opponent_legend_id,opponent_build:setup.opponent_build||'',format:setup.format||'BO3',started_at:started,ended_at:null,result:null,notes:'',active_duration_ms:null});
+  await save('matches',match);
+  const game=stampBase({match_id:match.id,game_number:1,winner:null,who_started:'unknown',started_at:started,ended_at:null,final_my_points:null,final_opponent_points:null});
+  await save('games',game);
+  const deck=await get('decks',setup.my_deck_id); if(deck){deck.last_used_at=started;await save('decks',deck);}
+  await Promise.all([setMeta('last_deck_id',setup.my_deck_id),setMeta('last_opp_legend_id',setup.opponent_legend_id),setMeta('last_format',setup.format||'BO3'),updateRecentOpponent(setup.opponent_legend_id)]);
+  await refreshActive();
+  return match;
+}
+
 async function openStartSession(mode){
   await refreshActive();
   if(state.activeSession){ toast('Finish the current session first.'); return setScreen('play'); }
@@ -416,40 +443,52 @@ async function openStartSession(mode){
     showModal('Create a deck first','<p class="muted small">RiftMastery logs your side by deck, so you need at least one saved deck before starting.</p><button type="button" class="btn primary full" id="makeDeckFirst">Create deck</button>');
     $('#makeDeckFirst').onclick=()=>{closeModal();setScreen('decks');openDeckModal();}; return;
   }
-  const contextOptions = mode==='online' ? ['online_ranked','testing','casual','tournament'] : ['testing','local','tournament','casual'];
+  const baseContexts=mode==='online'?['online_ranked','testing','casual','tournament']:['testing','local','tournament','casual'];
+  const lastContext=await getMeta('last_session_context_'+mode,baseContexts[0]);
+  const contextOptions=optionOrder(baseContexts,lastContext);
   showModal(mode==='paper'?'Start paper session':'Start online session',`
-    <label><span class="label-title">Session context</span><select id="sessionContext">${contextOptions.map(x=>`<option value="${x}">${titleCase(x)}</option>`).join('')}</select></label>
-    <label><span class="label-title">Event / session name <span class="muted">(optional)</span></span><input id="sessionName" placeholder="e.g. Thursday locals, Annie testing"></label>
-    <button type="button" class="btn primary full" id="createSession">Start session</button>`);
+    <label><span class='label-title'>Session context</span><select id='sessionContext'>${contextOptions.map(x=>`<option value='${x}'>${titleCase(x)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Event / session name <span class='muted'>(optional)</span></span><input id='sessionName' placeholder='e.g. Thursday locals, Annie testing'></label>
+    <button type='button' class='btn primary full' id='createSession'>Start session</button>`);
   $('#createSession').onclick=async()=>{
-    const row=stampBase({mode,context:$('#sessionContext').value,event_name:$('#sessionName').value.trim(),started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null});
-    await save('sessions',row); closeModal(); await refreshActive();
+    const context=$('#sessionContext').value;
+    const row=stampBase({mode,context,event_name:$('#sessionName').value.trim(),started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null});
+    await save('sessions',row); await setMeta('last_session_context_'+mode,context); closeModal(); await refreshActive();
     if(mode==='paper') await openMatchSetup(row); else {setScreen('play'); toast('Online timer started.');}
   };
 }
 
-async function openMatchSetup(session=state.activeSession){
+async function openMatchSetup(session=state.activeSession,prefill={}){
   if(!session) return;
   const {legends,decks,legendMap}=await lookups();
   const activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived);
   const lastDeck=await getMeta('last_deck_id',''); const lastOpp=await getMeta('last_opp_legend_id',''); const lastFormat=await getMeta('last_format','BO3');
+  const recentOpps=await getMeta('recent_opponents',[]);
+  const preferredDeck=prefill.my_deck_id||lastDeck;
+  const preferredOpp=prefill.opponent_legend_id||lastOpp;
+  const preferredFormat=prefill.format||lastFormat;
+  const deckChoices=orderDeckChoices(activeDecks,preferredDeck);
+  const oppChoices=orderOpponentChoices(legends.filter(l=>!l.archived),preferredOpp,recentOpps);
+  const formats=optionOrder(['BO1','BO3','BO5','FREE_PLAY'],preferredFormat);
   showModal('New match',`
-    <label><span class="label-title">My deck</span><select id="matchDeck">${activeDecks.map(d=>`<option value="${d.id}" ${d.id===lastDeck?'selected':''}>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
-    <label><span class="label-title">Opponent Legend</span><select id="matchOpp">${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${l.id}" ${l.id===lastOpp?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
-    <label><span class="label-title">Opponent build / archetype <span class="muted">(optional)</span></span><input id="matchOppBuild" placeholder="Only if known"></label>
-    <label><span class="label-title">Format</span><select id="matchFormat">${['BO1','BO3','BO5','FREE_PLAY'].map(f=>`<option value="${f}" ${f===lastFormat?'selected':''}>${f==='FREE_PLAY'?'Free Play / Testing':f}</option>`).join('')}</select></label>
-    <button type="button" class="btn primary full" id="startMatch">Start match</button>`);
+    <label><span class='label-title'>My deck</span><select id='matchDeck'>${deckChoices.map(d=>`<option value='${d.id}' ${d.id===preferredDeck?'selected':''}>${d.pinned?'★ ':''}${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent Legend</span><select id='matchOpp'>${oppChoices.map(l=>`<option value='${l.id}' ${l.id===preferredOpp?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent build / archetype <span class='muted'>(optional)</span></span><input id='matchOppBuild' value='${esc(prefill.opponent_build||'')}' placeholder='Only if known'></label>
+    <label><span class='label-title'>Format</span><select id='matchFormat'>${formats.map(x=>`<option value='${x}' ${x===preferredFormat?'selected':''}>${x==='FREE_PLAY'?'Free Play / Testing':x}</option>`).join('')}</select></label>
+    <button type='button' class='btn primary full' id='startMatch'>Start match</button>`);
   $('#startMatch').onclick=async()=>{
-    const deckId=$('#matchDeck').value, opp=$('#matchOpp').value, format=$('#matchFormat').value;
-    const match=stampBase({session_id:session.id,mode:session.mode,context:session.context,my_deck_id:deckId,opponent_legend_id:opp,opponent_build:$('#matchOppBuild').value.trim(),format,started_at:iso(),ended_at:null,result:null,notes:'',active_duration_ms:null});
-    await save('matches',match);
-    const game=stampBase({match_id:match.id,game_number:1,winner:null,who_started:'unknown',started_at:iso(),ended_at:null,final_my_points:null,final_opponent_points:null});
-    await save('games',game);
-    await Promise.all([setMeta('last_deck_id',deckId),setMeta('last_opp_legend_id',opp),setMeta('last_format',format)]);
-    closeModal(); await refreshActive(); setScreen('play');
+    const setup={my_deck_id:$('#matchDeck').value,opponent_legend_id:$('#matchOpp').value,opponent_build:$('#matchOppBuild').value.trim(),format:$('#matchFormat').value};
+    await createLiveMatch(session,setup); closeModal(); setScreen('play');
   };
 }
 
+async function startRematch(session,template){
+  if(!session||!template)return;
+  const deck=await get('decks',template.my_deck_id);
+  if(!deck||deck.deleted_at||deck.archived) return toast('That deck is not active. Choose another deck.');
+  await createLiveMatch(session,{my_deck_id:template.my_deck_id,opponent_legend_id:template.opponent_legend_id,opponent_build:template.opponent_build||'',format:template.format});
+  closeModal();setScreen('play');toast('Rematch started.');
+}
 async function openOnlineChoice(){
   showModal('Online play',`
     <div class="primary-actions"><button type="button" class="btn primary" id="startOnlineSession">Start timed online session</button><button type="button" class="btn" id="logOnlineOnly">Log a match without timer</button></div>`);
