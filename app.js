@@ -733,24 +733,27 @@ async function abandonMatch(){
 }
 
 async function renderOnlineSession(el){
-  const s=state.activeSession; const matches=(await byIndex('matches','session_id',s.id)).filter(m=>m.ended_at);
+  const s=state.activeSession; const matches=(await byIndex('matches','session_id',s.id)).filter(m=>m.ended_at).sort((a,b)=>ms(a.started_at)-ms(b.started_at));
+  const lastMatch=matches.at(-1)||null;
   const {deckMap,legendMap}=await lookups();
   el.innerHTML=`
-    <div class="session-strip"><div><div class="strong">${esc(s.event_name||titleCase(s.context))}</div><div class="small muted">Online • ${s.status==='paused'?'Paused':'Active'}</div></div><div class="time" id="onlineSessionTimer">${fmtDuration(sessionActiveMs(s))}</div></div>
-    <div class="hero"><h2>${matches.length} match${matches.length===1?'':'es'} logged</h2><p>Keep the timer running while you play, then add each result manually.</p></div>
-    <div class="primary-actions"><button class="btn primary" id="onlineLogMatch">Log Match</button><button class="btn" id="onlinePause">${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class="btn danger" id="onlineEndSession">End Session</button></div>
-    <div class="section-head"><h3>This session</h3><div class="sub">${fmtHours(sessionActiveMs(s))} active</div></div>
-    <div class="list">${matches.length?matches.slice().reverse().map(m=>`<div class="list-item"><div><div class="title">${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class="meta">${m.format} • ${fmtDate(m.started_at)}</div></div><span class="chip ${m.result==='me'?'good':'warn'}">${m.result==='me'?'W':'L'}</span></div>`).join(''):`<div class="empty">No online matches logged yet.</div>`}</div>`;
-  $('#onlineLogMatch').onclick=()=>openOnlineMatchModal(s); $('#onlinePause').onclick=togglePause; $('#onlineEndSession').onclick=endCurrentSession;
+    <div class='session-strip'><div><div class='strong'>${esc(s.event_name||titleCase(s.context))}</div><div class='small muted'>Online • ${s.status==='paused'?'Paused':'Active'}</div></div><div class='time' id='onlineSessionTimer'>${fmtDuration(sessionActiveMs(s))}</div></div>
+    <div class='hero'><h2>${matches.length} match${matches.length===1?'':'es'} logged</h2><p>Keep the timer running while you play, then add each result manually.</p></div>
+    <div class='primary-actions'><button class='btn primary' id='onlineLogMatch'>Log Match</button>${lastMatch?`<div class='btn-row'><button class='btn' id='onlineSameSetup'>Log same setup</button><button class='btn ghost' id='onlineSameOpp'>Same opponent</button></div>`:''}<button class='btn' id='onlinePause'>${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class='btn danger' id='onlineEndSession'>End Session</button></div>
+    <div class='section-head'><h3>This session</h3><div class='sub'>${fmtHours(sessionActiveMs(s))} active</div></div>
+    <div class='list'>${matches.length?matches.slice().reverse().map(m=>`<div class='list-item'><div><div class='title'>${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${m.format} • ${fmtDate(m.started_at)}</div></div><span class='chip ${m.result==='me'?'good':'warn'}'>${m.result==='me'?'W':'L'}</span></div>`).join(''):`<div class='empty'>No online matches logged yet.</div>`}</div>`;
+  $('#onlineLogMatch').onclick=()=>openOnlineMatchModal(s);
+  if(lastMatch){$('#onlineSameSetup').onclick=()=>openOnlineMatchModal(s,{my_deck_id:lastMatch.my_deck_id,opponent_legend_id:lastMatch.opponent_legend_id,format:lastMatch.format});$('#onlineSameOpp').onclick=()=>openOnlineMatchModal(s,{opponent_legend_id:lastMatch.opponent_legend_id,format:lastMatch.format});}
+  $('#onlinePause').onclick=togglePause; $('#onlineEndSession').onclick=endCurrentSession;
 }
-
-async function openOnlineMatchModal(session=null){
+async function openOnlineMatchModal(session=null,prefill={}){
   const {decks,legends,legendMap}=await lookups();
   const lastDeck=await getMeta('last_deck_id',''), lastOpp=await getMeta('last_opp_legend_id',''), lastFormat=await getMeta('last_format','BO3');
   const recentOpps=await getMeta('recent_opponents',[]);
-  const activeDecks=orderDeckChoices(decks.filter(d=>!d.deleted_at&&!d.archived),lastDeck); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
-  const oppChoices=orderOpponentChoices(legends.filter(l=>!l.archived),lastOpp,recentOpps);
-  const formats=optionOrder(['BO1','BO3','BO5','FREE_PLAY'],lastFormat);
+  const preferredDeck=prefill.my_deck_id||lastDeck, preferredOpp=prefill.opponent_legend_id||lastOpp, preferredFormat=prefill.format||lastFormat;
+  const activeDecks=orderDeckChoices(decks.filter(d=>!d.deleted_at&&!d.archived),preferredDeck); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
+  const oppChoices=orderOpponentChoices(legends.filter(l=>!l.archived),preferredOpp,recentOpps);
+  const formats=optionOrder(['BO1','BO3','BO5','FREE_PLAY'],preferredFormat);
   const lastContext=await getMeta('last_session_context_online','online_ranked');
   const contexts=optionOrder(['online_ranked','testing','tournament','casual'],lastContext);
   showModal('Log online match',`
