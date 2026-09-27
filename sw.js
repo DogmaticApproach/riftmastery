@@ -1,4 +1,4 @@
-const CACHE='riftmastery-v0.4.2';
+const CACHE='riftmastery-v0.4.3';
 const SCOPE=self.registration.scope;
 const INDEX=new URL('./index.html',SCOPE).href;
 const ASSETS=[
@@ -62,11 +62,20 @@ self.addEventListener('fetch',event=>{
 
   event.respondWith((async()=>{
     const cache=await caches.open(CACHE);
+    const url=new URL(req.url);
+    const isCodeAsset=url.origin===location.origin && /\.(?:js|css)$/.test(url.pathname);
+    if(isCodeAsset && navigator.onLine){
+      try{
+        const response=await fetch(req,{cache:'no-store'});
+        if(response.ok) await cache.put(req,response.clone());
+        return response;
+      }catch{}
+    }
     const cached=await cache.match(req);
     if(cached) return cached;
     try{
       const response=await fetch(req);
-      if(response.ok && new URL(req.url).origin===location.origin) await cache.put(req,response.clone());
+      if(response.ok && url.origin===location.origin) await cache.put(req,response.clone());
       return response;
     }catch{
       return new Response('',{status:503,statusText:'Offline'});
