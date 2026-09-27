@@ -398,3 +398,103 @@ function openPostMatchReview(matchId){
     <label><span class="label-title">General note</span><textarea id="reviewGeneral" placeholder="Optional"></textarea></label>
     <div class="btn-row"><button type="button" class="btn ghost" id="skipReview">Skip</button><button type="button" class="btn primary" id="saveReview">Save review</button></div>`);
   $('#skipReview').onclick=async()=>{closeModal();await refreshActive();renderPlay();};
+  $('#saveReview').onclick=async()=>{
+    const parts=[]; if($('#reviewMulligan').checked)parts.push('Mulligan issue'); if($('#reviewDecision').value.trim())parts.push(`Uncertain decision: ${$('#reviewDecision').value.trim()}`); if($('#reviewUnexpected').value.trim())parts.push(`Unexpected action: ${$('#reviewUnexpected').value.trim()}`); if($('#reviewGeneral').value.trim())parts.push($('#reviewGeneral').value.trim());
+    if(parts.length){const n=stampBase({session_id:state.activeSession?.id||null,match_id:matchId,game_id:null,text:parts.join(' • '),timestamp:iso(),review_type:'post_match'});await save('notes',n);} closeModal(); await refreshActive(); renderPlay(); toast('Match review saved.');
+  };
+}
+
+async function abandonMatch(){
+  const m=state.activeMatch; if(!m) return;
+  confirmModal('Abandon match','This removes the incomplete match from normal history. Any completed prior matches in the session stay safe.',async()=>{
+    await softDelete('matches',m.id); await refreshActive(); renderPlay(); toast('Match abandoned.');
+  },'Abandon');
+}
+
+async function renderOnlineSession(el){
+  const s=state.activeSession; const matches=(await byIndex('matches','session_id',s.id)).filter(m=>m.ended_at);
+  const {deckMap,legendMap}=await lookups();
+  el.innerHTML=`
+    <div class="session-strip"><div><div class="strong">${esc(s.event_name||titleCase(s.context))}</div><div class="small muted">Online • ${s.status==='paused'?'Paused':'Active'}</div></div><div class="time" id="onlineSessionTimer">${fmtDuration(sessionActiveMs(s))}</div></div>
+    <div class="hero"><h2>${matches.length} match${matches.length===1?'':'es'} logged</h2><p>Keep the timer running while you play, then add each result manually.</p></div>
+    <div class="primary-actions"><button class="btn primary" id="onlineLogMatch">Log Match</button><button class="btn" id="onlinePause">${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class="btn danger" id="onlineEndSession">End Session</button></div>
+    <div class="section-head"><h3>This session</h3><div class="sub">${fmtHours(sessionActiveMs(s))} active</div></div>
+    <div class="list">${matches.length?matches.slice().reverse().map(m=>`<div class="list-item"><div><div class="title">${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class="meta">${m.format} • ${fmtDate(m.started_at)}</div></div><span class="chip ${m.result==='me'?'good':'warn'}">${m.result==='me'?'W':'L'}</span></div>`).join(''):`<div class="empty">No online matches logged yet.</div>`}</div>`;
+  $('#onlineLogMatch').onclick=()=>openOnlineMatchModal(s); $('#onlinePause').onclick=togglePause; $('#onlineEndSession').onclick=endCurrentSession;
+}
+
+async function openOnlineMatchModal(session=null){
+  const {decks,legends,legendMap}=await lookups(); const activeDecks=decks.filter(d=>!d.archived); if(!activeDecks.length){toast('Create a deck first.');setScreen('decks');return;}
+  const lastDeck=await getMeta('last_deck_id',''), lastOpp=await getMeta('last_opp_legend_id','');
+  showModal(session?'Log online match':'Log online match',`
+    ${session?'':`<label><span class="label-title">Context</span><select id="onlineContext"><option value="online_ranked">Online Ranked</option><option value="testing">Testing</option><option value="tournament">Tournament</option><option value="casual">Casual</option></select></label>`}
+    <label><span class="label-title">My deck</span><select id="onlineDeck">${activeDecks.map(d=>`<option value="${d.id}" ${d.id===lastDeck?'selected':''}>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
+    <label><span class="label-title">Opponent Legend</span><select id="onlineOpp">${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${l.id}" ${l.id===lastOpp?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class="label-title">Format</span><select id="onlineFormat"><option>BO1</option><option selected>BO3</option><option>BO5</option><option value="FREE_PLAY">Free Play</option></select></label>
+    <div class="grid-2"><label><span class="label-title">Games won</span><input id="onlineGW" type="number" min="0" max="20" value="2"></label><label><span class="label-title">Games lost</span><input id="onlineGL" type="number" min="0" max="20" value="1"></label></div>
+    ${session?'':`<label><span class="label-title">Approx. match duration (minutes) <span class="muted">optional</span></span><input id="onlineDuration" type="number" min="0" max="600" placeholder="e.g. 35"></label>`}
+    <label><span class="label-title">Notes <span class="muted">optional</span></span><textarea id="onlineMatchNotes"></textarea></label>
+    <button type="button" class="btn primary full" id="saveOnlineMatch">Save match</button>`);
+  $('#saveOnlineMatch').onclick=async()=>{
+    const format=$('#onlineFormat').value; const gw=Math.max(0,parseInt($('#onlineGW').value||'0',10)); const gl=Math.max(0,parseInt($('#onlineGL').value||'0',10)); if(gw===gl && format!=='FREE_PLAY') return toast('Formal match result cannot be tied.');
+    let sess=session;
+    const durationMin=session?null:Math.max(0,parseInt($('#onlineDuration')?.value||'0',10));
+    if(!sess){ const start=new Date(Date.now()-durationMin*60000).toISOString(); sess=stampBase({mode:'online',context:$('#onlineContext').value,event_name:'',started_at:start,ended_at:iso(),pause_intervals:[],paused_at:null,status:'completed',active_play_ms:durationMin*60000}); await save('sessions',sess); }
+    const started=session?iso():sess.started_at; const ended=iso();
+    const match=stampBase({session_id:sess.id,mode:'online',context:sess.context,my_deck_id:$('#onlineDeck').value,opponent_legend_id:$('#onlineOpp').value,opponent_build:'',format,started_at:started,ended_at:ended,result:format==='FREE_PLAY'?null:(gw>gl?'me':'opponent'),free_play_record:format==='FREE_PLAY'?`${gw}-${gl}`:null,notes:$('#onlineMatchNotes').value.trim(),active_duration_ms:session?0:(durationMin*60000)}); await save('matches',match);
+    let n=1; for(let i=0;i<gw;i++) await save('games',stampBase({match_id:match.id,game_number:n++,winner:'me',who_started:'unknown',started_at:started,ended_at:ended,final_my_points:null,final_opponent_points:null})); for(let i=0;i<gl;i++) await save('games',stampBase({match_id:match.id,game_number:n++,winner:'opponent',who_started:'unknown',started_at:started,ended_at:ended,final_my_points:null,final_opponent_points:null}));
+    if(match.notes) await save('notes',stampBase({session_id:sess.id,match_id:match.id,game_id:null,text:match.notes,timestamp:iso()}));
+    await Promise.all([setMeta('last_deck_id',match.my_deck_id),setMeta('last_opp_legend_id',match.opponent_legend_id)]); closeModal(); await refreshActive(); if(state.screen==='play')renderPlay(); toast('Online match saved.');
+  };
+}
+
+async function renderHistory(){
+  const el=$('#screen-history'); const {legends,decks,legendMap,deckMap}=await lookups(); const sessions=await all('sessions'); const sessionMap=Object.fromEntries(sessions.map(s=>[s.id,s]));
+  const f=state.historyFilters;
+  let matches=(await all('matches')).sort((a,b)=>ms(b.started_at)-ms(a.started_at));
+  matches=matches.filter(m=>{
+    const d=deckMap[m.my_deck_id]; const sess=sessionMap[m.session_id];
+    if(f.legend && d?.legend_id!==f.legend)return false; if(f.deck&&m.my_deck_id!==f.deck)return false; if(f.opp&&m.opponent_legend_id!==f.opp)return false; if(f.mode&&m.mode!==f.mode)return false; if(f.context&&(m.context||sess?.context)!==f.context)return false; if(f.format&&m.format!==f.format)return false; if(f.result&&m.result!==f.result)return false;
+    if(f.from && ms(m.started_at)<new Date(`${f.from}T00:00:00`).getTime())return false; if(f.to && ms(m.started_at)>new Date(`${f.to}T23:59:59`).getTime())return false; return true;
+  });
+  el.innerHTML=`
+    <div class="section-head"><div><h2>Match history</h2><div class="sub">${matches.length} matching record${matches.length===1?'':'s'}</div></div><button class="btn small ghost" id="toggleFilters">Filters</button></div>
+    <div id="historyFilterBox" class="card filters" style="display:${f._open?'grid':'none'}">
+      <div class="row"><select id="hfLegend"><option value="">My Legend — all</option>${legends.map(l=>`<option value="${l.id}" ${f.legend===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfDeck"><option value="">My Deck — all</option>${decks.map(d=>`<option value="${d.id}" ${f.deck===d.id?'selected':''}>${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></div>
+      <div class="row"><select id="hfOpp"><option value="">Opponent — all</option>${legends.map(l=>`<option value="${l.id}" ${f.opp===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfMode"><option value="">Paper/Online — all</option><option value="paper" ${f.mode==='paper'?'selected':''}>Paper</option><option value="online" ${f.mode==='online'?'selected':''}>Online</option></select></div>
+      <div class="row"><select id="hfContext"><option value="">Context — all</option>${['testing','local','tournament','online_ranked','casual'].map(x=>`<option value="${x}" ${f.context===x?'selected':''}>${titleCase(x)}</option>`).join('')}</select><select id="hfFormat"><option value="">Format — all</option>${['BO1','BO3','BO5','FREE_PLAY'].map(x=>`<option value="${x}" ${f.format===x?'selected':''}>${x==='FREE_PLAY'?'Free Play':x}</option>`).join('')}</select></div>
+      <div class="row"><select id="hfResult"><option value="">Result — all</option><option value="me" ${f.result==='me'?'selected':''}>Win</option><option value="opponent" ${f.result==='opponent'?'selected':''}>Loss</option></select><button class="btn small ghost" id="clearFilters">Clear</button></div>
+      <div class="row"><label><span class="label-title">From</span><input id="hfFrom" type="date" value="${esc(f.from||'')}"></label><label><span class="label-title">To</span><input id="hfTo" type="date" value="${esc(f.to||'')}"></label></div>
+    </div>
+    <div class="list" style="margin-top:10px">${matches.length?matches.map(m=>{const d=deckMap[m.my_deck_id],opp=legendMap[m.opponent_legend_id];const result=m.result==='me'?'W':m.result==='opponent'?'L':m.format==='FREE_PLAY'?(m.free_play_record||'FP'):'—';return `<button class="list-item historyOpen" data-id="${m.id}" style="width:100%;text-align:left;color:inherit"><div><div class="title">${esc(d?.name||'Unknown')} ${d?.version?`<span class="chip">${esc(d.version)}</span>`:''} <span class="muted">vs</span> ${esc(opp?.name||'Unknown')}</div><div class="meta">${titleCase(m.mode||'paper')} • ${titleCase(m.context||sessionMap[m.session_id]?.context||'')} • ${m.format==='FREE_PLAY'?'Free Play':m.format} • ${fmtDate(m.started_at)}</div></div><div class="right"><span class="chip ${result==='W'?'good':result==='L'?'warn':''}">${result}</span></div></button>`}).join(''):`<div class="empty">No matches match these filters.</div>`}</div>`;
+  $('#toggleFilters').onclick=()=>{state.historyFilters._open=!state.historyFilters._open;renderHistory();};
+  ['Legend','Deck','Opp','Mode','Context','Format','Result'].forEach(key=>{const n=$(`#hf${key}`);if(n)n.onchange=()=>{state.historyFilters[key.toLowerCase()]=n.value;renderHistory();};});
+  if($('#hfFrom')) $('#hfFrom').onchange=e=>{state.historyFilters.from=e.target.value;renderHistory();}; if($('#hfTo')) $('#hfTo').onchange=e=>{state.historyFilters.to=e.target.value;renderHistory();};
+  if($('#clearFilters')) $('#clearFilters').onclick=()=>{state.historyFilters={_open:true};renderHistory();};
+  $$('.historyOpen',el).forEach(b=>b.onclick=()=>openMatchDetail(b.dataset.id));
+}
+
+async function openMatchDetail(id){
+  const m=await get('matches',id); if(!m)return; const {deckMap,legendMap}=await lookups(); const games=(await byIndex('games','match_id',id)).filter(g=>g.ended_at).sort((a,b)=>a.game_number-b.game_number); const notes=(await all('notes')).filter(n=>n.match_id===id); const deck=deckMap[m.my_deck_id],opp=legendMap[m.opponent_legend_id];
+  let gameHtml=''; for(const g of games){ const ev=(await byIndex('pointEvents','game_id',g.id)).sort((a,b)=>ms(a.timestamp)-ms(b.timestamp)); gameHtml+=`<div class="match-detail-game"><div class="head"><span>Game ${g.game_number} • ${g.winner==='me'?'Win':'Loss'}</span><span>${g.final_my_points??'—'}–${g.final_opponent_points??'—'}</span></div><div class="small muted">Started by: ${titleCase(g.who_started||'unknown')}</div>${ev.length?`<div class="event-list">${ev.map(e=>`<div class="event-row"><span>${e.side==='me'?'You':'Opponent'} • ${titleCase(e.source)}${e.effect_note?` • ${esc(e.effect_note)}`:''}</span><span>${e.amount>0?'+':''}${e.amount}</span></div>`).join('')}</div>`:''}</div>`; }
+  showModal(`${deck?.name||'Deck'} vs ${opp?.name||'Opponent'}`,`
+    <div class="btn-row" style="margin-bottom:10px"><span class="chip">${m.format==='FREE_PLAY'?'Free Play':m.format}</span><span class="chip">${titleCase(m.mode||'')}</span><span class="chip">${titleCase(m.context||'')}</span></div>
+    <div class="small muted">${fmtDate(m.started_at)} • ${fmtDuration(m.active_duration_ms||0)} tracked match time</div>
+    ${m.opponent_build?`<p class="small"><strong>Opponent build:</strong> ${esc(m.opponent_build)}</p>`:''}
+    ${gameHtml||'<div class="empty">No completed game detail.</div>'}
+    ${notes.length?`<div class="section-head"><h3>Notes</h3></div>${notes.map(n=>`<div class="note">${esc(n.text)}<div class="context">${fmtDate(n.timestamp)}</div></div>`).join('')}`:''}
+    <div class="divider"></div><div class="btn-row"><button type="button" class="btn ghost" id="editMatch">Edit</button><button type="button" class="btn danger" id="deleteMatch">Delete</button></div>`);
+  $('#editMatch').onclick=()=>openEditMatch(id); $('#deleteMatch').onclick=()=>confirmModal('Delete match','Remove this match from normal history and stats? The local record will be soft-deleted so future sync can respect the deletion.',async()=>{await softDelete('matches',id);closeModal();renderHistory();toast('Match deleted.');},'Delete');
+}
+
+async function openEditMatch(id){
+  const m=await get('matches',id); const {legends}=await lookups();
+  showModal('Edit match',`<label><span class="label-title">Opponent Legend</span><select id="editOpp">${legends.map(l=>`<option value="${l.id}" ${l.id===m.opponent_legend_id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label><label><span class="label-title">Opponent build</span><input id="editOppBuild" value="${esc(m.opponent_build||'')}"></label><label><span class="label-title">Notes</span><textarea id="editMatchNotes">${esc(m.notes||'')}</textarea></label><button type="button" class="btn primary full" id="saveMatchEdit">Save changes</button>`);
+  $('#saveMatchEdit').onclick=async()=>{m.opponent_legend_id=$('#editOpp').value;m.opponent_build=$('#editOppBuild').value.trim();m.notes=$('#editMatchNotes').value.trim();await save('matches',m);closeModal();renderHistory();toast('Match updated.');};
+}
+
+async function renderStats(){
+  const el=$('#screen-stats'); const {legends,decks,deckMap,legendMap}=await lookups(); const [matches,games,events,sessions]=await Promise.all([all('matches'),all('games'),all('pointEvents'),all('sessions')]);
+  if(state.statsScope==='overall' && !state._statsInit){ state._statsInit=true; }
+  const parts=state.statsScope.split(':'); const type=parts[0], id=parts[1];
+  let scoped=matches;
