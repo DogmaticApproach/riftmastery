@@ -62,7 +62,7 @@ function applyFormatDefaults(format,gwInput,glInput){
 function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1800); }
 function markSaved(){ saveStatus.textContent='Saved on this iPhone'; saveStatus.style.color='var(--good)'; }
 function markSaving(){ saveStatus.textContent='Saving…'; saveStatus.style.color='var(--warn)'; }
-async function save(store,row){ markSaving(); await put(store,row); markSaved(); return row; }
+async function save(store,row){ markSaving(); await put(store,row); markSaved(); window.dispatchEvent(new Event('riftmastery:localchange')); return row; }
 function showModal(title,html){ modalTitle.textContent=title; modalBody.innerHTML=html; if(!modal.open) modal.showModal(); }
 function closeModal(){ if(modal.open) modal.close(); }
 function confirmModal(title,message,onConfirm,label='Confirm'){
@@ -1022,6 +1022,7 @@ document.addEventListener('visibilitychange',async()=>{
   }
 });
 
+window.addEventListener('riftmastery:cloudsync',()=>renderCurrent());
 window.addEventListener('online',()=>{saveStatus.textContent='Online • local data safe';setTimeout(markSaved,1200)});
 window.addEventListener('offline',()=>{saveStatus.textContent='Offline • saving locally';saveStatus.style.color='var(--warn)';});
 
