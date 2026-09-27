@@ -38,3 +38,28 @@ Publish the repository root from the `main` branch using GitHub Pages. Then open
 Stores: `legends`, `decks`, `sessions`, `matches`, `games`, `pointEvents`, `notes`, `meta`.
 
 Durable records use UUID `id`, `created_at`, `updated_at`, `deleted_at`, and `sync_status` fields so cloud sync can be added later.
+
+
+## v0.3 Development Lab
+
+RiftMastery now also includes a local Development Lab:
+
+- Testing blocks with target game counts, focus matchups, and hypotheses
+- Automatic 10-match development review prompts
+- Recurring review-pattern tracking from explicit tags and note text
+- Persistent matchup notebooks with confidence ratings and favorites
+- Tournament events with fixed decks, round tracking, prep checklists, and event records
+- A/B deck experiments with before/variant samples and list diffs
+- Goals and milestones for matches, games, matchup reps, and hours
+- Personal training-area ratings and notes
+- Rolling last-10 / last-25 / last-50 form
+- Going-first / going-second splits
+- Development calendar and useful-activity streaks
+- Global search across local development records
+- RiftMastery-format CSV import for older match history
+- Custom scoring-source labels
+- Session and match tags
+- Shareable session summary text and PNG cards
+- A zero-cost ChatGPT analysis brief generator (copy/paste workflow; no paid AI API required)
+
+The Development Lab uses the same local IndexedDB database and is included in JSON backups.
