@@ -998,21 +998,23 @@ async function tick(){
 async function init(){
   await openDB(); await seedLegends(); await refreshActive();
   state.wakeWanted=Boolean(await getMeta('keep_awake',false));
-  if('serviceWorker' in navigator){
-    try{
-      const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
-      await navigator.serviceWorker.ready;
-      reg.update().catch(()=>{});
-      if(navigator.serviceWorker.controller){
-        saveStatus.textContent=navigator.onLine?'Saved on this iPhone':'Offline • local app ready';
-      }
-    }catch(e){
-      console.warn('SW registration failed',e);
-    }
-  }
+
+  // Render the app before service-worker setup. A slow/failed SW must never blank the UI.
   state.tick=setInterval(tick,1000);
-  if(state.activeSession) state.screen='play'; setScreen(state.screen);
+  if(state.activeSession) state.screen='play';
+  setScreen(state.screen);
   if(state.wakeWanted && state.activeSession?.mode==='paper' && state.activeGame) requestWakeLock();
+
+  if('serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'})
+      .then(reg=>{
+        reg.update().catch(()=>{});
+        if(navigator.serviceWorker.controller){
+          saveStatus.textContent=navigator.onLine?'Saved on this device':'Offline • local app ready';
+        }
+      })
+      .catch(e=>console.warn('SW registration failed',e));
+  }
 }
 
 document.addEventListener('visibilitychange',async()=>{
