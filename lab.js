@@ -27,7 +27,7 @@ function modal(titleText,html){
   $('#modalTitle').textContent=titleText; $('#modalBody').innerHTML=html; if(!d.open)d.showModal();
 }
 function closeModal(){const d=$('#modal');if(d?.open)d.close();}
-async function save(store,row){row.updated_at=iso();row.sync_status=row.sync_status||'local';await put(store,row);return row;}
+async function save(store,row){row.updated_at=iso();row.sync_status=row.sync_status||'local';await put(store,row);window.dispatchEvent(new Event('riftmastery:localchange'));return row;}
 async function latestActiveSession(){
   return (await all('sessions')).filter(s=>s.status==='active'||s.status==='paused').sort((a,b)=>ms(b.started_at)-ms(a.started_at))[0]||null;
 }
