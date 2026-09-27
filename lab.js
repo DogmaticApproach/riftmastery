@@ -528,3 +528,23 @@ async function importMatchCsv(){
   };
   input.click();
 }
+
+async function renderSkillsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const rows=(await all('skillAreas')).filter(x=>!x.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  p.innerHTML=`
+    <div class='lab-row'><div><div class='strong'>Training Areas</div><div class='small muted'>Use these as personal progress markers.</div></div><button class='btn small primary' id='newTrainingArea'>+ Area</button></div>
+    <div class='lab-panel'>${rows.length?rows.map(x=>`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(x.name)}</div><div class='lab-meta'>Current self-rating: ${Number(x.rating)||0}/5</div></div><button class='btn small ghost trainingEdit' data-id='${x.id}'>Edit</button></div><div class='segmented trainingRate' data-id='${x.id}' style='margin-top:9px'>${[1,2,3,4,5].map(n=>`<button data-rate='${n}' class='${Number(x.rating)===n?'active':''}'>${n}</button>`).join('')}</div>${x.notes?`<div class='small muted' style='margin-top:8px'>${esc(x.notes)}</div>`:''}</div>`).join(''):`<div class='empty'>No training areas yet.</div>`}</div>`;
+  $('#newTrainingArea').onclick=()=>openTrainingAreaModal();
+  $$('.trainingEdit',p).forEach(b=>b.onclick=()=>openTrainingAreaModal(b.dataset.id));
+  $$('.trainingRate button',p).forEach(b=>b.onclick=async()=>{const id=b.closest('.trainingRate').dataset.id,row=await get('skillAreas',id);row.rating=Number(b.dataset.rate);await save('skillAreas',row);renderLab();});
+}
+async function openTrainingAreaModal(id=null){
+  const row=id?await get('skillAreas',id):null;
+  modal(row?'Edit training area':'Add training area',`
+    <label><span class='label-title'>Name</span><input id='trainingName' value='${esc(row?.name||'')}'></label>
+    <label><span class='label-title'>Notes</span><textarea id='trainingNotes'>${esc(row?.notes||'')}</textarea></label>
+    <div class='btn-row'>${row?`<button class='btn danger' id='trainingArchive' type='button'>Archive</button>`:''}<button class='btn primary' id='trainingSave' type='button'>Save</button></div>`);
+  $('#trainingSave').onclick=async()=>{const name=$('#trainingName').value.trim();if(!name)return toast('Name the training area.');const x=row||stampBase({rating:0,archived:false});x.name=name;x.notes=$('#trainingNotes').value.trim();await save('skillAreas',x);closeModal();renderLab();};
+  if(row)$('#trainingArchive').onclick=async()=>{row.archived=true;await save('skillAreas',row);closeModal();renderLab();};
+}
