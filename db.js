@@ -1,6 +1,6 @@
 const DB_NAME = 'riftmastery-db';
-const DB_VERSION = 1;
-const STORES = ['legends','decks','sessions','matches','games','pointEvents','notes','meta'];
+const DB_VERSION = 2;
+const STORES = ['legends','decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks','skillAreas','meta'];
 
 let dbPromise;
 
@@ -39,6 +39,15 @@ export function openDB(){
             store.createIndex('match_id','match_id',{unique:false});
             store.createIndex('game_id','game_id',{unique:false});
           }
+          if(name === 'testingBlocks') store.createIndex('deck_id','deck_id',{unique:false});
+          if(name === 'matchupNotes'){
+            store.createIndex('my_legend_id','my_legend_id',{unique:false});
+            store.createIndex('opponent_legend_id','opponent_legend_id',{unique:false});
+          }
+          if(name === 'tournaments') store.createIndex('started_at','started_at',{unique:false});
+          if(name === 'experiments') store.createIndex('baseline_deck_id','baseline_deck_id',{unique:false});
+          if(name === 'goals') store.createIndex('status','status',{unique:false});
+          if(name === 'reviewBlocks') store.createIndex('deck_id','deck_id',{unique:false});
         }
       }
     };
@@ -128,7 +137,7 @@ export async function clearAll(){
 }
 
 export async function exportAll(){
-  const out={schema_version:1,exported_at:new Date().toISOString(),data:{}};
+  const out={schema_version:2,exported_at:new Date().toISOString(),data:{}};
   for(const s of STORES) out.data[s]=await all(s,{includeDeleted:true});
   return out;
 }
