@@ -404,3 +404,54 @@ async function openExperimentComparison(id){
     <div class='lab-grid'><div class='lab-card'><div class='strong'>Added</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.added.length?diff.added.map(x=>'+ '+esc(x)).join('\n'):'No added lines'}</div></div><div class='lab-card'><div class='strong'>Removed</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.removed.length?diff.removed.map(x=>'− '+esc(x)).join('\n'):'No removed lines'}</div></div></div>
     <div class='small muted' style='margin-top:10px'>Use the samples as evidence to investigate. RiftMastery does not assume the deck change caused a result difference.</div>`);
 }
+
+async function goalProgress(g){
+  const {deckMap}=await maps();
+  const start=ms(g.started_at||g.created_at),end=g.end_date?new Date(g.end_date+'T23:59:59').getTime():Infinity;
+  let matches=(await all('matches')).filter(m=>m.ended_at&&ms(m.started_at)>=start&&ms(m.started_at)<=end);
+  if(g.deck_id)matches=matches.filter(m=>m.my_deck_id===g.deck_id);
+  if(g.my_legend_id)matches=matches.filter(m=>deckMap[m.my_deck_id]?.legend_id===g.my_legend_id);
+  if(g.opponent_legend_id)matches=matches.filter(m=>m.opponent_legend_id===g.opponent_legend_id);
+  const ids=new Set(matches.map(m=>m.id));
+  const games=(await all('games')).filter(x=>ids.has(x.match_id)&&x.ended_at);
+  let value=0;
+  if(g.goal_type==='matches')value=matches.length;
+  if(g.goal_type==='games'||g.goal_type==='matchup_games')value=games.length;
+  if(g.goal_type==='hours'){
+    if(g.deck_id||g.my_legend_id||g.opponent_legend_id)value=matches.reduce((a,m)=>a+(m.active_duration_ms||0),0)/3600000;
+    else value=(await all('sessions')).filter(s=>s.status==='completed'&&ms(s.started_at)>=start&&ms(s.started_at)<=end).reduce((a,s)=>a+(s.active_play_ms||0),0)/3600000;
+  }
+  return {value,matches,games};
+}
+async function renderGoalsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const goals=(await all('goals')).sort((a,b)=>(a.status==='active'?-1:1)-(b.status==='active'?-1:1)||ms(b.created_at)-ms(a.created_at));
+  const {deckMap,legendMap}=await maps();
+  let html="<div class='lab-row'><div><div class='strong'>Goals & Milestones</div><div class='small muted'>Track useful reps, not app-opening streaks.</div></div><button class='btn small primary' id='newGoal'>+ Goal</button></div>";
+  if(!goals.length)html+="<div class='empty'>No goals yet.</div>";
+  for(const g of goals){
+    const pr=await goalProgress(g),target=Math.max(.01,Number(g.target_value)||1),pc=Math.min(100,pr.value/target*100),unit=g.goal_type==='hours'?'h':'';
+    const scope=[g.deck_id?deckMap[g.deck_id]?.name:null,g.my_legend_id?legendMap[g.my_legend_id]?.name:null,g.opponent_legend_id?('vs '+legendMap[g.opponent_legend_id]?.name):null].filter(Boolean).join(' • ');
+    html+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(g.label)}</div><div class='lab-meta'>${esc(scope||title(g.goal_type))}${g.end_date?' • by '+esc(g.end_date):''}</div></div><span class='lab-chip'>${title(g.status||'active')}</span></div><div class='lab-progress'><span style='width:${pc}%'></span></div><div class='lab-row' style='margin-top:7px'><span class='small'>${g.goal_type==='hours'?pr.value.toFixed(1):Math.floor(pr.value)}${unit} / ${target}${unit}</span>${g.status==='active'?`<button class='btn small ghost goalDone' data-id='${g.id}'>Complete</button>`:''}</div></div>`;
+  }
+  p.innerHTML=html;
+  $('#newGoal').onclick=openGoalModal;
+  $$('.goalDone',p).forEach(b=>b.onclick=async()=>{const g=await get('goals',b.dataset.id);g.status='completed';g.completed_at=iso();await save('goals',g);renderLab();});
+}
+async function openGoalModal(){
+  const {decks,legends,legendMap}=await maps(),activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived),activeLegends=legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  modal('New development goal',`
+    <label><span class='label-title'>Goal name</span><input id='goalLabel' placeholder='e.g. 20 games vs Annie'></label>
+    <label><span class='label-title'>Measure</span><select id='goalType'><option value='matches'>Matches</option><option value='games'>Games</option><option value='matchup_games'>Matchup games</option><option value='hours'>Hours</option></select></label>
+    <label><span class='label-title'>Target</span><input id='goalTarget' type='number' min='1' step='1' value='20'></label>
+    <label><span class='label-title'>Deck <span class='muted'>(optional)</span></span><select id='goalDeck'><option value=''>Any deck</option>${activeDecks.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></label>
+    <label><span class='label-title'>My Legend <span class='muted'>(optional)</span></span><select id='goalMine'><option value=''>Any Legend</option>${activeLegends.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent Legend <span class='muted'>(optional)</span></span><select id='goalOpp'><option value=''>Any opponent</option>${activeLegends.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>End date <span class='muted'>(optional)</span></span><input id='goalEnd' type='date'></label>
+    <button class='btn primary full' id='goalSave' type='button'>Create goal</button>`);
+  $('#goalSave').onclick=async()=>{
+    const label=$('#goalLabel').value.trim();if(!label)return toast('Name the goal.');
+    await save('goals',stampBase({label,goal_type:$('#goalType').value,target_value:Number($('#goalTarget').value)||1,deck_id:$('#goalDeck').value||null,my_legend_id:$('#goalMine').value||null,opponent_legend_id:$('#goalOpp').value||null,end_date:$('#goalEnd').value||null,status:'active',started_at:iso()}));
+    closeModal();renderLab();toast('Goal created.');
+  };
+}
