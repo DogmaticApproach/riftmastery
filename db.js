@@ -74,6 +74,16 @@ export async function put(storeName, value){
   });
 }
 
+
+export async function putRaw(storeName, value){
+  const store = await tx(storeName,'readwrite');
+  return new Promise((resolve,reject)=>{
+    const req = store.put(value);
+    req.onsuccess=()=>resolve(value);
+    req.onerror=()=>reject(req.error);
+  });
+}
+
 export async function add(storeName, value){ return put(storeName,value); }
 
 export async function get(storeName,id){
