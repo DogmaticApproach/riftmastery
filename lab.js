@@ -683,3 +683,55 @@ async function syncTestingTargets(){
   const blocks=(await all('testingBlocks')).filter(b=>b.status==='active');
   for(const b of blocks){const pr=await blockProgress(b),target=Number(b.target_games)||10;if(pr.count>=target&&!b.target_reached_at){b.target_reached_at=iso();await save('testingBlocks',b);}}
 }
+
+async function enhanceModal(){
+  const d=$('#modal');if(!d?.open)return;
+  const titleText=$('#modalTitle')?.textContent||'',body=$('#modalBody');if(!body)return;
+
+  if((titleText==='Quick note'||titleText==='Match saved')&&!$('#labLeakChooser',body)){
+    const wrap=document.createElement('div');wrap.innerHTML=await leakChooserHtml();const node=wrap.firstElementChild;
+    const target=titleText==='Quick note'?$('#saveQuickNote',body):$('#saveReview',body);
+    target?.parentNode?.insertBefore(node,target);
+    if(target)target.addEventListener('click',()=>{const tags=$$('#labLeakChooser input:checked',body).map(x=>x.value);queueLeakTags(tags);},{capture:true});
+  }
+
+  if((titleText==='Start paper session'||titleText==='Start online session')&&!$('#labSessionTags',body)){
+    const btn=$('#createSession',body);if(btn){
+      const label=document.createElement('label');
+      label.innerHTML="<span class='label-title'>Session tags <span class='muted'>(optional, comma-separated)</span></span><input id='labSessionTags' placeholder='regional prep, new list, matchup lab'>";
+      btn.parentNode.insertBefore(label,btn);
+      btn.addEventListener('click',()=>{
+        const tags=$('#labSessionTags',body).value.split(',').map(x=>x.trim()).filter(Boolean);
+        if(tags.length)setMeta('pending_session_tags',{tags,at:Date.now()}).then(()=>setTimeout(assignPendingSessionTags,700));
+      },{capture:true});
+    }
+  }
+
+  if(titleText==='New match'&&!$('#labMatchExtras',body)){
+    const deckSel=$('#matchDeck',body),formatSel=$('#matchFormat',body),btn=$('#startMatch',body);
+    if(deckSel&&btn){
+      const session=await latestActiveSession(),blocks=(await all('testingBlocks')).filter(b=>b.status==='active');
+      const holder=document.createElement('div');holder.id='labMatchExtras';
+      const refresh=async()=>{
+        const deckId=deckSel.value,matching=blocks.filter(b=>b.deck_id===deckId);
+        holder.innerHTML=`<label><span class='label-title'>Testing block <span class='muted'>(optional)</span></span><select id='labTestingBlock'><option value=''>None</option>${matching.map(b=>`<option value='${b.id}'>${esc(b.name)}</option>`).join('')}</select></label>
+        <label><span class='label-title'>Match tags <span class='muted'>(optional)</span></span><input id='labMatchTags' placeholder='mulligan focus, tempo test'></label>`;
+        if(session?.tournament_id){
+          const t=await get('tournaments',session.tournament_id);
+          if(t){
+            deckSel.value=t.deck_id;deckSel.disabled=true;
+            formatSel.value=t.format||'BO3';formatSel.disabled=true;
+            const count=(await all('matches')).filter(m=>m.tournament_id===t.id).length;
+            holder.insertAdjacentHTML('afterbegin',`<div class='lab-card' style='margin-bottom:9px'><div class='lab-title'>${esc(t.name)}</div><div class='lab-meta'>Round ${count+1} • Tournament deck locked</div></div>`);
+          }
+        }
+      };
+      await refresh();deckSel.addEventListener('change',refresh);btn.parentNode.insertBefore(holder,btn);
+      btn.addEventListener('click',()=>{
+        const blockId=$('#labTestingBlock',body)?.value||'';
+        const tags=($('#labMatchTags',body)?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
+        setMeta('pending_match_context',{testing_block_id:blockId||null,tags,at:Date.now()}).then(()=>setTimeout(assignPendingMatchContext,700));
+      },{capture:true});
+    }
+  }
+}
