@@ -995,6 +995,7 @@ async function init(){
   }
   state.tick=setInterval(tick,1000);
   if(state.activeSession) state.screen='play'; setScreen(state.screen);
+  if(state.wakeWanted && state.activeSession?.mode==='paper' && state.activeGame) requestWakeLock();
 }
 
 document.addEventListener('visibilitychange',async()=>{
