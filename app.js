@@ -198,3 +198,103 @@ async function openDeckVersionModal(id){
   $('#createVersion').onclick=async()=>{
     const version=$('#newVersionLabel').value.trim(); if(!version) return toast('Add a version label.');
     const row=stampBase({name:$('#newVersionName').value.trim()||old.name,legend_id:old.legend_id,version,notes:$('#newVersionNotes').value.trim(),archived:false,parent_deck_id:old.id});
+    await save('decks',row); await setMeta('last_deck_id',row.id); closeModal(); renderDecks(); toast('New version created.');
+  };
+}
+
+async function openStartSession(mode){
+  await refreshActive();
+  if(state.activeSession){ toast('Finish the current session first.'); return setScreen('play'); }
+  const {decks}=await lookups();
+  if(!decks.filter(d=>!d.archived).length){
+    showModal('Create a deck first','<p class="muted small">RiftMastery logs your side by deck, so you need at least one saved deck before starting.</p><button type="button" class="btn primary full" id="makeDeckFirst">Create deck</button>');
+    $('#makeDeckFirst').onclick=()=>{closeModal();setScreen('decks');openDeckModal();}; return;
+  }
+  const contextOptions = mode==='online' ? ['online_ranked','testing','casual','tournament'] : ['testing','local','tournament','casual'];
+  showModal(mode==='paper'?'Start paper session':'Start online session',`
+    <label><span class="label-title">Session context</span><select id="sessionContext">${contextOptions.map(x=>`<option value="${x}">${titleCase(x)}</option>`).join('')}</select></label>
+    <label><span class="label-title">Event / session name <span class="muted">(optional)</span></span><input id="sessionName" placeholder="e.g. Thursday locals, Annie testing"></label>
+    <button type="button" class="btn primary full" id="createSession">Start session</button>`);
+  $('#createSession').onclick=async()=>{
+    const row=stampBase({mode,context:$('#sessionContext').value,event_name:$('#sessionName').value.trim(),started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null});
+    await save('sessions',row); closeModal(); await refreshActive();
+    if(mode==='paper') await openMatchSetup(row); else {setScreen('play'); toast('Online timer started.');}
+  };
+}
+
+async function openMatchSetup(session=state.activeSession){
+  if(!session) return;
+  const {legends,decks,legendMap}=await lookups();
+  const activeDecks=decks.filter(d=>!d.archived);
+  const lastDeck=await getMeta('last_deck_id',''); const lastOpp=await getMeta('last_opp_legend_id',''); const lastFormat=await getMeta('last_format','BO3');
+  showModal('New match',`
+    <label><span class="label-title">My deck</span><select id="matchDeck">${activeDecks.map(d=>`<option value="${d.id}" ${d.id===lastDeck?'selected':''}>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)}${d.version?` (${esc(d.version)})`:''}</option>`).join('')}</select></label>
+    <label><span class="label-title">Opponent Legend</span><select id="matchOpp">${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value="${l.id}" ${l.id===lastOpp?'selected':''}>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class="label-title">Opponent build / archetype <span class="muted">(optional)</span></span><input id="matchOppBuild" placeholder="Only if known"></label>
+    <label><span class="label-title">Format</span><select id="matchFormat">${['BO1','BO3','BO5','FREE_PLAY'].map(f=>`<option value="${f}" ${f===lastFormat?'selected':''}>${f==='FREE_PLAY'?'Free Play / Testing':f}</option>`).join('')}</select></label>
+    <button type="button" class="btn primary full" id="startMatch">Start match</button>`);
+  $('#startMatch').onclick=async()=>{
+    const deckId=$('#matchDeck').value, opp=$('#matchOpp').value, format=$('#matchFormat').value;
+    const match=stampBase({session_id:session.id,mode:session.mode,context:session.context,my_deck_id:deckId,opponent_legend_id:opp,opponent_build:$('#matchOppBuild').value.trim(),format,started_at:iso(),ended_at:null,result:null,notes:'',active_duration_ms:null});
+    await save('matches',match);
+    const game=stampBase({match_id:match.id,game_number:1,winner:null,who_started:'unknown',started_at:iso(),ended_at:null,final_my_points:null,final_opponent_points:null});
+    await save('games',game);
+    await Promise.all([setMeta('last_deck_id',deckId),setMeta('last_opp_legend_id',opp),setMeta('last_format',format)]);
+    closeModal(); await refreshActive(); setScreen('play');
+  };
+}
+
+async function openOnlineChoice(){
+  showModal('Online play',`
+    <div class="primary-actions"><button type="button" class="btn primary" id="startOnlineSession">Start timed online session</button><button type="button" class="btn" id="logOnlineOnly">Log a match without timer</button></div>`);
+  $('#startOnlineSession').onclick=()=>{closeModal();openStartSession('online');};
+  $('#logOnlineOnly').onclick=()=>{closeModal();openOnlineMatchModal(null);};
+}
+
+async function renderPlay(){
+  const el=$('#screen-play'); await refreshActive();
+  if(!state.activeSession){
+    el.innerHTML=`<div class="hero"><h2>Ready when you are.</h2><p>Start a timed session, or log an online match after the fact.</p></div><div class="primary-actions"><button class="btn primary" id="playStartPaper">Start Paper Session</button><button class="btn" id="playStartOnline">Start Online Session</button><button class="btn ghost" id="playLogOnline">Log Online Match</button></div>`;
+    $('#playStartPaper').onclick=()=>openStartSession('paper'); $('#playStartOnline').onclick=()=>openStartSession('online'); $('#playLogOnline').onclick=()=>openOnlineMatchModal(null); return;
+  }
+  if(state.activeSession.mode==='online') return renderOnlineSession(el);
+  if(state.activeMatch && state.activeGame) return renderScorekeeper(el);
+  return renderSessionHub(el);
+}
+
+async function renderSessionHub(el){
+  const s=state.activeSession;
+  const sessionMatches=(await byIndex('matches','session_id',s.id)).filter(m=>m.ended_at);
+  const {deckMap,legendMap}=await lookups();
+  el.innerHTML=`
+    <div class="session-strip"><div><div class="strong">${esc(s.event_name||titleCase(s.context))}</div><div class="small muted">Paper • ${s.status==='paused'?'Paused':'Active'}</div></div><div class="time" id="hubTimer">${fmtDuration(sessionActiveMs(s))}</div></div>
+    <div class="hero"><h2>${sessionMatches.length} match${sessionMatches.length===1?'':'es'} logged</h2><p>Keep the same session running and switch decks freely between matches.</p></div>
+    <div class="primary-actions"><button class="btn primary" id="hubNewMatch">New Match</button><button class="btn" id="hubPause">${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class="btn danger" id="hubEnd">End Session</button></div>
+    <div class="section-head"><h3>This session</h3><div class="sub">${fmtHours(sessionActiveMs(s))} active</div></div>
+    <div class="list">${sessionMatches.length?sessionMatches.slice().reverse().map(m=>`<div class="list-item"><div><div class="title">${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class="meta">${titleCase(m.format)} • ${fmtDuration(m.active_duration_ms||0)}</div></div><span class="chip ${m.result==='me'?'good':m.result==='opponent'?'warn':''}">${m.result==='me'?'W':m.result==='opponent'?'L':'—'}</span></div>`).join(''):`<div class="empty">No completed matches yet.</div>`}</div>`;
+  $('#hubNewMatch').onclick=()=>openMatchSetup(s); $('#hubPause').onclick=togglePause; $('#hubEnd').onclick=endCurrentSession;
+}
+
+async function togglePause(){
+  const s=await get('sessions',state.activeSession.id); if(!s) return;
+  if(s.status==='active'){
+    s.status='paused'; s.paused_at=iso(); s.pause_intervals=[...(s.pause_intervals||[]),{started_at:s.paused_at,ended_at:null}]; toast('Session paused.');
+  }else{
+    const now=iso(); const arr=[...(s.pause_intervals||[])]; if(arr.length && !arr[arr.length-1].ended_at) arr[arr.length-1].ended_at=now;
+    s.pause_intervals=arr; s.status='active'; s.paused_at=null; toast('Session resumed.');
+  }
+  await save('sessions',s); await refreshActive(); renderPlay();
+}
+
+async function endCurrentSession(){
+  const s=state.activeSession; if(!s) return;
+  if(state.activeMatch) return toast('Finish or abandon the current match first.');
+  confirmModal('End session',`End this ${s.mode} session at ${fmtHours(sessionActiveMs(s))} active time?`,async()=>{
+    const row=await get('sessions',s.id); const end=iso();
+    if(row.status==='paused' && row.pause_intervals?.length && !row.pause_intervals.at(-1).ended_at) row.pause_intervals[row.pause_intervals.length-1].ended_at=end;
+    row.ended_at=end; row.active_play_ms=sessionActiveMs(row,ms(end)); row.status='completed'; row.paused_at=null;
+    await save('sessions',row); await refreshActive(); setScreen('home'); toast('Session saved.');
+  },'End session');
+}
+
+async function scoreForGame(gameId){
