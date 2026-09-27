@@ -48,6 +48,16 @@ function avg(n,d, digits=1){ return d ? (n/d).toFixed(digits) : '—'; }
 function titleCase(s=''){ return s.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()); }
 function toLocalInput(v){ if(!v)return ''; const d=new Date(v); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
 function optionOrder(items, preferred){ return [...items].sort((a,b)=>(a===preferred?-1:b===preferred?1:0)); }
+function validateManualRecord(format,gw,gl){
+  if(format==='FREE_PLAY') return null;
+  const needed={BO1:1,BO3:2,BO5:3}[format]||1;
+  if(Math.max(gw,gl)!==needed || Math.min(gw,gl)>=needed) return `${format} should end when one player reaches ${needed} game win${needed===1?'':'s'}.`;
+  return null;
+}
+function applyFormatDefaults(format,gwInput,glInput){
+  const defaults={BO1:[1,0],BO3:[2,1],BO5:[3,2],FREE_PLAY:[1,1]}[format]||[1,0];
+  if(gwInput)gwInput.value=defaults[0]; if(glInput)glInput.value=defaults[1];
+}
 function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1800); }
 function markSaved(){ saveStatus.textContent='Saved on this iPhone'; saveStatus.style.color='var(--good)'; }
 function markSaving(){ saveStatus.textContent='Saving…'; saveStatus.style.color='var(--warn)'; }
@@ -766,8 +776,10 @@ async function openOnlineMatchModal(session=null,prefill={}){
     ${session?'':`<label><span class='label-title'>Approx. match duration (minutes) <span class='muted'>optional</span></span><input id='onlineDuration' type='number' min='0' max='600' value='35'></label>`}
     <label><span class='label-title'>Notes <span class='muted'>optional</span></span><textarea id='onlineMatchNotes'></textarea></label>
     <button type='button' class='btn primary full' id='saveOnlineMatch'>Save match</button>`);
+  $('#onlineFormat').onchange=()=>applyFormatDefaults($('#onlineFormat').value,$('#onlineGW'),$('#onlineGL'));
+  applyFormatDefaults($('#onlineFormat').value,$('#onlineGW'),$('#onlineGL'));
   $('#saveOnlineMatch').onclick=async()=>{
-    const format=$('#onlineFormat').value; const gw=Math.max(0,parseInt($('#onlineGW').value||'0',10)); const gl=Math.max(0,parseInt($('#onlineGL').value||'0',10)); if(gw===gl && format!=='FREE_PLAY') return toast('Formal match result cannot be tied.');
+    const format=$('#onlineFormat').value; const gw=Math.max(0,parseInt($('#onlineGW').value||'0',10)); const gl=Math.max(0,parseInt($('#onlineGL').value||'0',10)); const recordError=validateManualRecord(format,gw,gl); if(recordError)return toast(recordError);
     let sess=session; let started=iso(), ended=iso(), durationMin=0;
     if(!sess){
       durationMin=Math.max(0,parseInt($('#onlineDuration')?.value||'0',10));
@@ -829,9 +841,12 @@ async function openPastMatchModal(){
     <label><span class='label-title'>Active duration (minutes)</span><input id='pastDuration' type='number' min='0' max='600' value='35'></label>
     <label><span class='label-title'>Notes <span class='muted'>(optional)</span></span><textarea id='pastNotes'></textarea></label>
     <button type='button' class='btn primary full' id='savePastMatch'>Save past match</button>`);
+  $('#pastFormat').onchange=()=>applyFormatDefaults($('#pastFormat').value,$('#pastGW'),$('#pastGL'));
+  $('#pastMode').onchange=()=>{if($('#pastMode').value==='online'&&['local'].includes($('#pastContext').value))$('#pastContext').value='online_ranked';if($('#pastMode').value==='paper'&&$('#pastContext').value==='online_ranked')$('#pastContext').value='testing';};
+  applyFormatDefaults($('#pastFormat').value,$('#pastGW'),$('#pastGL'));
   $('#savePastMatch').onclick=async()=>{
     const format=$('#pastFormat').value, gw=Math.max(0,parseInt($('#pastGW').value||'0',10)), gl=Math.max(0,parseInt($('#pastGL').value||'0',10));
-    if(format!=='FREE_PLAY'&&gw===gl)return toast('Formal match result cannot be tied.');
+    const recordError=validateManualRecord(format,gw,gl); if(recordError)return toast(recordError);
     const startValue=$('#pastDate').value; if(!startValue)return toast('Choose the date and time.');
     const start=new Date(startValue); if(Number.isNaN(start.getTime()))return toast('Invalid date.');
     const duration=Math.max(0,parseInt($('#pastDuration').value||'0',10))*60000; const end=new Date(start.getTime()+duration).toISOString(); const started=start.toISOString();
