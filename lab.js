@@ -455,3 +455,76 @@ async function openGoalModal(){
     closeModal();renderLab();toast('Goal created.');
   };
 }
+
+async function renderToolsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const scoreSources=await getMeta('score_sources',scoreDefaults());
+  const leakTags=await getMeta('leak_tags',leakDefaults());
+  p.innerHTML=`
+    <div class='lab-card'>
+      <div class='lab-title'>Global Search</div><div class='lab-meta'>Search decks, notes, opponents, events, and testing blocks.</div>
+      <div class='btn-row' style='margin-top:9px'><input id='globalSearch' placeholder='Search RiftMastery'><button class='btn primary' id='globalSearchGo' type='button'>Search</button></div>
+    </div>
+    <div class='lab-card'><div class='lab-title'>Old Match Import</div><div class='lab-meta'>Import a RiftMastery-format CSV or a CSV with matching column names.</div><button class='btn full' id='importMatchCsv' type='button' style='margin-top:9px'>Import match CSV</button></div>
+    <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Scoring Sources</div><div class='lab-meta'>Conquer / Hold / Effect stay built in. Add extra labels for special scoring.</div></div><button class='btn small primary' id='addScoreSource' type='button'>+ Source</button></div><div class='lab-wrap' style='margin-top:9px'>${scoreSources.map(s=>`<span class='lab-chip'>${esc(s.label)}${['conquer','hold','effect'].includes(s.id)?'':` <button class='link-btn removeScoreSource' data-id='${s.id}' type='button'>×</button>`}</span>`).join('')}</div></div>
+    <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Review Tags</div><div class='lab-meta'>Tags feed the recurring-pattern tracker.</div></div><button class='btn small primary' id='addLeakTag' type='button'>+ Tag</button></div><div class='lab-wrap' style='margin-top:9px'>${leakTags.map(t=>`<span class='lab-chip'>${esc(t)}</span>`).join('')}</div></div>
+  `;
+  $('#globalSearchGo').onclick=()=>openGlobalSearch($('#globalSearch').value);
+  $('#globalSearch').onkeydown=e=>{if(e.key==='Enter')openGlobalSearch(e.target.value);};
+  $('#importMatchCsv').onclick=importMatchCsv;
+  $('#addScoreSource').onclick=openScoreSourceModal;
+  $$('.removeScoreSource',p).forEach(b=>b.onclick=()=>removeScoreSource(b.dataset.id));
+  $('#addLeakTag').onclick=openLeakTagModal;
+}
+async function openGlobalSearch(query){
+  const q=(query||'').trim().toLowerCase();if(!q)return toast('Enter something to search.');
+  const {deckMap,legendMap}=await maps();
+  const [decks,notes,matches,events,blocks]=await Promise.all([all('decks',{includeDeleted:true}),all('notes'),all('matches'),all('tournaments'),all('testingBlocks')]);
+  const results=[];
+  for(const d of decks)if([d.name,d.version,d.notes,d.deck_list].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Deck',title:d.name+(d.version?' '+d.version:''),meta:legendMap[d.legend_id]?.name||''});
+  for(const n of notes)if(String(n.text||'').toLowerCase().includes(q))results.push({type:'Note',title:n.text.slice(0,90),meta:fmtDate(n.timestamp)});
+  for(const m of matches){const hay=[deckMap[m.my_deck_id]?.name,legendMap[m.opponent_legend_id]?.name,m.notes,m.context,m.format].join(' ').toLowerCase();if(hay.includes(q))results.push({type:'Match',title:(deckMap[m.my_deck_id]?.name||'Deck')+' vs '+(legendMap[m.opponent_legend_id]?.name||'Opponent'),meta:fmtDate(m.started_at)});}
+  for(const e of events)if([e.name,e.notes].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Event',title:e.name,meta:fmtDate(e.event_date)});
+  for(const b of blocks)if([b.name,b.hypothesis].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Testing',title:b.name,meta:title(b.status)});
+  modal('Search results',results.length?`<div class='list'>${results.slice(0,100).map(r=>`<div class='list-item'><div><div class='title'>${esc(r.title)}</div><div class='meta'>${esc(r.type)} • ${esc(r.meta)}</div></div></div>`).join('')}</div>`:`<div class='empty'>No results for “${esc(query)}”.</div>`);
+}
+async function openScoreSourceModal(){
+  modal('Add scoring source',`<label><span class='label-title'>Label</span><input id='scoreSourceLabel' placeholder='e.g. Champion Effect'></label><button class='btn primary full' id='scoreSourceSave' type='button'>Add source</button>`);
+  $('#scoreSourceSave').onclick=async()=>{
+    const label=$('#scoreSourceLabel').value.trim();if(!label)return toast('Name the scoring source.');
+    const list=await getMeta('score_sources',scoreDefaults());const id='custom_'+crypto.randomUUID().slice(0,8);list.push({id,label});await setMeta('score_sources',list);closeModal();renderLab();toast('Scoring source added.');
+  };
+}
+async function removeScoreSource(id){
+  const list=await getMeta('score_sources',scoreDefaults());await setMeta('score_sources',list.filter(x=>x.id!==id));renderLab();
+}
+async function openLeakTagModal(){
+  modal('Add review tag',`<label><span class='label-title'>Tag</span><input id='leakTagName' placeholder='e.g. Greedy Keep'></label><button class='btn primary full' id='leakTagSave' type='button'>Add tag</button>`);
+  $('#leakTagSave').onclick=async()=>{const tag=$('#leakTagName').value.trim();if(!tag)return;const list=await getMeta('leak_tags',leakDefaults());if(!list.some(x=>x.toLowerCase()===tag.toLowerCase()))list.push(tag);await setMeta('leak_tags',list);closeModal();renderLab();};
+}
+async function importMatchCsv(){
+  const input=document.createElement('input');input.type='file';input.accept='.csv,text/csv';
+  input.onchange=async()=>{
+    const file=input.files?.[0];if(!file)return;const rows=csvParse(await file.text());if(rows.length<2)return toast('CSV has no match rows.');
+    const headers=rows[0].map(x=>x.trim());const required=['date','mode','context','format','my_deck','my_legend','opponent_legend','result'];if(required.some(h=>!headers.includes(h)))return toast('CSV is missing required RiftMastery columns.');
+    const getCell=(row,key)=>row[headers.indexOf(key)]||'';
+    const {legends,decks}=await maps();let imported=0;
+    for(const row of rows.slice(1)){
+      const myLegendName=getCell(row,'my_legend').trim(),oppName=getCell(row,'opponent_legend').trim(),deckName=getCell(row,'my_deck').trim();if(!myLegendName||!oppName||!deckName)continue;
+      let myLegend=legends.find(l=>l.name.toLowerCase()===myLegendName.toLowerCase());if(!myLegend){myLegend=stampBase({name:myLegendName,archived:false});await save('legends',myLegend);legends.push(myLegend);}
+      let opp=legends.find(l=>l.name.toLowerCase()===oppName.toLowerCase());if(!opp){opp=stampBase({name:oppName,archived:false});await save('legends',opp);legends.push(opp);}
+      const version=getCell(row,'my_deck_version').trim();let deck=decks.find(d=>!d.deleted_at&&d.legend_id===myLegend.id&&d.name.toLowerCase()===deckName.toLowerCase()&&String(d.version||'').toLowerCase()===version.toLowerCase());
+      if(!deck){deck=stampBase({name:deckName,version,legend_id:myLegend.id,deck_list:'',notes:'Imported from CSV',archived:false});await save('decks',deck);decks.push(deck);}
+      const start=new Date(getCell(row,'date'));if(Number.isNaN(start.getTime()))continue;const dur=Math.max(0,Number(getCell(row,'active_minutes'))||0)*60000,end=new Date(start.getTime()+dur).toISOString();
+      const session=stampBase({mode:getCell(row,'mode')||'paper',context:getCell(row,'context')||'testing',event_name:'CSV import',started_at:start.toISOString(),ended_at:end,pause_intervals:[],status:'completed',active_play_ms:dur});await save('sessions',session);
+      const resultRaw=getCell(row,'result').toLowerCase();const result=resultRaw==='me'||resultRaw==='win'||resultRaw==='w'?'me':resultRaw==='opponent'||resultRaw==='loss'||resultRaw==='l'?'opponent':null;
+      const match=stampBase({session_id:session.id,mode:session.mode,context:session.context,my_deck_id:deck.id,opponent_legend_id:opp.id,format:getCell(row,'format')||'BO3',started_at:start.toISOString(),ended_at:end,result,notes:getCell(row,'notes'),active_duration_ms:dur});await save('matches',match);
+      const gw=Math.max(0,Number(getCell(row,'games_won'))||0),gl=Math.max(0,Number(getCell(row,'games_lost'))||0);let n=1;
+      for(let i=0;i<gw;i++)await save('games',stampBase({match_id:match.id,game_number:n++,winner:'me',who_started:'unknown',started_at:start.toISOString(),ended_at:end,final_my_points:null,final_opponent_points:null}));
+      for(let i=0;i<gl;i++)await save('games',stampBase({match_id:match.id,game_number:n++,winner:'opponent',who_started:'unknown',started_at:start.toISOString(),ended_at:end,final_my_points:null,final_opponent_points:null}));
+      imported++;
+    }
+    toast('Imported '+imported+' matches.');if($('#screen-history')?.classList.contains('active'))document.querySelector('[data-nav="history"]')?.click();
+  };
+  input.click();
+}
