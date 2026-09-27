@@ -1,6 +1,6 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { all, get, putRaw, stampBase, clearStore } from './db.js';
+import { all, get, putRaw, stampBase, clearStore } from './db.js?v=0.4.3';
 
 const SUPABASE_URL='https://suhdbimnvqirehjkqlgu.supabase.co';
 const SUPABASE_KEY='sb_publishable_8HJTgiAzoEKgB3dkjIi-2w_kXBfIVl7';
