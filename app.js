@@ -965,6 +965,7 @@ async function tick(){
 
 async function init(){
   await openDB(); await seedLegends(); await refreshActive();
+  state.wakeWanted=Boolean(await getMeta('keep_awake',false));
   if('serviceWorker' in navigator){
     try{
       const reg=await navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'});
@@ -980,6 +981,13 @@ async function init(){
   state.tick=setInterval(tick,1000);
   if(state.activeSession) state.screen='play'; setScreen(state.screen);
 }
+
+document.addEventListener('visibilitychange',async()=>{
+  if(document.visibilityState==='visible' && state.wakeWanted && state.activeSession?.mode==='paper'){
+    await requestWakeLock();
+    if(state.screen==='play') renderPlay();
+  }
+});
 
 window.addEventListener('online',()=>{saveStatus.textContent='Online • local data safe';setTimeout(markSaved,1200)});
 window.addEventListener('offline',()=>{saveStatus.textContent='Offline • saving locally';saveStatus.style.color='var(--warn)';});
