@@ -1005,16 +1005,7 @@ async function init(){
   setScreen(state.screen);
   if(state.wakeWanted && state.activeSession?.mode==='paper' && state.activeGame) requestWakeLock();
 
-  if('serviceWorker' in navigator){
-    navigator.serviceWorker.register('./sw.js',{updateViaCache:'none'})
-      .then(reg=>{
-        reg.update().catch(()=>{});
-        if(navigator.serviceWorker.controller){
-          saveStatus.textContent=navigator.onLine?'Saved on this device':'Offline • local app ready';
-        }
-      })
-      .catch(e=>console.warn('SW registration failed',e));
-  }
+  // Service worker temporarily disabled while cloud sync stabilizes.\n
 }
 
 document.addEventListener('visibilitychange',async()=>{
