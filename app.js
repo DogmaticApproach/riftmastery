@@ -703,21 +703,27 @@ async function completeFreePlayMatch(){
   const rec=await matchGameRecord(m.id); m.ended_at=iso(); m.result=null; m.free_play_record=`${rec.me}-${rec.opp}`; m.active_duration_ms=intervalActiveMs(ms(m.started_at),ms(m.ended_at),state.activeSession.pause_intervals||[]); await save('matches',m); await refreshActive(); openPostMatchReview(m.id);
 }
 
-function openPostMatchReview(matchId){
+async function openPostMatchReview(matchId){
+  const match=await get('matches',matchId);
   showModal('Match saved',`
-    <p class="small muted">Optional 10-second review. Skip it if there is nothing useful to capture.</p>
-    <label class="checkline"><input type="checkbox" id="reviewMulligan" style="width:auto;min-height:0"> Mulligan issue</label>
-    <label><span class="label-title">Uncertain decision</span><input id="reviewDecision" placeholder="Optional"></label>
-    <label><span class="label-title">Unexpected opponent action</span><input id="reviewUnexpected" placeholder="Optional"></label>
-    <label><span class="label-title">General note</span><textarea id="reviewGeneral" placeholder="Optional"></textarea></label>
-    <div class="btn-row"><button type="button" class="btn ghost" id="skipReview">Skip</button><button type="button" class="btn primary" id="saveReview">Save review</button></div>`);
+    <p class='small muted'>Optional 10-second review. Skip it if there is nothing useful to capture.</p>
+    <label class='checkline'><input type='checkbox' id='reviewMulligan' style='width:auto;min-height:0'> Mulligan issue</label>
+    <label><span class='label-title'>Uncertain decision</span><input id='reviewDecision' placeholder='Optional'></label>
+    <label><span class='label-title'>Unexpected opponent action</span><input id='reviewUnexpected' placeholder='Optional'></label>
+    <label><span class='label-title'>General note</span><textarea id='reviewGeneral' placeholder='Optional'></textarea></label>
+    <div class='btn-row'><button type='button' class='btn ghost' id='skipReview'>Skip</button><button type='button' class='btn primary' id='saveReview'>Save review</button></div>
+    ${state.activeSession&&match?`<div class='divider'></div><div class='small muted' style='margin-bottom:8px'>Next action</div><div class='btn-row'><button type='button' class='btn' id='reviewRematch'>Rematch</button><button type='button' class='btn ghost' id='reviewSameOpp'>Same opponent</button><button type='button' class='btn ghost' id='reviewUndoGame'>Undo result</button></div>`:''}`);
   $('#skipReview').onclick=async()=>{closeModal();await refreshActive();renderPlay();};
   $('#saveReview').onclick=async()=>{
     const parts=[]; if($('#reviewMulligan').checked)parts.push('Mulligan issue'); if($('#reviewDecision').value.trim())parts.push(`Uncertain decision: ${$('#reviewDecision').value.trim()}`); if($('#reviewUnexpected').value.trim())parts.push(`Unexpected action: ${$('#reviewUnexpected').value.trim()}`); if($('#reviewGeneral').value.trim())parts.push($('#reviewGeneral').value.trim());
     if(parts.length){const n=stampBase({session_id:state.activeSession?.id||null,match_id:matchId,game_id:null,text:parts.join(' • '),timestamp:iso(),review_type:'post_match'});await save('notes',n);} closeModal(); await refreshActive(); renderPlay(); toast('Match review saved.');
   };
+  if(state.activeSession&&match){
+    $('#reviewRematch').onclick=()=>startRematch(state.activeSession,match);
+    $('#reviewSameOpp').onclick=()=>{closeModal();openMatchSetup(state.activeSession,{opponent_legend_id:match.opponent_legend_id,opponent_build:match.opponent_build||'',format:match.format});};
+    $('#reviewUndoGame').onclick=()=>undoLastGameResult(matchId);
+  }
 }
-
 async function abandonMatch(){
   const m=state.activeMatch; if(!m) return;
   confirmModal('Abandon match','This removes the incomplete match from normal history. Any completed prior matches in the session stay safe.',async()=>{
