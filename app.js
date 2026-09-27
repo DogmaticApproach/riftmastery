@@ -179,7 +179,7 @@ async function renderDecks(){
     ${archived.length?`<div class='section-head'><h3>Archived</h3></div><div class='list'>${archived.map(d=>`<div class='list-item'><div><div class='title'>${esc(d.name)} ${d.version?`<span class='chip'>${esc(d.version)}</span>`:''}</div><div class='meta'>${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class='btn small ghost deckRestore' data-id='${d.id}'>Restore</button></div>`).join('')}</div>`:''}`;
   $('#importDeck').onclick=()=>openDeckImportModal();
   $('#newDeck').onclick=()=>openDeckModal();
-  $('#deckSearch').oninput=e=>{state.deckFilters.query=e.target.value;clearTimeout(state._deckSearchTimer);state._deckSearchTimer=setTimeout(renderDecks,140);};
+  $('#deckSearch').oninput=e=>{const pos=e.target.selectionStart;state.deckFilters.query=e.target.value;clearTimeout(state._deckSearchTimer);state._deckSearchTimer=setTimeout(async()=>{await renderDecks();const n=$('#deckSearch');if(n){n.focus();try{n.setSelectionRange(pos,pos);}catch{}}},140);};
   $('#deckLegendFilter').onchange=e=>{state.deckFilters.legend=e.target.value;renderDecks();};
   $$('.deckView',el).forEach(b=>b.onclick=()=>openDeckViewModal(b.dataset.id));
   $$('.deckPin',el).forEach(b=>b.onclick=()=>toggleDeckPin(b.dataset.id));
@@ -432,6 +432,7 @@ async function createLiveMatch(session,setup){
   const deck=await get('decks',setup.my_deck_id); if(deck){deck.last_used_at=started;await save('decks',deck);}
   await Promise.all([setMeta('last_deck_id',setup.my_deck_id),setMeta('last_opp_legend_id',setup.opponent_legend_id),setMeta('last_format',setup.format||'BO3'),updateRecentOpponent(setup.opponent_legend_id)]);
   await refreshActive();
+  if(state.wakeWanted && session.mode==='paper') await requestWakeLock();
   return match;
 }
 
