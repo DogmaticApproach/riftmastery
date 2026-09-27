@@ -1,6 +1,6 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { all, get, putRaw, stampBase } from './db.js';
+import { all, get, putRaw, stampBase, clearStore } from './db.js';
 
 const SUPABASE_URL='https://suhdbimnvqirehjkqlgu.supabase.co';
 const SUPABASE_KEY='sb_publishable_8HJTgiAzoEKgB3dkjIi-2w_kXBfIVl7';
@@ -215,8 +215,18 @@ async function syncNow({manual=false}={}){
   if(syncing||!currentUser||!navigator.onLine)return;
   syncing=true;lastError='';renderCloudCard();setTopStatus('Syncing…','warn');
   try{
-    const localBefore=await localSnapshot();
+    let localBefore=await localSnapshot();
     const remote=await fetchRemoteRows();
+
+    // On a brand-new device, replace generated starter data with the cloud copy
+    // instead of merging duplicate default Legends / training areas.
+    const substantiveStores=new Set(['decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks']);
+    const hasSubstantiveLocal=[...localBefore.values()].some(x=>substantiveStores.has(x.store));
+    if(remote.length && !hasSubstantiveLocal){
+      for(const store of SYNC_STORES) await clearStore(store);
+      localBefore=await localSnapshot();
+    }
+
     const pulled=await applyRemoteNewer(remote,localBefore);
     const pushed=await pushLocalNewer(remote);
     lastSyncAt=new Date().toISOString();
