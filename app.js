@@ -21,8 +21,11 @@ const state = {
   activeGame: null,
   tick: null,
   historyFilters: {},
+  deckFilters: {query:'',legend:''},
   statsScope: 'overall',
-  notesQuery: ''
+  notesQuery: '',
+  wakeLock: null,
+  wakeWanted: false
 };
 
 function iso(){ return new Date().toISOString(); }
@@ -43,6 +46,8 @@ function fmtDate(v){
 function pct(n,d){ return d ? `${(n/d*100).toFixed(d<10?0:1)}%` : '—'; }
 function avg(n,d, digits=1){ return d ? (n/d).toFixed(digits) : '—'; }
 function titleCase(s=''){ return s.replaceAll('_',' ').replace(/\b\w/g,c=>c.toUpperCase()); }
+function toLocalInput(v){ if(!v)return ''; const d=new Date(v); const p=n=>String(n).padStart(2,'0'); return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+function optionOrder(items, preferred){ return [...items].sort((a,b)=>(a===preferred?-1:b===preferred?1:0)); }
 function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); clearTimeout(toast._t); toast._t=setTimeout(()=>toastEl.classList.remove('show'),1800); }
 function markSaved(){ saveStatus.textContent='Saved on this iPhone'; saveStatus.style.color='var(--good)'; }
 function markSaving(){ saveStatus.textContent='Saving…'; saveStatus.style.color='var(--warn)'; }
