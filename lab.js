@@ -1,6 +1,6 @@
 export const RIFTMASTERY_LAB_VERSION = '0.3';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.4.3';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.4.4';
 
 const VERSION='0.3';
 const $=(s,r=document)=>r.querySelector(s);
