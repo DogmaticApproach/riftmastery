@@ -1,4 +1,4 @@
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.4.6';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.4.12';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -141,25 +141,46 @@ async function homeStats(){
   return {total,matches:matches.length,games:games.length,wins,losses:formal.length-wins};
 }
 
+function currentWeekKey(){
+  const d=new Date(),daysSinceMonday=(d.getDay()+6)%7;
+  d.setDate(d.getDate()-daysSinceMonday);d.setHours(0,0,0,0);
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+const weeklyChecklistDefaults=()=>[
+  {id:'ranked',title:'Complete a ranked session',detail:'Decide on 2 or 3 BO3s before you queue.'},
+  {id:'lab',title:'Run one matchup or bad-draw lab',detail:'Practice one specific scenario.'},
+  {id:'vod-1',title:'Study a high-level VOD',detail:'Pause before an unfamiliar decision.'},
+  {id:'vod-2',title:'Study a second high-level VOD',detail:'Track one concept across the game.'},
+  {id:'event',title:'Get local tournament reps',detail:'When an event is available.',optional:true}
+];
+async function getWeeklyChecklist(){
+  const week=currentWeekKey();let row=await get('weeklyChecklists',week);
+  if(!row){row=stampBase({id:week,week_start:week,items:weeklyChecklistDefaults()});await save('weeklyChecklists',row);return row;}
+  const items=Array.isArray(row.items)?row.items:[];
+  const changed=weeklyChecklistDefaults().some(item=>!items.some(saved=>saved.id===item.id));
+  if(changed){row.items=[...items,...weeklyChecklistDefaults().filter(item=>!items.some(saved=>saved.id===item.id))];await save('weeklyChecklists',row);}
+  return row;
+}
+
 async function renderHome(){
   const el=$('#screen-home');
   const s=await homeStats();
   const {legendMap,deckMap}=await lookups();
-  const [allMatches,allGames,blocks]=await Promise.all([all('matches'),all('games'),all('testingBlocks')]);
+  const [allMatches,allGames,blocks,weeklyChecklist]=await Promise.all([all('matches'),all('games'),all('testingBlocks'),getWeeklyChecklist()]);
   const matches=allMatches.sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,4);
   const active=state.activeSession;
   const activeBlock=blocks.filter(b=>b.status==='active').sort((a,b)=>ms(b.started_at||b.created_at)-ms(a.started_at||a.created_at))[0];
-  const blockMatches=activeBlock?allMatches.filter(m=>m.testing_block_id===activeBlock.id&&m.ended_at):[];
+  const blockMatches=activeBlock?allMatches.filter(m=>m.testing_block_id===activeBlock.id&&m.ended_at&&(!activeBlock.target_matches||(m.format==='BO3'&&m.context==='online_ranked'))):[];
   const blockMatchIds=new Set(blockMatches.map(m=>m.id));
   const blockGames=activeBlock?allGames.filter(g=>blockMatchIds.has(g.match_id)&&g.ended_at):[];
-  const target=Math.max(1,Number(activeBlock?.target_games)||10),blockPct=activeBlock?Math.min(100,Math.round(blockGames.length/target*100)):0;
+  const targetMatches=Boolean(activeBlock?.target_matches),target=Math.max(1,Number(targetMatches?activeBlock.target_matches:activeBlock?.target_games)||10),blockProgress=targetMatches?blockMatches.length:blockGames.length,blockPct=activeBlock?Math.min(100,Math.round(blockProgress/target*100)):0;
   const activeDeck=activeBlock?deckMap[activeBlock.deck_id]:null;
   const focusTitle=activeBlock?.name||'Compare before committing';
   const focusDescription=activeBlock?.hypothesis||'Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.';
   el.innerHTML=`
     <section class="hero">
       <div class="hero-copy"><div class="hero-kicker">Riftbound • Player development</div><h2>${active?'Your session is underway':'Build the edge.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Train with intent. Review with honesty. Carry one lesson into the next game.'}</p></div>
-      ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
+      ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}${active.planned_bo3_count?` • Committed: ${active.planned_bo3_count} BO3s`:''}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
       <div class="primary-actions">
         <button class="btn primary" id="homePaper">${active?.mode==='paper'?'Resume Paper Session':'Start Paper Session'}</button>
         <button class="btn" id="homeOnline">${active?.mode==='online'?'Resume Online Session':'Log Online Match'}</button>
@@ -176,8 +197,13 @@ async function renderHome(){
       <div class="focus-topline"><div class="focus-kicker">${activeBlock?'Active testing block':'Today’s development focus'}</div><span class="focus-mark" aria-hidden="true">✦</span></div>
       <h3>${esc(focusTitle)}</h3>
       <p>${esc(focusDescription)}</p>
-      ${activeBlock?`<div class="focus-meta"><span>${esc(activeDeck?.name||'Deck not found')}</span><span>${blockGames.length} / ${target} games</span></div><div class="focus-progress" role="progressbar" aria-label="Testing block progress" aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${Math.min(blockGames.length,target)}"><span style="width:${blockPct}%"></span></div>`:`<div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>`}
+      ${activeBlock?`<div class="focus-meta"><span>${esc(activeDeck?.name||'Deck not found')}</span><span>${blockProgress} / ${target} ${targetMatches?'BO3s':'games'}</span></div><div class="focus-progress" role="progressbar" aria-label="Testing block progress" aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${Math.min(blockProgress,target)}"><span style="width:${blockPct}%"></span></div>`:`<div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>`}
       <button class="focus-link" id="homeLab">${activeBlock?'Review your training block':'Open the Development Lab'} <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="weekly-card" aria-labelledby="weeklyTitle">
+      <div class="weekly-head"><div><div class="focus-kicker">WEEK OF ${new Date(weeklyChecklist.week_start+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'})}</div><h3 id="weeklyTitle">Weekly training checklist</h3><p>Keep the reps deliberate. This resets each Monday.</p></div><div class="weekly-count">${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}<span> / ${weeklyChecklist.items.filter(i=>!i.optional).length}</span></div></div>
+      <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="${weeklyChecklist.items.filter(i=>!i.optional).length}" aria-valuenow="${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}"><span style="width:${weeklyChecklist.items.filter(i=>!i.optional).length?Math.round(weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length/weeklyChecklist.items.filter(i=>!i.optional).length*100):0}%"></span></div>
+      <div class="weekly-items">${weeklyChecklist.items.map(item=>`<button class="weekly-item ${item.done?'is-done':''}" data-weekly-item="${esc(item.id)}" aria-pressed="${Boolean(item.done)}"><span class="weekly-check" aria-hidden="true">${item.done?'✓':''}</span><span class="weekly-copy"><strong>${esc(item.title)}${item.optional?` <em>Optional</em>`:''}</strong><small>${esc(item.detail)}</small></span></button>`).join('')}</div>
     </section>
     <div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
     <div class="list">${matches.length?matches.map(m=>{
@@ -188,6 +214,7 @@ async function renderHome(){
   $('#homePaper').onclick=()=>{ if(active?.mode==='paper') setScreen('play'); else openStartSession('paper'); };
   $('#homeOnline').onclick=()=>{ if(active?.mode==='online') setScreen('play'); else openOnlineChoice(); };
   $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="more"]')?.click();
+  $$('.weekly-item',el).forEach(button=>button.onclick=async()=>{const row=await get('weeklyChecklists',weeklyChecklist.week_start);const item=row?.items?.find(x=>x.id===button.dataset.weeklyItem);if(!item)return;item.done=!item.done;await save('weeklyChecklists',row);renderHome();});
   $('#goHistory').onclick=()=>setScreen('history');
 }
 
@@ -480,11 +507,14 @@ async function openStartSession(mode){
   const contextOptions=optionOrder(baseContexts,lastContext);
   showModal(mode==='paper'?'Start paper session':'Start online session',`
     <label><span class='label-title'>Session context</span><select id='sessionContext'>${contextOptions.map(x=>`<option value='${x}'>${titleCase(x)}</option>`).join('')}</select></label>
+    <div id='rankedPrecommit' style='display:none'><label><span class='label-title'>Precommit your ranked session</span><select id='plannedBo3Count'><option value='2'>2 BO3s</option><option value='3'>3 BO3s</option></select></label></div>
     <label><span class='label-title'>Event / session name <span class='muted'>(optional)</span></span><input id='sessionName' placeholder='e.g. Thursday locals, Annie testing'></label>
     <button type='button' class='btn primary full' id='createSession'>Start session</button>`);
+  const updatePrecommit=()=>{const field=$('#rankedPrecommit');if(field)field.style.display=$('#sessionContext').value==='online_ranked'?'block':'none';};
+  $('#sessionContext').addEventListener('change',updatePrecommit);updatePrecommit();
   $('#createSession').onclick=async()=>{
     const context=$('#sessionContext').value;
-    const row=stampBase({mode,context,event_name:$('#sessionName').value.trim(),started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null});
+    const row=stampBase({mode,context,event_name:$('#sessionName').value.trim(),planned_bo3_count:context==='online_ranked'?Number($('#plannedBo3Count').value):null,started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null});
     await save('sessions',row); await setMeta('last_session_context_'+mode,context); closeModal(); await refreshActive();
     if(mode==='paper') await openMatchSetup(row); else {setScreen('play'); toast('Online timer started.');}
   };
@@ -769,7 +799,7 @@ async function renderOnlineSession(el){
   const lastMatch=matches.at(-1)||null;
   const {deckMap,legendMap}=await lookups();
   el.innerHTML=`
-    <div class='session-strip'><div><div class='strong'>${esc(s.event_name||titleCase(s.context))}</div><div class='small muted'>Online • ${s.status==='paused'?'Paused':'Active'}</div></div><div class='time' id='onlineSessionTimer'>${fmtDuration(sessionActiveMs(s))}</div></div>
+    <div class='session-strip'><div><div class='strong'>${esc(s.event_name||titleCase(s.context))}</div><div class='small muted'>Online • ${s.status==='paused'?'Paused':'Active'}${s.planned_bo3_count?` • Committed: ${s.planned_bo3_count} BO3s`:''}</div></div><div class='time' id='onlineSessionTimer'>${fmtDuration(sessionActiveMs(s))}</div></div>
     <div class='hero'><h2>${matches.length} match${matches.length===1?'':'es'} logged</h2><p>Keep the timer running while you play, then add each result manually.</p></div>
     <div class='primary-actions'><button class='btn primary' id='onlineLogMatch'>Log Match</button>${lastMatch?`<div class='btn-row'><button class='btn' id='onlineSameSetup'>Log same setup</button><button class='btn ghost' id='onlineSameOpp'>Same opponent</button></div>`:''}<button class='btn' id='onlinePause'>${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class='btn danger' id='onlineEndSession'>End Session</button></div>
     <div class='section-head'><h3>This session</h3><div class='sub'>${fmtHours(sessionActiveMs(s))} active</div></div>
@@ -949,7 +979,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4.11 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4.12 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
@@ -973,7 +1003,7 @@ async function openImportBackup(){
     let payload;
     try{ payload=JSON.parse(await file.text()); }catch{ return toast('That file is not valid JSON.'); }
     if(!payload?.data || typeof payload.data!=='object') return toast('Not a RiftMastery backup.');
-    const allowed=['legends','decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks','skillAreas','meta'];
+    const allowed=['legends','decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks','weeklyChecklists','skillAreas','meta'];
     const counts=allowed.reduce((n,k)=>n+(Array.isArray(payload.data[k])?payload.data[k].length:0),0);
     showModal('Import backup',
       '<p class="small muted">Found <strong>'+counts+'</strong> records in <strong>'+esc(file.name)+'</strong>.</p>'+

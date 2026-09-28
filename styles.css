@@ -177,3 +177,23 @@ h1{font-size:23px;letter-spacing:-.025em}
   background-position:center,center,right 47%;
   background-repeat:no-repeat;
 }
+
+.weekly-card{margin:18px 0 8px;padding:18px;border:1px solid rgba(200,168,107,.2);border-radius:21px;background:linear-gradient(145deg,rgba(20,32,34,.97),rgba(14,23,25,.96));box-shadow:0 12px 30px rgba(0,0,0,.15)}
+.weekly-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.weekly-head h3{margin:6px 0 4px;font-size:18px;letter-spacing:-.02em}
+.weekly-head p{margin:0;color:var(--muted);font-size:12px;line-height:1.45}
+.weekly-count{flex:none;padding:8px 10px;border:1px solid rgba(200,168,107,.22);border-radius:13px;color:#f0dfb9;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums}
+.weekly-count span{color:var(--muted);font-size:12px;font-weight:600}
+.weekly-progress{height:6px;margin:15px 0 9px;overflow:hidden;border-radius:99px;background:#0b1416}
+.weekly-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#648e7c,#d0b276);transition:width .2s ease}
+.weekly-items{display:grid;gap:5px}
+.weekly-item{display:flex;align-items:center;gap:11px;width:100%;padding:10px 9px;text-align:left;border:1px solid transparent;border-radius:13px;background:transparent;color:var(--text)}
+.weekly-item:hover{background:rgba(255,255,255,.025);border-color:rgba(200,168,107,.1)}
+.weekly-check{display:grid;place-items:center;flex:none;width:22px;height:22px;border:1px solid #596b64;border-radius:7px;color:#101714;font-size:14px;font-weight:900}
+.weekly-item.is-done .weekly-check{border-color:#cdb17a;background:#cdb17a}
+.weekly-item.is-done strong{color:#bdc9bf}
+.weekly-copy{display:grid;gap:3px;min-width:0}
+.weekly-copy strong{font-size:12px;line-height:1.35}
+.weekly-copy small{color:var(--muted);font-size:10px;line-height:1.4}
+.weekly-copy em{margin-left:4px;color:#d8c18d;font-size:9px;font-style:normal;font-weight:650;letter-spacing:.04em;text-transform:uppercase}
+@media(max-width:480px){.weekly-card{padding:15px;margin-top:15px}.weekly-item{padding:10px 6px}.weekly-head h3{font-size:17px}}

@@ -1,6 +1,6 @@
 const DB_NAME = 'riftmastery-db';
-const DB_VERSION = 2;
-const STORES = ['legends','decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks','skillAreas','meta'];
+const DB_VERSION = 3;
+const STORES = ['legends','decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks','weeklyChecklists','skillAreas','meta'];
 
 let dbPromise;
 

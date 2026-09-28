@@ -1,5 +1,5 @@
 
-import { all, putRaw, clearStore } from './db.js?v=0.4.6';
+import { all, putRaw, clearStore } from './db.js?v=0.4.12';
 
 const SUPABASE_URL='https://suhdbimnvqirehjkqlgu.supabase.co';
 const SUPABASE_KEY='sb_publishable_8HJTgiAzoEKgB3dkjIi-2w_kXBfIVl7';
@@ -8,7 +8,7 @@ const SESSION_KEY='riftmastery-supabase-session-v1';
 const SYNC_STORES=[
   'legends','decks','sessions','matches','games','pointEvents','notes',
   'testingBlocks','matchupNotes','tournaments','experiments','goals',
-  'reviewBlocks','skillAreas'
+  'reviewBlocks','weeklyChecklists','skillAreas'
 ];
 
 const $=(s,r=document)=>r.querySelector(s);
@@ -322,7 +322,7 @@ async function syncNow({manual=false}={}){
   try{
     let localBefore=await localSnapshot();
     const remote=await fetchRemoteRows();
-    const substantiveStores=new Set(['decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks']);
+    const substantiveStores=new Set(['decks','sessions','matches','games','pointEvents','notes','testingBlocks','matchupNotes','tournaments','experiments','goals','reviewBlocks','weeklyChecklists']);
     const hasSubstantiveLocal=[...localBefore.values()].some(x=>substantiveStores.has(x.store));
     if(remote.length&&!hasSubstantiveLocal){
       for(const store of SYNC_STORES)await clearStore(store);

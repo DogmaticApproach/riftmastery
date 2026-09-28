@@ -1,6 +1,6 @@
 export const RIFTMASTERY_LAB_VERSION = '0.3';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.4.6';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.4.12';
 
 const VERSION='0.3';
 const $=(s,r=document)=>r.querySelector(s);
@@ -104,23 +104,23 @@ async function renderLab(){
 }
 
 async function blockProgress(block){
-  const matches=(await all('matches')).filter(m=>m.testing_block_id===block.id&&m.ended_at);
+  const matches=(await all('matches')).filter(m=>m.testing_block_id===block.id&&m.ended_at&&(!block.target_matches||(m.format==='BO3'&&m.context==='online_ranked')));
   const ids=new Set(matches.map(m=>m.id));
   const games=(await all('games')).filter(g=>ids.has(g.match_id)&&g.ended_at);
   const rec=recordFor(matches);
-  return {matches,games,count:games.length,rec};
+  return {matches,games,count:games.length,matchCount:matches.length,rec};
 }
 async function renderBlocksTab(){
   const p=$('#labPanel'); if(!p)return;
   const {deckMap,legendMap}=await maps();
   const blocks=(await all('testingBlocks')).sort((a,b)=>(a.status==='active'?-1:1)-(b.status==='active'?-1:1)||ms(b.created_at)-ms(a.created_at));
-  let html="<div class='lab-row'><div><div class='strong'>Testing Blocks</div><div class='small muted'>Define a hypothesis, target reps, and focus matchups.</div></div><button class='btn small primary' id='newBlock'>+ Block</button></div>";
+  let html="<div class='lab-row'><div><div class='strong'>Testing Blocks</div><div class='small muted'>Precommit a target, hypothesis, and matchup focus.</div></div><button class='btn small primary' id='newBlock'>+ Block</button></div>";
   if(!blocks.length) html+="<div class='empty'>No testing blocks yet.</div>";
   for(const b of blocks){
-    const pr=await blockProgress(b),target=Math.max(1,Number(b.target_games)||10),percent=Math.min(100,pr.count/target*100);
+    const pr=await blockProgress(b),targetMatches=Boolean(b.target_matches),target=Math.max(1,Number(targetMatches?b.target_matches:b.target_games)||10),progress=targetMatches?pr.matchCount:pr.count,percent=Math.min(100,progress/target*100);
     const focus=(b.focus_legend_ids||[]).map(id=>legendMap[id]?.name).filter(Boolean).join(', ');
     html+="<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>"+esc(b.name)+"</div><div class='lab-meta'>"+esc(deckMap[b.deck_id]?.name||'Unknown deck')+(focus?" • Focus: "+esc(focus):'')+"</div></div><span class='lab-chip'>"+title(b.status||'active')+"</span></div>"+
-      "<div class='lab-progress'><span style='width:"+percent+"%'></span></div><div class='lab-row' style='margin-top:7px'><div class='small'>"+pr.count+" / "+target+" games • "+pr.rec.w+"–"+pr.rec.l+" matches</div><div class='lab-wrap'><button class='btn small ghost blockReview' data-id='"+b.id+"'>Review</button>"+(b.status==='active'?"<button class='btn small blockStop' data-id='"+b.id+"'>Complete</button>":"")+"</div></div>"+
+      "<div class='lab-progress'><span style='width:"+percent+"%'></span></div><div class='lab-row' style='margin-top:7px'><div class='small'>"+progress+" / "+target+(targetMatches?" BO3s":" games")+" • "+pr.rec.w+"–"+pr.rec.l+" matches</div><div class='lab-wrap'><button class='btn small ghost blockReview' data-id='"+b.id+"'>Review</button>"+(b.status==='active'?"<button class='btn small blockStop' data-id='"+b.id+"'>Complete</button>":"")+"</div></div>"+
       (b.hypothesis?"<div class='small muted' style='margin-top:8px'>Hypothesis: "+esc(b.hypothesis)+"</div>":"")+"</div>";
   }
   html+=await readyTenMatchReviewsHtml(deckMap);
@@ -137,14 +137,16 @@ async function openTestingBlockModal(){
   modal('New testing block',`
     <label><span class='label-title'>Block name</span><input id='tbName' placeholder='e.g. Jayce v3 matchup block'></label>
     <label><span class='label-title'>Deck</span><select id='tbDeck'>${active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></label>
-    <label><span class='label-title'>Target games</span><input id='tbTarget' type='number' min='1' max='500' value='20'></label>
+    <label><span class='label-title'>Track by</span><select id='tbTargetType'><option value='bo3'>Ranked BO3 matches</option><option value='games'>Individual games</option></select></label>
+    <label><span class='label-title'>Target</span><input id='tbTarget' type='number' min='1' max='500' value='10'></label>
     <label><span class='label-title'>Focus opponent Legends</span><select id='tbFocus' multiple size='6'>${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
     <label><span class='label-title'>Hypothesis</span><textarea id='tbHypothesis' placeholder='What do you expect this practice block to improve?'></textarea></label>
     <button class='btn primary full' type='button' id='tbSave'>Create block</button>`);
   $('#tbSave').onclick=async()=>{
     const name=$('#tbName').value.trim();if(!name)return toast('Name the testing block.');
     const focus=[...$('#tbFocus').selectedOptions].map(o=>o.value);
-    const row=stampBase({name,deck_id:$('#tbDeck').value,target_games:Number($('#tbTarget').value)||20,focus_legend_ids:focus,hypothesis:$('#tbHypothesis').value.trim(),status:'active',started_at:iso(),ended_at:null});
+    const target=Math.max(1,Number($('#tbTarget').value)||10),targetType=$('#tbTargetType').value;
+    const row=stampBase({name,deck_id:$('#tbDeck').value,...(targetType==='bo3'?{target_matches:target}:{target_games:target}),focus_legend_ids:focus,hypothesis:$('#tbHypothesis').value.trim(),status:'active',started_at:iso(),ended_at:null});
     await save('testingBlocks',row);closeModal();renderLab();toast('Testing block created.');
   };
 }
@@ -158,7 +160,7 @@ async function openTestingBlockReview(id){
     ${leaks.length?`<div class='section-head'><h3>Repeated tags</h3></div><div class='lab-wrap'>${leaks.slice(0,5).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>`:''}`);
 }
 async function readyTenMatchReviewsHtml(deckMap){
-  const matches=(await all('matches')).filter(m=>m.ended_at);
+      const matches=(await all('matches')).filter(m=>m.ended_at&&m.format==='BO3'&&m.context==='online_ranked');
   const saved=await all('reviewBlocks');
   let cards='';
   for(const [deckId,deck] of Object.entries(deckMap)){
@@ -167,25 +169,26 @@ async function readyTenMatchReviewsHtml(deckMap){
     const blocks=Math.floor(dm.length/10);
     for(let n=1;n<=blocks;n++){
       if(saved.some(r=>r.deck_id===deckId&&r.block_number===n))continue;
-      cards+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>10-Match Review Ready</div><div class='lab-meta'>${esc(deck.name)} ${esc(deck.version||'')} • Matches ${(n-1)*10+1}–${n*10}</div></div><button class='btn small tenReview' data-deck='${deckId}' data-number='${n}'>Review</button></div></div>`;
+      cards+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>10-BO3 Review Ready</div><div class='lab-meta'>${esc(deck.name)} ${esc(deck.version||'')} • Ranked BO3s ${(n-1)*10+1}–${n*10}</div></div><button class='btn small tenReview' data-deck='${deckId}' data-number='${n}'>Review</button></div></div>`;
     }
   }
   return cards?`<div class='section-head'><h3>Development Reviews</h3></div>${cards}`:'';
 }
 async function openTenMatchReview(deckId,blockNumber){
-  const matches=(await all('matches')).filter(m=>m.my_deck_id===deckId&&m.ended_at).sort((a,b)=>ms(a.started_at)-ms(b.started_at)).slice((blockNumber-1)*10,blockNumber*10);
+  const matches=(await all('matches')).filter(m=>m.my_deck_id===deckId&&m.ended_at&&m.format==='BO3'&&m.context==='online_ranked').sort((a,b)=>ms(a.started_at)-ms(b.started_at)).slice((blockNumber-1)*10,blockNumber*10);
   const leaks=await leakCountsForMatches(matches.map(m=>m.id));
-  modal('10-Match Development Review',`
+  modal('10-BO3 Development Review',`
+    <p class='small muted'>Judge decisions using what was known at the time. The match record is context, not the verdict.</p>
     ${leaks.length?`<div class='lab-wrap' style='margin-bottom:10px'>${leaks.slice(0,5).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>`:''}
-    <label><span class='label-title'>What improved?</span><textarea id='rvImproved'></textarea></label>
+    <label><span class='label-title'>What improved independent of results?</span><textarea id='rvImproved'></textarea></label>
     <label><span class='label-title'>What repeated?</span><textarea id='rvRepeated'></textarea></label>
     <label><span class='label-title'>What did stronger opponents punish?</span><textarea id='rvPunished'></textarea></label>
     <label><span class='label-title'>What did you learn?</span><textarea id='rvLearned'></textarea></label>
     <label><span class='label-title'>Next drill / focus</span><textarea id='rvNext'></textarea></label>
     <button class='btn primary full' id='rvSave' type='button'>Save review</button>`);
   $('#rvSave').onclick=async()=>{
-    await save('reviewBlocks',stampBase({deck_id:deckId,block_number:Number(blockNumber),match_ids:matches.map(m=>m.id),improved:$('#rvImproved').value.trim(),repeated:$('#rvRepeated').value.trim(),punished:$('#rvPunished').value.trim(),learned:$('#rvLearned').value.trim(),next_drill:$('#rvNext').value.trim(),completed_at:iso()}));
-    closeModal();renderLab();toast('10-match review saved.');
+    await save('reviewBlocks',stampBase({deck_id:deckId,block_number:Number(blockNumber),format:'BO3',context:'online_ranked',match_ids:matches.map(m=>m.id),improved:$('#rvImproved').value.trim(),repeated:$('#rvRepeated').value.trim(),punished:$('#rvPunished').value.trim(),learned:$('#rvLearned').value.trim(),next_drill:$('#rvNext').value.trim(),completed_at:iso()}));
+    closeModal();renderLab();toast('10-BO3 review saved.');
   };
 }
 function inferLeakTags(text){
@@ -742,7 +745,7 @@ async function syncTournamentAssignments(){
 }
 async function syncTestingTargets(){
   const blocks=(await all('testingBlocks')).filter(b=>b.status==='active');
-  for(const b of blocks){const pr=await blockProgress(b),target=Number(b.target_games)||10;if(pr.count>=target&&!b.target_reached_at){b.target_reached_at=iso();await save('testingBlocks',b);}}
+  for(const b of blocks){const pr=await blockProgress(b),target=Number(b.target_matches||b.target_games)||10,progress=b.target_matches?pr.matchCount:pr.count;if(progress>=target&&!b.target_reached_at){b.target_reached_at=iso();await save('testingBlocks',b);}}
 }
 
 async function enhanceModal(){
@@ -775,7 +778,7 @@ async function enhanceModal(){
       const holder=document.createElement('div');holder.id='labMatchExtras';
       const refresh=async()=>{
         const deckId=deckSel.value,matching=blocks.filter(b=>b.deck_id===deckId);
-        holder.innerHTML=`<label><span class='label-title'>Testing block <span class='muted'>(optional)</span></span><select id='labTestingBlock'><option value=''>None</option>${matching.map(b=>`<option value='${b.id}'>${esc(b.name)}</option>`).join('')}</select></label>
+        holder.innerHTML=`<label><span class='label-title'>Testing block <span class='muted'>(optional)</span></span><select id='labTestingBlock'><option value=''>None</option>${matching.map((b,i)=>`<option value='${b.id}' ${matching.length===1||i===0?'selected':''}>${esc(b.name)}</option>`).join('')}</select></label>
         <label><span class='label-title'>Match tags <span class='muted'>(optional)</span></span><input id='labMatchTags' placeholder='mulligan focus, tempo test'></label>`;
         if(session?.tournament_id){
           const t=await get('tournaments',session.tournament_id);
