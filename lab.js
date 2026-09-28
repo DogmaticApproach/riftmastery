@@ -844,7 +844,7 @@ async function enhanceSessionSummaryShare(){
 }
 async function downloadSessionImage(sessionId){
   const text=await sessionSummaryText(sessionId),canvas=document.createElement('canvas');canvas.width=1080;canvas.height=1350;const ctx=canvas.getContext('2d');
-  ctx.fillStyle='#0b0d10';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#85d7ff';ctx.font='bold 52px system-ui';ctx.fillText('RIFTMASTERY',70,100);ctx.fillStyle='#f4f6f8';ctx.font='38px system-ui';
+  ctx.fillStyle='#0b1114';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle='#d5b779';ctx.font='bold 52px system-ui';ctx.fillText('RIFTMASTERY',70,100);ctx.fillStyle='#f2f0e9';ctx.font='38px system-ui';
   let y=190;
   for(const raw of text.split('\n').slice(1)){
     const words=raw.split(' ');let line='';

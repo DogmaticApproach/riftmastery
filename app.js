@@ -148,7 +148,7 @@ async function renderHome(){
   const matches=(await all('matches')).sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,4);
   const active=state.activeSession;
   el.innerHTML=`
-    <div class="hero"><h2>${active?'Session in progress':'Train. Track. Improve.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'A local-first Riftbound development log built for actual reps.'}</p></div>
+    <div class="hero"><div class="hero-kicker">Riftbound player development</div><h2>${active?'Session in progress':'Train with intention.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Build mastery one match at a time. Track the reps, review the decisions, find the next edge.'}</p></div>
     ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
     <div class="grid-2">
       <div class="card stat-card"><div class="k">Active development</div><div class="v">${fmtHours(s.total)}</div></div>
