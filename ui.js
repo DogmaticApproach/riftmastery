@@ -1,3 +1,4 @@
+export const ARROW = `<svg class="ui-arrow" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M5 19 19 5M5 5h14v14"/></svg>`;
 // Shared presentation for every editor. Existing inputs and handlers retain their identity.
 export function prepareEditor() {
   const dialog=document.querySelector('#modal'), body=document.querySelector('#modalBody');
