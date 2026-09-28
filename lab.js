@@ -1,8 +1,8 @@
-export const RIFTMASTERY_LAB_VERSION = '0.6.1';
+export const RIFTMASTERY_LAB_VERSION = '0.6.2';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.6.1';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.6.2';
 
-const VERSION='0.6.1';
+const VERSION='0.6.2';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
