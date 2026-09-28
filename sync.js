@@ -1,5 +1,5 @@
 
-import { all, putRaw, clearStore } from './db.js?v=0.4.13';
+import { all, putRaw, clearStore } from './db.js?v=0.5.0';
 
 const SUPABASE_URL='https://suhdbimnvqirehjkqlgu.supabase.co';
 const SUPABASE_KEY='sb_publishable_8HJTgiAzoEKgB3dkjIi-2w_kXBfIVl7';

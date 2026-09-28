@@ -1,6 +1,6 @@
 export const RIFTMASTERY_LAB_VERSION = '0.3';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.4.13';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.5.0';
 
 const VERSION='0.3';
 const $=(s,r=document)=>r.querySelector(s);
@@ -69,6 +69,7 @@ async function copyOrShare(text,titleText='RiftMastery'){
 }
 
 let labTab='blocks';
+let insightTab='positions';
 let refreshTimer=null;
 let lastMoreKey='';
 let lastStatsKey='';
@@ -89,7 +90,7 @@ async function renderLab(){
   const root=$('#riftLab'); if(!root)return;
   const tabs=[
     ['blocks','Testing'],['matchups','Matchups'],['events','Events'],['experiments','A/B'],
-    ['goals','Goals'],['skills','Skills'],['tools','Tools']
+    ['goals','Goals'],['skills','Skills'],['insights','Insights'],['tools','Tools']
   ];
   root.innerHTML="<div class='section-head'><div><h2>Development Lab</h2><div class='sub'>Turn match data into deliberate practice.</div></div><span class='chip'>v"+VERSION+"</span></div>"+
     "<div class='lab-tabs'>"+tabs.map(([id,label])=>"<button data-lab-tab='"+id+"' class='"+(labTab===id?'active':'')+"'>"+label+"</button>").join('')+"</div><div id='labPanel' class='lab-panel'></div>";
@@ -100,6 +101,7 @@ async function renderLab(){
   if(labTab==='experiments')await renderExperimentsTab();
   if(labTab==='goals')await renderGoalsTab();
   if(labTab==='skills')await renderSkillsTab();
+  if(labTab==='insights')await renderInsightsTab();
   if(labTab==='tools')await renderToolsTab();
 }
 
@@ -477,6 +479,137 @@ async function openGoalModal(){
     const label=$('#goalLabel').value.trim();if(!label)return toast('Name the goal.');
     await save('goals',stampBase({label,goal_type:$('#goalType').value,target_value:Number($('#goalTarget').value)||1,deck_id:$('#goalDeck').value||null,my_legend_id:$('#goalMine').value||null,opponent_legend_id:$('#goalOpp').value||null,end_date:$('#goalEnd').value||null,status:'active',started_at:iso()}));
     closeModal();renderLab();toast('Goal created.');
+  };
+}
+
+const insightTabs=[['positions','Position Lab'],['research','Preview Research'],['queue','Training Queue'],['x','X Studio']];
+async function renderInsightsTab(){
+  const root=$('#labPanel');if(!root)return;
+  root.innerHTML=`<div class='insight-intro'><div class='lab-title'>Connect decisions to practice and useful content</div><div class='lab-meta'>Save what you saw, keep hypotheses honest, and carry one supported lesson forward.</div></div><div class='insight-tabs'>${insightTabs.map(([id,label])=>`<button class='${insightTab===id?'active':''}' data-insight-tab='${id}'>${label}</button>`).join('')}</div><div id='insightPanel' class='insight-panel'></div>`;
+  $$('.insight-tabs button',root).forEach(b=>b.onclick=()=>{insightTab=b.dataset.insightTab;renderInsightsTab();});
+  if(insightTab==='positions')await renderPositionReviews();
+  if(insightTab==='research')await renderPreviewResearch();
+  if(insightTab==='queue')await renderTrainingQueue();
+  if(insightTab==='x')await renderXStudio();
+}
+function insightHeader(titleText,description,buttonId,buttonLabel){return `<div class='lab-row insight-header'><div><div class='lab-title'>${titleText}</div><div class='lab-meta'>${description}</div></div><button class='btn small primary' id='${buttonId}'>${buttonLabel}</button></div>`;}
+const positionNotes=async()=> (await all('notes')).filter(n=>n.record_type==='position_review').sort((a,b)=>ms(b.timestamp)-ms(a.timestamp));
+async function renderPositionReviews(){
+  const p=$('#insightPanel'),notes=await positionNotes(),{deckMap,legendMap}=await maps();
+  const cards=await Promise.all(notes.slice(0,30).map(async n=>{const m=n.match_id?await get('matches',n.match_id):null;return `<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.question||'Position review')}</div><div class='lab-meta'>${m?`${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Opponent')} · `:''}${fmtDate(n.timestamp)} · ${esc(title(n.review_status||'unreviewed'))}</div></div><button class='btn small ghost editPositionReview' data-id='${n.id}'>Open</button></div><div class='insight-pair'><div><b>Your role</b><span>${esc(n.my_role||'Unclear')}</span></div><div><b>Line A</b><span>${esc(n.line_a||'—')}</span></div><div><b>Line B</b><span>${esc(n.line_b||'—')}</span></div></div>${n.opponent_range?`<p><b>Opponent range:</b> ${esc(n.opponent_range)}</p>`:''}${n.range_update?`<p><b>What changed your read:</b> ${esc(n.range_update)}</p>`:''}${n.takeaway?`<p><b>Review takeaway:</b> ${esc(n.takeaway)}</p>`:''}<div class='lab-wrap'><button class='btn small draftFromPosition' data-id='${n.id}'>Draft a supported insight</button></div></article>`;}));
+  p.innerHTML=insightHeader('Position Lab','After a game, unpack one difficult decision: role, two lines, opponent range, and what changed your read.','newPositionReview','+ Review a Position')+
+    (notes.length?cards.join(''):`<div class='empty'>No position reviews yet. Save one tough decision after a game, then revisit your reasoning with the information you had at the time.</div>`);
+  $('#newPositionReview').onclick=()=>openPositionReviewModal();
+  $$('.editPositionReview',p).forEach(b=>b.onclick=()=>openPositionReviewModal(null,b.dataset.id));
+  $$('.draftFromPosition',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);openXPostModal({claim:n.takeaway||n.question,evidence:[n.opponent_range,n.range_update].filter(Boolean).join('\n'),evidence_status:n.review_status==='reviewed'?'observed':'working_hypothesis',implication:n.line_a&&n.line_b?`Compare ${n.line_a} against ${n.line_b} before committing.`:''});});
+}
+async function openPositionReviewModal(prefill=null,id=null){
+  const existing=id?await get('notes',id):null,{deckMap,legendMap}=await maps();
+  const matches=(await all('matches')).filter(m=>m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,100);
+  modal(existing?'Edit position review':'Review a position',`<p class='small muted'>Write this after the game so it stays quick during play. Judge the choice using what you knew then.</p>
+    <label><span class='label-title'>Question / position</span><input id='posQuestion' maxlength='120' placeholder='e.g. Who was favored after the open-board turn?'></label>
+    <label><span class='label-title'>Link a match <span class='muted'>(optional)</span></span><select id='posMatch'><option value=''>No linked match</option>${matches.map(m=>`<option value='${m.id}'>${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Opponent')} · ${fmtDate(m.started_at)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Your role / who benefited if nothing changed?</span><select id='posRole'><option value='unclear'>I wasn’t sure</option><option value='me'>I was favored</option><option value='opponent'>Opponent was favored</option><option value='changed'>The role was changing</option></select></label>
+    <label><span class='label-title'>Line A</span><textarea id='posLineA' rows='2' placeholder='What was your first reasonable line?'></textarea></label>
+    <label><span class='label-title'>Line B</span><textarea id='posLineB' rows='2' placeholder='What other line deserved consideration?'></textarea></label>
+    <label><span class='label-title'>What was in the opponent’s plausible range?</span><textarea id='posRange' rows='2' placeholder='Separate likely from merely possible answers.'></textarea></label>
+    <label><span class='label-title'>What changed your read?</span><textarea id='posUpdate' rows='2' placeholder='An action, non-action, reveal, resource, or board change.'></textarea></label>
+    <label><span class='label-title'>What did review teach you?</span><textarea id='posTakeaway' rows='2' placeholder='A decision lesson or next drill.'></textarea></label>
+    <label><span class='label-title'>Review status</span><select id='posStatus'><option value='unreviewed'>Needs review</option><option value='reviewed'>Reviewed</option><option value='uncertain'>Still uncertain</option></select></label>
+    <button class='btn primary full' id='savePositionReview'>Save position review</button>`);
+  const n=existing||prefill||{};
+  $('#posQuestion').value=n.question||'';$('#posMatch').value=n.match_id||'';$('#posRole').value=n.my_role||'unclear';$('#posLineA').value=n.line_a||'';$('#posLineB').value=n.line_b||'';$('#posRange').value=n.opponent_range||'';$('#posUpdate').value=n.range_update||'';$('#posTakeaway').value=n.takeaway||'';$('#posStatus').value=n.review_status||'unreviewed';
+  $('#savePositionReview').onclick=async()=>{
+    const question=$('#posQuestion').value.trim(),lineA=$('#posLineA').value.trim(),lineB=$('#posLineB').value.trim();
+    if(!question)return toast('Name the position or question.');if(!lineA||!lineB)return toast('Record two candidate lines.');
+    const row=existing||stampBase({record_type:'position_review',timestamp:iso()});
+    Object.assign(row,{record_type:'position_review',question,my_role:$('#posRole').value,line_a:lineA,line_b:lineB,opponent_range:$('#posRange').value.trim(),range_update:$('#posUpdate').value.trim(),takeaway:$('#posTakeaway').value.trim(),review_status:$('#posStatus').value,match_id:$('#posMatch').value||null,text:`Position review: ${question}. Line A: ${lineA}. Line B: ${lineB}.`,timestamp:row.timestamp||iso()});
+    await save('notes',row);closeModal();await renderInsightsTab();toast('Position review saved.');
+  };
+}
+const researchNotes=async()=> (await all('notes')).filter(n=>n.record_type==='preview_research').sort((a,b)=>ms(b.updated_at||b.timestamp)-ms(a.updated_at||a.timestamp));
+async function renderPreviewResearch(){
+  const p=$('#insightPanel'),rows=await researchNotes();
+  p.innerHTML=insightHeader('Preview Research Board','Track what you are asking, what you suspect, what you tested, and what the evidence actually supports.','newResearch','+ Research Idea')+
+    (rows.length?rows.map(n=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.research_subject||n.question||'Research idea')}</div><div class='lab-meta'>${esc(n.evidence_status||'working_hypothesis').replaceAll('_',' ')} · ${fmtDate(n.updated_at||n.timestamp)}</div></div><button class='btn small ghost editResearch' data-id='${n.id}'>Update</button></div>${n.question?`<p><b>Question:</b> ${esc(n.question)}</p>`:''}${n.hypothesis?`<p><b>Hypothesis:</b> ${esc(n.hypothesis)}</p>`:''}${n.evidence?`<p><b>Evidence:</b> ${esc(n.evidence)}</p>`:''}${n.finding?`<p><b>Finding:</b> ${esc(n.finding)}</p>`:''}${n.next_test?`<p><b>Next test:</b> ${esc(n.next_test)}</p>`:''}${n.evidence_source?`<p class='tiny muted'>Source: ${esc(n.evidence_source)}</p>`:''}<div class='lab-wrap'><button class='btn small draftFromResearch' data-id='${n.id}'>Draft for X</button><button class='btn small ghost queueResearch' data-id='${n.id}'>Add next test to Training Queue</button></div></article>`).join(''):`<div class='empty'>No preview questions saved yet. Capture one claim you want to test; mark it as observed, a working hypothesis, or unresolved.</div>`);
+  $('#newResearch').onclick=()=>openResearchModal();
+  $$('.editResearch',p).forEach(b=>b.onclick=()=>openResearchModal(b.dataset.id));
+  $$('.draftFromResearch',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);openXPostModal({audience:'Riftbound players',claim:n.finding||n.hypothesis,evidence:n.evidence||'',evidence_status:n.evidence_status||'working_hypothesis',implication:n.next_test||''});});
+  $$('.queueResearch',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);queueWeeklyTask(n.next_test||`Test: ${n.research_subject||n.question}`,`Preview research · ${n.research_subject||n.question}`);});
+}
+async function openResearchModal(id=null){
+  const existing=id?await get('notes',id):null;
+  modal(existing?'Update research idea':'New preview research',`<label><span class='label-title'>Card, deck, or matchup</span><input id='researchSubject' maxlength='120' placeholder='What are you investigating?'></label>
+    <label><span class='label-title'>Question players need answered</span><textarea id='researchQuestion' rows='2' placeholder='Start with the uncertainty, not the post.'></textarea></label>
+    <label><span class='label-title'>Working hypothesis</span><textarea id='researchHypothesis' rows='2' placeholder='What do you currently expect?'></textarea></label>
+    <label><span class='label-title'>Evidence label</span><select id='researchStatus'><option value='working_hypothesis'>Working hypothesis</option><option value='observed'>Observed</option><option value='unresolved'>Unresolved</option></select></label>
+    <label><span class='label-title'>Evidence so far</span><textarea id='researchEvidence' rows='3' placeholder='Games, exact list, card text, VOD, or repeated observation.'></textarea></label>
+    <label><span class='label-title'>Evidence source <span class='muted'>(optional)</span></span><input id='researchSource' placeholder='URL, match, VOD timestamp, or event'></label>
+    <label><span class='label-title'>What will you test next?</span><textarea id='researchNext' rows='2' placeholder='A focused test or what evidence is still missing.'></textarea></label>
+    <label><span class='label-title'>Finding / current conclusion</span><textarea id='researchFinding' rows='2' placeholder='Keep the conclusion as narrow as the evidence.'></textarea></label>
+    <button class='btn primary full' id='saveResearch'>Save research</button>`);
+  const n=existing||{};$('#researchSubject').value=n.research_subject||'';$('#researchQuestion').value=n.question||'';$('#researchHypothesis').value=n.hypothesis||'';$('#researchStatus').value=n.evidence_status||'working_hypothesis';$('#researchEvidence').value=n.evidence||'';$('#researchSource').value=n.evidence_source||'';$('#researchNext').value=n.next_test||'';$('#researchFinding').value=n.finding||'';
+  $('#saveResearch').onclick=async()=>{
+    const subject=$('#researchSubject').value.trim(),question=$('#researchQuestion').value.trim();if(!subject||!question)return toast('Add the subject and the question.');
+    const row=existing||stampBase({record_type:'preview_research',timestamp:iso()});
+    Object.assign(row,{record_type:'preview_research',research_subject:subject,question,hypothesis:$('#researchHypothesis').value.trim(),evidence_status:$('#researchStatus').value,evidence:$('#researchEvidence').value.trim(),evidence_source:$('#researchSource').value.trim(),next_test:$('#researchNext').value.trim(),finding:$('#researchFinding').value.trim(),text:`${subject}: ${question}`,timestamp:row.timestamp||iso()});
+    await save('notes',row);closeModal();await renderInsightsTab();toast('Research idea saved.');
+  };
+}
+async function renderTrainingQueue(){
+  const p=$('#insightPanel'),notes=await all('notes'),reviewBlocks=(await all('reviewBlocks')).sort((a,b)=>ms(b.completed_at)-ms(a.completed_at));
+  const counts={};for(const n of notes){for(const tag of new Set(n.leak_tags||[]))counts[tag]=(counts[tag]||0)+1;}
+  const recurring=Object.entries(counts).filter(([,count])=>count>=2).sort((a,b)=>b[1]-a[1]);
+  const drills=reviewBlocks.filter(x=>x.next_drill?.trim()).map(x=>({title:x.next_drill.trim(),detail:`From your 10-BO3 review · ${fmtDate(x.completed_at)}`}));
+  const suggestions=[...recurring.map(([tag,count])=>({title:`Practice: ${tag}`,detail:`Tagged in ${count} notes. Treat this as a signal to review, then test it.`})),...drills];
+  p.innerHTML=`<div class='lab-card'><div class='lab-title'>Turn review signals into deliberate reps</div><div class='lab-meta'>Only repeated tags and saved review drills appear here. A pattern is a prompt to investigate, not a verdict about why you lost.</div></div>
+    ${suggestions.length?suggestions.map((x,i)=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(x.title)}</div><div class='lab-meta'>${esc(x.detail)}</div></div><button class='btn small primary queueWeekly' data-i='${i}'>Add to this week</button></div></article>`).join(''):`<div class='empty'>Your queue will fill from repeated tagged notes and saved 10-BO3 review drills. You can also add a focused task from a research idea.</div>`}
+    <div class='lab-wrap' style='margin-top:12px'><button class='btn small ghost' id='queuePosition'>Review a difficult position</button><button class='btn small ghost' id='queueResearch'>Add preview test</button></div>`;
+  $$('.queueWeekly',p).forEach(b=>b.onclick=()=>queueWeeklyTask(suggestions[Number(b.dataset.i)].title,suggestions[Number(b.dataset.i)].detail));
+  $('#queuePosition').onclick=()=>{insightTab='positions';renderInsightsTab();setTimeout(()=>$('#newPositionReview')?.click(),0);};
+  $('#queueResearch').onclick=()=>{insightTab='research';renderInsightsTab();setTimeout(()=>$('#newResearch')?.click(),0);};
+}
+async function queueWeeklyTask(titleText,detail){
+  if(typeof window.riftmasteryAddWeeklyTask!=='function')return toast('Weekly checklist is still loading.');
+  const added=await window.riftmasteryAddWeeklyTask(titleText,detail);if(!added)toast('That task is already on this week’s checklist.');
+}
+async function renderXStudio(){
+  const p=$('#insightPanel'),rows=(await all('notes')).filter(n=>n.record_type==='x_post').sort((a,b)=>ms(b.updated_at||b.timestamp)-ms(a.updated_at||a.timestamp));
+  p.innerHTML=insightHeader('X Studio','Draft from evidence when there is something useful to say. Record results to learn what readers save and discuss.','newXPost','+ Draft Insight')+
+    (rows.length?rows.map(n=>{const m=n.metrics||{},views=Number(m.views)||0,rate=(v)=>views?`${(Number(v||0)*1000/views).toFixed(1)} / 1k`:'';return `<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.hook||n.claim||'X draft')}</div><div class='lab-meta'>${esc(title(n.post_status||'draft'))} · ${esc(n.evidence_status||'working_hypothesis').replaceAll('_',' ')}${n.posted_at?' · '+fmtDate(n.posted_at):''}</div></div><button class='btn small ghost editXPost' data-id='${n.id}'>Open</button></div>${n.audience?`<p><b>Audience:</b> ${esc(n.audience)}</p>`:''}${n.claim?`<p><b>Claim:</b> ${esc(n.claim)}</p>`:''}${n.evidence?`<p><b>Proof:</b> ${esc(n.evidence)}</p>`:''}${n.post_text?`<div class='x-draft-preview'>${esc(n.post_text)}</div>`:''}${views?`<div class='insight-metrics'><span>${views.toLocaleString()} views</span><span>${rate(m.bookmarks)} bookmarks</span><span>${rate(m.replies)} replies</span><span>${rate(m.profile_visits)} profile visits</span><span>${rate(m.follows)} follows</span></div>`:''}<div class='lab-wrap'><button class='btn small copyXPost' data-id='${n.id}'>Copy draft</button></div></article>`;}).join(''):`<div class='empty'>No X drafts yet. Start from a supported research finding or save a draft to work on later. Posting stays in your hands.</div>`);
+  $('#newXPost').onclick=()=>openXPostModal();
+  $$('.editXPost',p).forEach(b=>b.onclick=()=>openXPostModal({},b.dataset.id));
+  $$('.copyXPost',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);await copyOrShare(n.post_text||n.claim||'','RiftMastery X draft');});
+}
+async function openXPostModal(prefill={},id=null){
+  const existing=id?await get('notes',id):null,n=existing||prefill||{};
+  modal(existing?'Edit X insight':'Draft an X insight',`<p class='small muted'>Build from evidence and write for a specific reader. RiftMastery saves a draft; it never posts for you.</p>
+    <label><span class='label-title'>Audience</span><input id='xAudience' maxlength='100' placeholder='e.g. Jayce players preparing for locals'></label>
+    <label><span class='label-title'>Hook</span><input id='xHook' maxlength='160' placeholder='Name the reader and the assumption or question'></label>
+    <label><span class='label-title'>Claim / finding</span><textarea id='xClaim' rows='2' placeholder='Keep it as narrow as the evidence.'></textarea></label>
+    <label><span class='label-title'>Evidence status</span><select id='xEvidenceStatus'><option value='observed'>Observed</option><option value='working_hypothesis'>Working hypothesis</option><option value='unresolved'>Unresolved</option></select></label>
+    <label><span class='label-title'>Evidence / proof</span><textarea id='xEvidence' rows='2' placeholder='Specific games, list, clip, or repeated observation.'></textarea></label>
+    <label><span class='label-title'>Why should the reader care?</span><textarea id='xImplication' rows='2' placeholder='What should they test, prepare, or change?'></textarea></label>
+    <button class='btn small ghost' type='button' id='xBuildDraft'>Build a draft from these fields</button>
+    <label><span class='label-title'>Post text</span><textarea id='xPostText' rows='5' placeholder='Draft or paste the final wording here.'></textarea></label>
+    <label><span class='label-title'>Status</span><select id='xPostStatus'><option value='draft'>Draft</option><option value='posted'>Posted</option><option value='parked'>Parked</option></select></label>
+    <div class='lab-grid'><label><span class='label-title'>Views</span><input id='xViews' type='number' min='0' value='0'></label><label><span class='label-title'>Likes</span><input id='xLikes' type='number' min='0' value='0'></label><label><span class='label-title'>Bookmarks</span><input id='xBookmarks' type='number' min='0' value='0'></label><label><span class='label-title'>Replies</span><input id='xReplies' type='number' min='0' value='0'></label><label><span class='label-title'>Profile visits</span><input id='xProfileVisits' type='number' min='0' value='0'></label><label><span class='label-title'>Follows</span><input id='xFollows' type='number' min='0' value='0'></label></div>
+    <label><span class='label-title'>Post URL <span class='muted'>(optional)</span></span><input id='xPostUrl' type='url' placeholder='https://x.com/...'></label>
+    <button class='btn primary full' id='saveXPost'>Save X record</button>`);
+  $('#xAudience').value=n.audience||'';$('#xHook').value=n.hook||'';$('#xClaim').value=n.claim||'';$('#xEvidenceStatus').value=n.evidence_status||'working_hypothesis';$('#xEvidence').value=n.evidence||'';$('#xImplication').value=n.implication||'';$('#xPostText').value=n.post_text||'';$('#xPostStatus').value=n.post_status||'draft';$('#xViews').value=n.metrics?.views||0;$('#xLikes').value=n.metrics?.likes||0;$('#xBookmarks').value=n.metrics?.bookmarks||0;$('#xReplies').value=n.metrics?.replies||0;$('#xProfileVisits').value=n.metrics?.profile_visits||0;$('#xFollows').value=n.metrics?.follows||0;$('#xPostUrl').value=n.post_url||'';
+  $('#xBuildDraft').onclick=()=>{
+    const audience=$('#xAudience').value.trim(),hook=$('#xHook').value.trim(),claim=$('#xClaim').value.trim(),evidence=$('#xEvidence').value.trim(),implication=$('#xImplication').value.trim(),status=$('#xEvidenceStatus').value;
+    if(!claim||!evidence)return toast('Add a claim and its evidence before building a draft.');
+    const lead=hook||(audience?audience.toUpperCase()+':':'');
+    const qualifier=status==='observed'?'Observed: ':status==='unresolved'?'Question I’m still testing: ':'Working hypothesis: ';
+    $('#xPostText').value=[lead,qualifier+claim,evidence?'Evidence: '+evidence:'',implication?'Why it matters: '+implication:''].filter(Boolean).join('\n\n');
+  };
+  $('#saveXPost').onclick=async()=>{
+    const claim=$('#xClaim').value.trim(),postText=$('#xPostText').value.trim();if(!claim&&!postText)return toast('Add a claim or draft text.');
+    const status=$('#xPostStatus').value,metrics={views:Number($('#xViews').value)||0,likes:Number($('#xLikes').value)||0,bookmarks:Number($('#xBookmarks').value)||0,replies:Number($('#xReplies').value)||0,profile_visits:Number($('#xProfileVisits').value)||0,follows:Number($('#xFollows').value)||0};
+    const row=existing||stampBase({record_type:'x_post',timestamp:iso()});
+    Object.assign(row,{record_type:'x_post',audience:$('#xAudience').value.trim(),hook:$('#xHook').value.trim(),claim,evidence_status:$('#xEvidenceStatus').value,evidence:$('#xEvidence').value.trim(),implication:$('#xImplication').value.trim(),post_text:postText,post_status:status,posted_at:status==='posted'?(row.posted_at||iso()):null,post_url:$('#xPostUrl').value.trim(),metrics,text:claim||postText.slice(0,240),timestamp:row.timestamp||iso()});
+    await save('notes',row);closeModal();await renderInsightsTab();toast('X record saved.');
   };
 }
 

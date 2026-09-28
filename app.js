@@ -1,4 +1,4 @@
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.4.13';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.5.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -205,6 +205,14 @@ async function getWeeklyChecklist(week=currentWeekKey()){
   if(!row.phase){row.phase='preview';row.focus=weeklyPhaseTemplates.preview.focus;row.items=weeklyItemsFor('preview',row.items||[]);await save('weeklyChecklists',row);}
   return row;
 }
+window.riftmasteryAddWeeklyTask=async(title,detail='Suggested by your reviews.')=>{
+  const row=await getWeeklyChecklist();
+  if(row.items.some(item=>item.title.toLowerCase()===String(title).trim().toLowerCase()))return false;
+  row.items.push({id:`queue-${crypto.randomUUID()}`,title:String(title).trim(),detail:String(detail).trim(),optional:false,done:false});
+  await save('weeklyChecklists',row);
+  if(state.screen==='home')renderHome();
+  toast('Added to this week’s checklist.');return true;
+};
 
 function weeklyEditorRow(item={}){
   return `<div class="weekly-edit-row" data-weekly-edit-row data-id="${esc(item.id||`custom-${uid()}`)}">
@@ -1070,7 +1078,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4.13 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.5.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
