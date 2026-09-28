@@ -57,3 +57,26 @@ input,select,textarea{border-radius:var(--rm-radius-control)}
 
 #screen-play .hero.portrait-hero>.hero-copy{grid-row:1 / 4}
 #screen-play .hero.portrait-hero:before{display:none}
+
+/* Cultivation emblems: large, architectural marks for the Training Hall. */
+#screen-play .practice-option{min-height:226px;padding:24px;grid-template-columns:minmax(0,1fr) 20px;grid-template-rows:80px 1fr;gap:20px 12px;border-radius:2px;background:var(--panel);box-shadow:none;transition:border-color var(--rm-motion-fast),background var(--rm-motion-fast)}
+#screen-play .practice-option:hover{transform:none;box-shadow:none;background:var(--panel-2);border-color:var(--accent)}
+#screen-play .practice-index{position:absolute;right:22px;top:20px;font-size:11px;letter-spacing:.14em}
+#screen-play .practice-icon{grid-column:1;grid-row:1;width:80px;height:80px;border:0;border-radius:0;background:none;place-items:center}
+#screen-play .practice-icon img{display:block;width:72px;height:72px}
+#screen-play .practice-copy{grid-column:1;grid-row:2;gap:8px;align-content:start}
+#screen-play .practice-copy strong{font-size:18px;line-height:1.3}
+#screen-play .practice-copy small{font-size:13px;line-height:1.5}
+#screen-play .practice-type{font-size:10px;letter-spacing:.16em}
+#screen-play .practice-arrow{grid-column:2;grid-row:2}
+#screen-play .practice-hero.portrait-hero,#screen-play .portrait-hero>.hero-art,#screen-play .practice-note{border-radius:2px}
+@media(max-width:819px){
+ #screen-play .practice-option{min-height:142px;grid-template-columns:64px minmax(0,1fr) 16px;grid-template-rows:auto;gap:16px;padding:20px;align-items:center}
+ #screen-play .practice-icon{grid-column:1;grid-row:1;width:64px;height:64px}
+ #screen-play .practice-icon img{width:60px;height:60px}
+ #screen-play .practice-copy{grid-column:2;grid-row:1;gap:6px}
+ #screen-play .practice-arrow{grid-column:3;grid-row:1;align-self:center}
+ #screen-play .practice-index{display:none}
+ #screen-play .practice-copy strong{font-size:16px}
+}
+@media(max-width:360px){#screen-play .practice-option{padding:16px 12px;gap:10px;grid-template-columns:52px minmax(0,1fr) 12px}#screen-play .practice-icon{width:52px;height:52px}#screen-play .practice-icon img{width:52px;height:52px}}
