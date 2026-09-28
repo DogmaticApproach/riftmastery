@@ -116,7 +116,7 @@ function setScreen(name){
   state.screen=name;
   $$('.screen').forEach(s=>s.classList.toggle('active',s.dataset.screen===name));
   $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));
-  const titles={home:'Home',play:'Play',decks:'Decks',history:'History',stats:'Stats',more:'Journal & Data'};
+  const titles={home:'Training Hall',play:'Train',decks:'Decks',history:'Review',stats:'Progress',more:'Journal & Lab'};
   $('#screenTitle').textContent=titles[name]||'RiftMastery';
   renderCurrent();
 }
@@ -145,21 +145,40 @@ async function renderHome(){
   const el=$('#screen-home');
   const s=await homeStats();
   const {legendMap,deckMap}=await lookups();
-  const matches=(await all('matches')).sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,4);
+  const [allMatches,allGames,blocks]=await Promise.all([all('matches'),all('games'),all('testingBlocks')]);
+  const matches=allMatches.sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,4);
   const active=state.activeSession;
+  const activeBlock=blocks.filter(b=>b.status==='active').sort((a,b)=>ms(b.started_at||b.created_at)-ms(a.started_at||a.created_at))[0];
+  const blockMatches=activeBlock?allMatches.filter(m=>m.testing_block_id===activeBlock.id&&m.ended_at):[];
+  const blockMatchIds=new Set(blockMatches.map(m=>m.id));
+  const blockGames=activeBlock?allGames.filter(g=>blockMatchIds.has(g.match_id)&&g.ended_at):[];
+  const target=Math.max(1,Number(activeBlock?.target_games)||10),blockPct=activeBlock?Math.min(100,Math.round(blockGames.length/target*100)):0;
+  const activeDeck=activeBlock?deckMap[activeBlock.deck_id]:null;
+  const focusTitle=activeBlock?.name||'Compare before committing';
+  const focusDescription=activeBlock?.hypothesis||'Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.';
   el.innerHTML=`
-    <div class="hero"><div class="hero-kicker">Riftbound player development</div><h2>${active?'Session in progress':'Train with intention.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Build mastery one match at a time. Track the reps, review the decisions, find the next edge.'}</p></div>
-    ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
+    <section class="hero">
+      <div class="hero-copy"><div class="hero-kicker">Riftbound • Player development</div><h2>${active?'Your session is underway':'Build the edge.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Train with intent. Review with honesty. Carry one lesson into the next game.'}</p></div>
+      ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
+      <div class="primary-actions">
+        <button class="btn primary" id="homePaper">${active?.mode==='paper'?'Resume Paper Session':'Start Paper Session'}</button>
+        <button class="btn" id="homeOnline">${active?.mode==='online'?'Resume Online Session':'Log Online Match'}</button>
+      </div>
+    </section>
+    <div class="section-head"><div><h3>Your development</h3><div class="sub">Progress is built through deliberate reps.</div></div></div>
     <div class="grid-2">
       <div class="card stat-card"><div class="k">Active development</div><div class="v">${fmtHours(s.total)}</div></div>
       <div class="card stat-card"><div class="k">Formal record</div><div class="v">${s.wins}–${s.losses}</div></div>
       <div class="card stat-card"><div class="k">Matches</div><div class="v">${s.matches}</div></div>
       <div class="card stat-card"><div class="k">Games</div><div class="v">${s.games}</div></div>
     </div>
-    <div class="primary-actions">
-      <button class="btn primary" id="homePaper">${active?.mode==='paper'?'Resume Paper Session':'Start Paper Session'}</button>
-      <button class="btn" id="homeOnline">${active?.mode==='online'?'Resume Online Session':'Start / Log Online'}</button>
-    </div>
+    <section class="focus-panel">
+      <div class="focus-topline"><div class="focus-kicker">${activeBlock?'Active testing block':'Today’s development focus'}</div><span class="focus-mark" aria-hidden="true">✦</span></div>
+      <h3>${esc(focusTitle)}</h3>
+      <p>${esc(focusDescription)}</p>
+      ${activeBlock?`<div class="focus-meta"><span>${esc(activeDeck?.name||'Deck not found')}</span><span>${blockGames.length} / ${target} games</span></div><div class="focus-progress" role="progressbar" aria-label="Testing block progress" aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${Math.min(blockGames.length,target)}"><span style="width:${blockPct}%"></span></div>`:`<div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>`}
+      <button class="focus-link" id="homeLab">${activeBlock?'Review your training block':'Open the Development Lab'} <span aria-hidden="true">↗</span></button>
+    </section>
     <div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
     <div class="list">${matches.length?matches.map(m=>{
       const d=deckMap[m.my_deck_id], l=legendMap[m.opponent_legend_id];
@@ -168,6 +187,7 @@ async function renderHome(){
     }).join(''):`<div class="empty">No matches yet. Create a deck, then start your first session.</div>`}</div>`;
   $('#homePaper').onclick=()=>{ if(active?.mode==='paper') setScreen('play'); else openStartSession('paper'); };
   $('#homeOnline').onclick=()=>{ if(active?.mode==='online') setScreen('play'); else openOnlineChoice(); };
+  $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="more"]')?.click();
   $('#goHistory').onclick=()=>setScreen('history');
 }
 
@@ -929,7 +949,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4 Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4.8 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">This permanently clears the local database on this device.</p><button class="btn danger full" id="resetData">Reset all local data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
