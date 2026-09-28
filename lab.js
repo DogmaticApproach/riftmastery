@@ -1,6 +1,3 @@
-Warning: truncated output (original token count: 29273)
-Total output lines: 1115
-
 export const RIFTMASTERY_LAB_VERSION = '0.6.1';
 
 import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.6.1';
@@ -317,7 +314,482 @@ async function renderEventsTab(){
   const p=$('#labPanel');if(!p)return;
   const {deckMap,legendMap}=await maps();
   const events=(await all('tournaments')).sort((a,b)=>ms(b.event_date||b.created_at)-ms(a.event_date||a.created_at));
-  let html="<div class='lab-row'><div><div class='strong'>Tournament Mode</div><div class=…17273 tokens truncated…killAreas',id):null;
+  let html="<div class='lab-row'><div><div class='strong'>Tournament Mode</div><div class='small muted'>Rounds, fixed deck, event record, and prep checklist.</div></div><button class='btn small primary' id='newEvent'>+ Event</button></div>";
+  if(!events.length)html+="<div class='empty'>No tournament events yet.</div>";
+  for(const t of events){
+    const pr=await tournamentProgress(t),deck=deckMap[t.deck_id],done=(t.checklist||[]).filter(x=>x.done).length,total=(t.checklist||[]).length;
+    html+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(t.name)}</div><div class='lab-meta'>${fmtDate(t.event_date)} • ${esc(deck?.name||'Deck')} ${esc(deck?.version||'')} • ${esc(t.format||'BO3')}</div></div><span class='lab-chip'>${title(t.status||'planned')}</span></div>
+      <div class='lab-row' style='margin-top:9px'><div class='small'>${pr.rec.w}–${pr.rec.l} • ${pr.matches.length}/${t.total_rounds||'?'} rounds • Prep ${done}/${total}</div><div class='lab-wrap'><button class='btn small ghost eventChecklist' data-id='${t.id}'>Prep</button><button class='btn small ghost eventView' data-id='${t.id}'>View</button>${t.status==='planned'?`<button class='btn small primary eventStart' data-id='${t.id}'>Start Event</button>`:''}${t.status==='active'?`<button class='btn small eventComplete' data-id='${t.id}'>Complete</button>`:''}</div></div></div>`;
+  }
+  p.innerHTML=html;
+  $('#newEvent').onclick=openTournamentModal;
+  $$('.eventChecklist',p).forEach(b=>b.onclick=()=>openTournamentChecklist(b.dataset.id));
+  $$('.eventView',p).forEach(b=>b.onclick=()=>openTournamentSummary(b.dataset.id));
+  $$('.eventStart',p).forEach(b=>b.onclick=()=>startTournament(b.dataset.id));
+  $$('.eventComplete',p).forEach(b=>b.onclick=async()=>{const t=await get('tournaments',b.dataset.id);t.status='completed';t.ended_at=iso();await save('tournaments',t);await setMeta('active_tournament_id','');renderLab();});
+}
+async function openTournamentModal(){
+  const {decks,legendMap}=await maps(),active=decks.filter(d=>!d.deleted_at&&!d.archived);
+  if(!active.length)return toast('Create a deck first.');
+  const date=new Date(),pad=n=>String(n).padStart(2,'0'),dateValue=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+  modal('Create tournament event',`
+    <label><span class='label-title'>Event name</span><input id='evName' placeholder='e.g. Dallas Regional'></label>
+    <label><span class='label-title'>Event date</span><input id='evDate' type='date' value='${dateValue}'></label>
+    <label><span class='label-title'>Registered deck</span><select id='evDeck'>${active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></label>
+    <div class='grid-2'><label><span class='label-title'>Format</span><select id='evFormat'><option>BO3</option><option>BO1</option><option>BO5</option></select></label><label><span class='label-title'>Rounds</span><input id='evRounds' type='number' min='1' max='30' value='7'></label></div>
+    <label><span class='label-title'>Notes <span class='muted'>(optional)</span></span><textarea id='evNotes'></textarea></label>
+    <button class='btn primary full' id='evSave' type='button'>Save event</button>`);
+  $('#evSave').onclick=async()=>{
+    const name=$('#evName').value.trim();if(!name)return toast('Name the event.');
+    const checklist=checklistDefaults().map(text=>({id:crypto.randomUUID(),text,done:false}));
+    const row=stampBase({name,event_date:new Date($('#evDate').value+'T09:00:00').toISOString(),deck_id:$('#evDeck').value,format:$('#evFormat').value,total_rounds:Number($('#evRounds').value)||7,notes:$('#evNotes').value.trim(),status:'planned',checklist,started_at:null,ended_at:null});
+    await save('tournaments',row);closeModal();renderLab();toast('Tournament event saved.');
+  };
+}
+async function openTournamentChecklist(id){
+  const t=await get('tournaments',id);if(!t)return;
+  const items=t.checklist?.length?t.checklist:checklistDefaults().map(text=>({id:crypto.randomUUID(),text,done:false}));
+  modal('Event prep checklist',`
+    <div class='lab-panel'>${items.map((x,i)=>`<label class='lab-card' style='display:flex;align-items:center;gap:9px;margin:0'><input type='checkbox' class='evCheck' data-i='${i}' style='width:auto;min-height:0' ${x.done?'checked':''}><span>${esc(x.text)}</span></label>`).join('')}</div>
+    <button class='btn primary full' style='margin-top:10px' id='evCheckSave' type='button'>Save checklist</button>`);
+  $('#evCheckSave').onclick=async()=>{items.forEach((x,i)=>x.done=$(`.evCheck[data-i='${i}']`)?.checked||false);t.checklist=items;await save('tournaments',t);closeModal();renderLab();};
+}
+async function startTournament(id){
+  const active=await latestActiveSession();if(active)return toast('End the current session before starting a tournament.');
+  const t=await get('tournaments',id);if(!t)return;
+  const deck=await get('decks',t.deck_id);if(!deck||deck.deleted_at||deck.archived)return toast('The registered deck is not active.');
+  t.status='active';t.started_at=iso();await save('tournaments',t);
+  const session=stampBase({mode:'paper',context:'tournament',event_name:t.name,tournament_id:t.id,started_at:iso(),ended_at:null,pause_intervals:[],paused_at:null,status:'active',active_play_ms:null,tags:['tournament']});
+  await save('sessions',session);await setMeta('active_tournament_id',t.id);toast('Tournament started.');setTimeout(()=>location.reload(),250);
+}
+async function openTournamentSummary(id){
+  const t=await get('tournaments',id);if(!t)return;
+  const pr=await tournamentProgress(t),{deckMap,legendMap}=await maps();
+  modal(t.name,`
+    <div class='grid-2'><div class='card stat-card'><div class='k'>Record</div><div class='v'>${pr.rec.w}–${pr.rec.l}</div></div><div class='card stat-card'><div class='k'>Rounds</div><div class='v'>${pr.matches.length}/${t.total_rounds||'?'}</div></div></div>
+    <p class='small'><strong>Deck:</strong> ${esc(deckMap[t.deck_id]?.name||'Unknown')} ${esc(deckMap[t.deck_id]?.version||'')}</p>
+    <div class='list'>${pr.matches.length?pr.matches.map(m=>`<div class='list-item'><div><div class='title'>Round ${m.round_number||'?'} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${m.result==='me'?'Win':'Loss'} • ${fmtDate(m.started_at)}</div></div></div>`).join(''):`<div class='empty'>No rounds logged yet.</div>`}</div>
+    ${t.notes?`<div class='note' style='margin-top:10px'>${esc(t.notes)}</div>`:''}`);
+}
+
+function deckListDiff(a,b){
+  const clean=t=>(t||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  const count=list=>{const m=new Map();for(const line of list)m.set(line,(m.get(line)||0)+1);return m;};
+  const am=count(clean(a)),bm=count(clean(b)),added=[],removed=[];
+  for(const [line,n] of bm){const d=n-(am.get(line)||0);for(let i=0;i<d;i++)added.push(line);}
+  for(const [line,n] of am){const d=n-(bm.get(line)||0);for(let i=0;i<d;i++)removed.push(line);}
+  return {added,removed};
+}
+async function experimentDeckStats(deckId,targetOppId,startAt){
+  let matches=(await all('matches')).filter(m=>m.my_deck_id===deckId&&m.ended_at&&ms(m.started_at)>=ms(startAt));
+  if(targetOppId)matches=matches.filter(m=>m.opponent_legend_id===targetOppId);
+  return {...recordFor(matches),matches};
+}
+async function renderExperimentsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const {deckMap,legendMap}=await maps();
+  const rows=(await all('experiments')).sort((a,b)=>(a.status==='active'?-1:1)-(b.status==='active'?-1:1)||ms(b.created_at)-ms(a.created_at));
+  let html="<div class='lab-row'><div><div class='strong'>Deck Experiments</div><div class='small muted'>Compare samples without treating correlation as causation.</div></div><button class='btn small primary' id='newExperiment'>+ Experiment</button></div>";
+  if(!rows.length)html+="<div class='empty'>No A/B deck experiments yet.</div>";
+  for(const e of rows){
+    const a=await experimentDeckStats(e.baseline_deck_id,e.target_legend_id,e.started_at),b=await experimentDeckStats(e.variant_deck_id,e.target_legend_id,e.started_at);
+    const base=deckMap[e.baseline_deck_id],variant=deckMap[e.variant_deck_id],target=e.target_legend_id?legendMap[e.target_legend_id]?.name:'All matchups';
+    html+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(e.name||'Deck experiment')}</div><div class='lab-meta'>${esc(base?.name||'Baseline')} → ${esc(variant?.name||'Variant')} • ${esc(target||'')}</div></div><span class='lab-chip'>${title(e.status||'active')}</span></div>
+      <div class='lab-grid' style='margin-top:10px'><div class='lab-mini'><div class='tiny muted'>BASELINE</div><div class='big'>${a.w}–${a.l}</div><div class='tiny muted'>n=${a.n}</div></div><div class='lab-mini'><div class='tiny muted'>VARIANT</div><div class='big'>${b.w}–${b.l}</div><div class='tiny muted'>n=${b.n}</div></div></div>
+      ${e.hypothesis?`<div class='small muted' style='margin-top:8px'>Hypothesis: ${esc(e.hypothesis)}</div>`:''}
+      <div class='lab-wrap' style='margin-top:9px'><button class='btn small ghost expCompare' data-id='${e.id}'>Compare lists</button>${e.status==='active'?`<button class='btn small expComplete' data-id='${e.id}'>Complete</button>`:''}</div></div>`;
+  }
+  p.innerHTML=html;
+  $('#newExperiment').onclick=openExperimentModal;
+  $$('.expCompare',p).forEach(b=>b.onclick=()=>openExperimentComparison(b.dataset.id));
+  $$('.expComplete',p).forEach(b=>b.onclick=async()=>{const e=await get('experiments',b.dataset.id);e.status='completed';e.ended_at=iso();await save('experiments',e);renderLab();});
+}
+async function openExperimentModal(){
+  const {decks,legends,legendMap}=await maps(),active=decks.filter(d=>!d.deleted_at&&!d.archived);
+  if(active.length<2)return toast('You need at least two active deck versions/builds.');
+  const opts=active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('');
+  modal('New deck experiment',`
+    <label><span class='label-title'>Experiment name</span><input id='exName' placeholder='e.g. Jayce v3 vs v4'></label>
+    <label><span class='label-title'>Baseline deck</span><select id='exBase'>${opts}</select></label>
+    <label><span class='label-title'>Variant deck</span><select id='exVariant'>${opts}</select></label>
+    <label><span class='label-title'>Target opponent <span class='muted'>(optional)</span></span><select id='exTarget'><option value=''>All matchups</option>${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Hypothesis</span><textarea id='exHypothesis' placeholder='What should this version improve?'></textarea></label>
+    <button class='btn primary full' id='exSave' type='button'>Start experiment</button>`);
+  $('#exSave').onclick=async()=>{
+    const base=$('#exBase').value,variant=$('#exVariant').value;if(base===variant)return toast('Choose two different decks.');
+    const baseDeck=await get('decks',base),variantDeck=await get('decks',variant);
+    if(baseDeck?.legend_id!==variantDeck?.legend_id)return toast('A/B experiments should compare decks from the same Legend.');
+    const row=stampBase({name:$('#exName').value.trim()||'Deck experiment',baseline_deck_id:base,variant_deck_id:variant,target_legend_id:$('#exTarget').value||null,hypothesis:$('#exHypothesis').value.trim(),status:'active',started_at:iso(),ended_at:null});
+    await save('experiments',row);closeModal();renderLab();toast('Experiment started.');
+  };
+}
+async function openExperimentComparison(id){
+  const e=await get('experiments',id);if(!e)return;
+  const {deckMap}=await maps(),a=deckMap[e.baseline_deck_id],b=deckMap[e.variant_deck_id],diff=deckListDiff(a?.deck_list,b?.deck_list);
+  modal('Deck experiment comparison',`
+    <p class='small muted'>${esc(a?.name||'Baseline')} ${esc(a?.version||'')} → ${esc(b?.name||'Variant')} ${esc(b?.version||'')}</p>
+    <div class='lab-grid'><div class='lab-card'><div class='strong'>Added</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.added.length?diff.added.map(x=>'+ '+esc(x)).join('\n'):'No added lines'}</div></div><div class='lab-card'><div class='strong'>Removed</div><div class='small' style='white-space:pre-wrap;margin-top:8px'>${diff.removed.length?diff.removed.map(x=>'− '+esc(x)).join('\n'):'No removed lines'}</div></div></div>
+    <div class='small muted' style='margin-top:10px'>Use the samples as evidence to investigate. RiftMastery does not assume the deck change caused a result difference.</div>`);
+}
+
+async function goalProgress(g){
+  const {deckMap}=await maps();
+  const start=ms(g.started_at||g.created_at),end=g.end_date?new Date(g.end_date+'T23:59:59').getTime():Infinity;
+  let matches=(await all('matches')).filter(m=>m.ended_at&&ms(m.started_at)>=start&&ms(m.started_at)<=end);
+  if(g.deck_id)matches=matches.filter(m=>m.my_deck_id===g.deck_id);
+  if(g.my_legend_id)matches=matches.filter(m=>deckMap[m.my_deck_id]?.legend_id===g.my_legend_id);
+  if(g.opponent_legend_id)matches=matches.filter(m=>m.opponent_legend_id===g.opponent_legend_id);
+  const ids=new Set(matches.map(m=>m.id));
+  const games=(await all('games')).filter(x=>ids.has(x.match_id)&&x.ended_at);
+  let value=0;
+  if(g.goal_type==='matches')value=matches.length;
+  if(g.goal_type==='games'||g.goal_type==='matchup_games')value=games.length;
+  if(g.goal_type==='hours'){
+    if(g.deck_id||g.my_legend_id||g.opponent_legend_id)value=matches.reduce((a,m)=>a+(m.active_duration_ms||0),0)/3600000;
+    else value=(await all('sessions')).filter(s=>s.status==='completed'&&ms(s.started_at)>=start&&ms(s.started_at)<=end).reduce((a,s)=>a+(s.active_play_ms||0),0)/3600000;
+  }
+  return {value,matches,games};
+}
+async function renderGoalsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const goals=(await all('goals')).sort((a,b)=>(a.status==='active'?-1:1)-(b.status==='active'?-1:1)||ms(b.created_at)-ms(a.created_at));
+  const {deckMap,legendMap}=await maps();
+  let html="<div class='lab-row'><div><div class='strong'>Goals & Milestones</div><div class='small muted'>Track useful reps, not app-opening streaks.</div></div><button class='btn small primary' id='newGoal'>+ Goal</button></div>";
+  if(!goals.length)html+="<div class='empty'>No goals yet.</div>";
+  for(const g of goals){
+    const pr=await goalProgress(g),target=Math.max(.01,Number(g.target_value)||1),pc=Math.min(100,pr.value/target*100),unit=g.goal_type==='hours'?'h':'';
+    const scope=[g.deck_id?deckMap[g.deck_id]?.name:null,g.my_legend_id?legendMap[g.my_legend_id]?.name:null,g.opponent_legend_id?('vs '+legendMap[g.opponent_legend_id]?.name):null].filter(Boolean).join(' • ');
+    html+=`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(g.label)}</div><div class='lab-meta'>${esc(scope||title(g.goal_type))}${g.end_date?' • by '+esc(g.end_date):''}</div></div><span class='lab-chip'>${title(g.status||'active')}</span></div><div class='lab-progress'><span style='width:${pc}%'></span></div><div class='lab-row' style='margin-top:7px'><span class='small'>${g.goal_type==='hours'?pr.value.toFixed(1):Math.floor(pr.value)}${unit} / ${target}${unit}</span>${g.status==='active'?`<button class='btn small ghost goalDone' data-id='${g.id}'>Complete</button>`:''}</div></div>`;
+  }
+  p.innerHTML=html;
+  $('#newGoal').onclick=openGoalModal;
+  $$('.goalDone',p).forEach(b=>b.onclick=async()=>{const g=await get('goals',b.dataset.id);g.status='completed';g.completed_at=iso();await save('goals',g);renderLab();});
+}
+async function openGoalModal(){
+  const {decks,legends,legendMap}=await maps(),activeDecks=decks.filter(d=>!d.deleted_at&&!d.archived),activeLegends=legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  modal('New development goal',`
+    <label><span class='label-title'>Goal name</span><input id='goalLabel' placeholder='e.g. 20 games vs Annie'></label>
+    <label><span class='label-title'>Measure</span><select id='goalType'><option value='matches'>Matches</option><option value='games'>Games</option><option value='matchup_games'>Matchup games</option><option value='hours'>Hours</option></select></label>
+    <label><span class='label-title'>Target</span><input id='goalTarget' type='number' min='1' step='1' value='20'></label>
+    <label><span class='label-title'>Deck <span class='muted'>(optional)</span></span><select id='goalDeck'><option value=''>Any deck</option>${activeDecks.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></label>
+    <label><span class='label-title'>My Legend <span class='muted'>(optional)</span></span><select id='goalMine'><option value=''>Any Legend</option>${activeLegends.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Opponent Legend <span class='muted'>(optional)</span></span><select id='goalOpp'><option value=''>Any opponent</option>${activeLegends.map(l=>`<option value='${l.id}'>${esc(l.name)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>End date <span class='muted'>(optional)</span></span><input id='goalEnd' type='date'></label>
+    <button class='btn primary full' id='goalSave' type='button'>Create goal</button>`);
+  $('#goalSave').onclick=async()=>{
+    const label=$('#goalLabel').value.trim();if(!label)return toast('Name the goal.');
+    await save('goals',stampBase({label,goal_type:$('#goalType').value,target_value:Number($('#goalTarget').value)||1,deck_id:$('#goalDeck').value||null,my_legend_id:$('#goalMine').value||null,opponent_legend_id:$('#goalOpp').value||null,end_date:$('#goalEnd').value||null,status:'active',started_at:iso()}));
+    closeModal();renderLab();toast('Goal created.');
+  };
+}
+
+const insightTabs=[['positions','Position Lab'],['research','Research'],['pulse','Format Pulse'],['queue','Training Queue'],['x','X Studio'],['explorer','Explorer'],['chronicle','Chronicle']];
+async function renderInsightsTab(){
+  const root=$('#labPanel');if(!root)return;
+  root.innerHTML=`<div class='insight-intro'><div class='lab-title'>Connect decisions to practice and useful content</div><div class='lab-meta'>Save what you saw, keep hypotheses honest, and carry one supported lesson forward.</div></div><div class='insight-tabs'>${insightTabs.map(([id,label])=>`<button class='${insightTab===id?'active':''}' data-insight-tab='${id}'>${label}</button>`).join('')}</div><div id='insightPanel' class='insight-panel'></div>`;
+  $$('.insight-tabs button',root).forEach(b=>b.onclick=()=>{insightTab=b.dataset.insightTab;renderInsightsTab();});
+  if(insightTab==='positions')await renderPositionReviews();
+  if(insightTab==='research')await renderPreviewResearch();
+  if(insightTab==='queue')await renderTrainingQueue();
+  if(insightTab==='x')await renderXStudio();
+  if(insightTab==='pulse')await renderFormatPulse();
+  if(insightTab==='explorer')await renderDevelopmentExplorer();
+  if(insightTab==='chronicle')await renderPlayerChronicle();
+}
+function insightHeader(titleText,description,buttonId,buttonLabel){return `<div class='lab-row insight-header'><div><div class='lab-title'>${titleText}</div><div class='lab-meta'>${description}</div></div><button class='btn small primary' id='${buttonId}'>${buttonLabel}</button></div>`;}
+const positionNotes=async()=> (await all('notes')).filter(n=>n.record_type==='position_review').sort((a,b)=>ms(b.timestamp)-ms(a.timestamp));
+async function renderPositionReviews(){
+  const p=$('#insightPanel'),notes=await positionNotes(),{deckMap,legendMap}=await maps();
+  const cards=await Promise.all(notes.slice(0,30).map(async n=>{const m=n.match_id?await get('matches',n.match_id):null,clip=safeExternalUrl(n.clip_url);return `<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.question||'Position review')}</div><div class='lab-meta'>${m?`${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Opponent')} · `:''}${fmtDate(n.timestamp)} · ${esc(title(n.review_status||'unreviewed'))}</div></div><button class='btn small ghost editPositionReview' data-id='${n.id}'>Open</button></div><div class='insight-pair'><div><b>Your role</b><span>${esc(n.my_role||'Unclear')}</span></div><div><b>Line A</b><span>${esc(n.line_a||'—')}</span></div><div><b>Line B</b><span>${esc(n.line_b||'—')}</span></div></div>${n.opponent_range?`<p><b>Opponent range:</b> ${esc(n.opponent_range)}</p>`:''}${n.range_update?`<p><b>What changed your read:</b> ${esc(n.range_update)}</p>`:''}${n.takeaway?`<p><b>Review takeaway:</b> ${esc(n.takeaway)}</p>`:''}${clip?`<p><a href='${esc(clip)}' target='_blank' rel='noopener'>Open saved VOD / clip ↗</a></p>`:''}<div class='lab-wrap'><button class='btn small draftFromPosition' data-id='${n.id}'>Draft a supported insight</button></div></article>`;}));
+  p.innerHTML=insightHeader('Position Lab','After a game, unpack one difficult decision: role, two lines, opponent range, and what changed your read.','newPositionReview','+ Review a Position')+
+    (notes.length?cards.join(''):`<div class='empty'>No position reviews yet. Save one tough decision after a game, then revisit your reasoning with the information you had at the time.</div>`);
+  $('#newPositionReview').onclick=()=>openPositionReviewModal();
+  $$('.editPositionReview',p).forEach(b=>b.onclick=()=>openPositionReviewModal(null,b.dataset.id));
+  $$('.draftFromPosition',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);openXPostModal({claim:n.takeaway||n.question,evidence:[n.opponent_range,n.range_update].filter(Boolean).join('\n'),source_link:n.clip_url,evidence_status:n.review_status==='reviewed'?'observed':'working_hypothesis',implication:n.line_a&&n.line_b?`Compare ${n.line_a} against ${n.line_b} before committing.`:''});});
+}
+async function openPositionReviewModal(prefill=null,id=null){
+  const existing=id?await get('notes',id):null,{deckMap,legendMap}=await maps();
+  const matches=(await all('matches')).filter(m=>m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,100);
+  modal(existing?'Edit position review':'Review a position',`<p class='small muted'>Write this after the game so it stays quick during play. Judge the choice using what you knew then.</p>
+    <label><span class='label-title'>Question / position</span><input id='posQuestion' maxlength='120' placeholder='e.g. Who was favored after the open-board turn?'></label>
+    <label><span class='label-title'>Link a match <span class='muted'>(optional)</span></span><select id='posMatch'><option value=''>No linked match</option>${matches.map(m=>`<option value='${m.id}'>${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Opponent')} · ${fmtDate(m.started_at)}</option>`).join('')}</select></label>
+    <label><span class='label-title'>Your role / who benefited if nothing changed?</span><select id='posRole'><option value='unclear'>I wasn’t sure</option><option value='me'>I was favored</option><option value='opponent'>Opponent was favored</option><option value='changed'>The role was changing</option></select></label>
+    <label><span class='label-title'>Line A</span><textarea id='posLineA' rows='2' placeholder='What was your first reasonable line?'></textarea></label>
+    <label><span class='label-title'>Line B</span><textarea id='posLineB' rows='2' placeholder='What other line deserved consideration?'></textarea></label>
+    <label><span class='label-title'>What was in the opponent’s plausible range?</span><textarea id='posRange' rows='2' placeholder='Separate likely from merely possible answers.'></textarea></label>
+    <label><span class='label-title'>What changed your read?</span><textarea id='posUpdate' rows='2' placeholder='An action, non-action, reveal, resource, or board change.'></textarea></label>
+    <label><span class='label-title'>VOD / clip link <span class='muted'>(add after the match)</span></span><input id='posClip' type='url' placeholder='https://...'></label>
+    <label><span class='label-title'>What did review teach you?</span><textarea id='posTakeaway' rows='2' placeholder='A decision lesson or next drill.'></textarea></label>
+    <label><span class='label-title'>Review status</span><select id='posStatus'><option value='unreviewed'>Needs review</option><option value='reviewed'>Reviewed</option><option value='uncertain'>Still uncertain</option></select></label>
+    <button class='btn primary full' id='savePositionReview'>Save position review</button>`);
+  const n=existing||prefill||{};
+  $('#posQuestion').value=n.question||'';$('#posMatch').value=n.match_id||'';$('#posRole').value=n.my_role||'unclear';$('#posLineA').value=n.line_a||'';$('#posLineB').value=n.line_b||'';$('#posRange').value=n.opponent_range||'';$('#posUpdate').value=n.range_update||'';$('#posClip').value=n.clip_url||'';$('#posTakeaway').value=n.takeaway||'';$('#posStatus').value=n.review_status||'unreviewed';
+  $('#savePositionReview').onclick=async()=>{
+    const question=$('#posQuestion').value.trim(),lineA=$('#posLineA').value.trim(),lineB=$('#posLineB').value.trim();
+    if(!question)return toast('Name the position or question.');if(!lineA||!lineB)return toast('Record two candidate lines.');
+    const row=existing||stampBase({record_type:'position_review',timestamp:iso()});
+    Object.assign(row,{record_type:'position_review',question,my_role:$('#posRole').value,line_a:lineA,line_b:lineB,opponent_range:$('#posRange').value.trim(),range_update:$('#posUpdate').value.trim(),clip_url:$('#posClip').value.trim(),takeaway:$('#posTakeaway').value.trim(),review_status:$('#posStatus').value,match_id:$('#posMatch').value||null,text:`Position review: ${question}. Line A: ${lineA}. Line B: ${lineB}.`,timestamp:row.timestamp||iso()});
+    await save('notes',row);closeModal();await renderInsightsTab();toast('Position review saved.');
+  };
+}
+const researchNotes=async()=> (await all('notes')).filter(n=>n.record_type==='preview_research').sort((a,b)=>ms(b.updated_at||b.timestamp)-ms(a.updated_at||a.timestamp));
+async function renderPreviewResearch(){
+  const p=$('#insightPanel'),rows=await researchNotes();
+  p.innerHTML=insightHeader('Research Board','Track the question, evidence, and next test. Your saved notes stay useful after a release window moves on.','newResearch','+ Research Idea')+
+    (rows.length?rows.map(n=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.research_subject||n.question||'Research idea')}</div><div class='lab-meta'>${esc(n.window_label||'Any time')}${n.window_date?' · window ends '+esc(n.window_date):''} · ${esc(n.evidence_status||'working_hypothesis').replaceAll('_',' ')} · ${fmtDate(n.updated_at||n.timestamp)}</div></div><button class='btn small ghost editResearch' data-id='${n.id}'>Update</button></div>${n.question?`<p><b>Question:</b> ${esc(n.question)}</p>`:''}${n.hypothesis?`<p><b>Hypothesis:</b> ${esc(n.hypothesis)}</p>`:''}${n.evidence?`<p><b>Evidence:</b> ${esc(n.evidence)}</p>`:''}${n.finding?`<p><b>Finding:</b> ${esc(n.finding)}</p>`:''}${n.next_test?`<p><b>Next test:</b> ${esc(n.next_test)}</p>`:''}${n.evidence_source?`<p class='tiny muted'>Source: ${esc(n.evidence_source)}</p>`:''}<div class='lab-wrap'><button class='btn small draftFromResearch' data-id='${n.id}'>Draft for X</button><button class='btn small ghost queueResearch' data-id='${n.id}'>Add next test to Training Queue</button></div></article>`).join(''):`<div class='empty'>No research questions saved yet. Capture what players need answered, then mark what your evidence supports.</div>`);
+  $('#newResearch').onclick=()=>openResearchModal();
+  $$('.editResearch',p).forEach(b=>b.onclick=()=>openResearchModal(b.dataset.id));
+  $$('.draftFromResearch',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);openXPostModal({audience:'Riftbound players',claim:n.finding||n.hypothesis,evidence:n.evidence||'',source_link:n.evidence_source,evidence_status:n.evidence_status||'working_hypothesis',implication:n.next_test||''});});
+  $$('.queueResearch',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);queueWeeklyTask(n.next_test||`Test: ${n.research_subject||n.question}`,`Preview research · ${n.research_subject||n.question}`);});
+}
+async function openResearchModal(id=null){
+  const existing=id?await get('notes',id):null;
+  modal(existing?'Update research idea':'New preview research',`<label><span class='label-title'>Card, deck, or matchup</span><input id='researchSubject' maxlength='120' placeholder='What are you investigating?'></label>
+    <label><span class='label-title'>Information window</span><select id='researchWindow'><option>Any time</option><option>Card previews</option><option>Pre-release testing</option><option>New set launch</option><option>Rules / errata</option><option>Ban announcement</option><option>Major event prep</option><option>Fresh decklist</option><option>Post-event review</option></select></label>
+    <label><span class='label-title'>Useful until <span class='muted'>(optional)</span></span><input id='researchWindowDate' type='date'></label>
+    <label><span class='label-title'>Question players need answered</span><textarea id='researchQuestion' rows='2' placeholder='Start with the uncertainty, not the post.'></textarea></label>
+    <label><span class='label-title'>Working hypothesis</span><textarea id='researchHypothesis' rows='2' placeholder='What do you currently expect?'></textarea></label>
+    <label><span class='label-title'>Evidence label</span><select id='researchStatus'><option value='working_hypothesis'>Working hypothesis</option><option value='observed'>Observed</option><option value='unresolved'>Unresolved</option></select></label>
+    <label><span class='label-title'>Evidence so far</span><textarea id='researchEvidence' rows='3' placeholder='Games, exact list, card text, VOD, or repeated observation.'></textarea></label>
+    <label><span class='label-title'>Evidence source <span class='muted'>(optional)</span></span><input id='researchSource' placeholder='URL, match, VOD timestamp, or event'></label>
+    <label><span class='label-title'>What will you test next?</span><textarea id='researchNext' rows='2' placeholder='A focused test or what evidence is still missing.'></textarea></label>
+    <label><span class='label-title'>Finding / current conclusion</span><textarea id='researchFinding' rows='2' placeholder='Keep the conclusion as narrow as the evidence.'></textarea></label>
+    <button class='btn primary full' id='saveResearch'>Save research</button>`);
+  const n=existing||{};$('#researchSubject').value=n.research_subject||'';$('#researchWindow').value=n.window_label||'Any time';$('#researchWindowDate').value=n.window_date||'';$('#researchQuestion').value=n.question||'';$('#researchHypothesis').value=n.hypothesis||'';$('#researchStatus').value=n.evidence_status||'working_hypothesis';$('#researchEvidence').value=n.evidence||'';$('#researchSource').value=n.evidence_source||'';$('#researchNext').value=n.next_test||'';$('#researchFinding').value=n.finding||'';
+  $('#saveResearch').onclick=async()=>{
+    const subject=$('#researchSubject').value.trim(),question=$('#researchQuestion').value.trim();if(!subject||!question)return toast('Add the subject and the question.');
+    const row=existing||stampBase({record_type:'preview_research',timestamp:iso()});
+    Object.assign(row,{record_type:'preview_research',research_subject:subject,window_label:$('#researchWindow').value,window_date:$('#researchWindowDate').value||null,question,hypothesis:$('#researchHypothesis').value.trim(),evidence_status:$('#researchStatus').value,evidence:$('#researchEvidence').value.trim(),evidence_source:$('#researchSource').value.trim(),next_test:$('#researchNext').value.trim(),finding:$('#researchFinding').value.trim(),text:`${subject}: ${question}`,timestamp:row.timestamp||iso()});
+    await save('notes',row);closeModal();await renderInsightsTab();toast('Research idea saved.');
+  };
+}
+async function renderTrainingQueue(){
+  const p=$('#insightPanel'),notes=await all('notes'),reviewBlocks=(await all('reviewBlocks')).sort((a,b)=>ms(b.completed_at)-ms(a.completed_at));
+  const counts={};for(const n of notes){for(const tag of new Set(n.leak_tags||[]))counts[tag]=(counts[tag]||0)+1;}
+  const recurring=Object.entries(counts).filter(([,count])=>count>=2).sort((a,b)=>b[1]-a[1]);
+  const drills=reviewBlocks.filter(x=>x.next_drill?.trim()).map(x=>({title:x.next_drill.trim(),detail:`From your 10-BO3 review · ${fmtDate(x.completed_at)}`}));
+  const suggestions=[...recurring.map(([tag,count])=>({title:`Practice: ${tag}`,detail:`Tagged in ${count} notes. Treat this as a signal to review, then test it.`})),...drills];
+  p.innerHTML=`<div class='lab-card'><div class='lab-title'>Turn review signals into deliberate reps</div><div class='lab-meta'>Only repeated tags and saved review drills appear here. A pattern is a prompt to investigate, not a verdict about why you lost.</div></div>
+    ${suggestions.length?suggestions.map((x,i)=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(x.title)}</div><div class='lab-meta'>${esc(x.detail)}</div></div><button class='btn small primary queueWeekly' data-i='${i}'>Add to this week</button></div></article>`).join(''):`<div class='empty'>Your queue will fill from repeated tagged notes and saved 10-BO3 review drills. You can also add a focused task from a research idea.</div>`}
+    <div class='lab-wrap' style='margin-top:12px'><button class='btn small ghost' id='queuePosition'>Review a difficult position</button><button class='btn small ghost' id='queueResearch'>Add preview test</button></div>`;
+  $$('.queueWeekly',p).forEach(b=>b.onclick=()=>queueWeeklyTask(suggestions[Number(b.dataset.i)].title,suggestions[Number(b.dataset.i)].detail));
+  $('#queuePosition').onclick=()=>{insightTab='positions';renderInsightsTab();setTimeout(()=>$('#newPositionReview')?.click(),0);};
+  $('#queueResearch').onclick=()=>{insightTab='research';renderInsightsTab();setTimeout(()=>$('#newResearch')?.click(),0);};
+}
+async function queueWeeklyTask(titleText,detail){
+  if(typeof window.riftmasteryAddWeeklyTask!=='function')return toast('Weekly checklist is still loading.');
+  const added=await window.riftmasteryAddWeeklyTask(titleText,detail);if(!added)toast('That task is already on this week’s checklist.');
+}
+async function renderXStudio(){
+  const p=$('#insightPanel'),rows=(await all('notes')).filter(n=>n.record_type==='x_post').sort((a,b)=>ms(b.updated_at||b.timestamp)-ms(a.updated_at||a.timestamp));
+  p.innerHTML=insightHeader('X Studio','Draft from evidence, then track original posts and substantive replies. Record results to learn what readers save and discuss.','newXPost','+ Draft Insight')+
+    (rows.length?rows.map(n=>{const m=n.metrics||{},views=Number(m.views)||0,rate=(v)=>views?`${(Number(v||0)*1000/views).toFixed(1)} / 1k`:'';return `<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.hook||n.claim||'X draft')}</div><div class='lab-meta'>${esc(title(n.post_status||'draft'))} · ${esc(n.post_type||'original')} · ${esc(n.window_label||'Any time')} · ${esc(n.evidence_status||'working_hypothesis').replaceAll('_',' ')}${n.posted_at?' · '+fmtDate(n.posted_at):''}</div></div><button class='btn small ghost editXPost' data-id='${n.id}'>Open</button></div>${n.audience?`<p><b>Audience:</b> ${esc(n.audience)}</p>`:''}${n.claim?`<p><b>Claim:</b> ${esc(n.claim)}</p>`:''}${n.evidence?`<p><b>Proof:</b> ${esc(n.evidence)}</p>`:''}${n.source_link?`<p class='tiny muted'>Evidence link: ${esc(n.source_link)}</p>`:''}${n.post_text?`<div class='x-draft-preview'>${esc(n.post_text)}</div>`:''}${views?`<div class='insight-metrics'><span>${views.toLocaleString()} views</span><span>${rate(m.bookmarks)} bookmarks</span><span>${rate(m.replies)} replies</span><span>${rate(m.reposts)} reposts</span><span>${rate(m.profile_visits)} profile visits</span><span>${rate(m.follows)} follows</span></div>`:''}<div class='lab-wrap'><button class='btn small copyXPost' data-id='${n.id}'>Copy draft</button></div></article>`;}).join(''):`<div class='empty'>No X drafts yet. Start from a supported research finding or save a draft to work on later. Posting stays in your hands.</div>`);
+  $('#newXPost').onclick=()=>openXPostModal();
+  $$('.editXPost',p).forEach(b=>b.onclick=()=>openXPostModal({},b.dataset.id));
+  $$('.copyXPost',p).forEach(b=>b.onclick=async()=>{const n=await get('notes',b.dataset.id);await copyOrShare(n.post_text||n.claim||'','RiftMastery X draft');});
+}
+async function openXPostModal(prefill={},id=null){
+  const existing=id?await get('notes',id):null,n=existing||prefill||{};
+  modal(existing?'Edit X insight':'Draft an X insight',`<p class='small muted'>Build from evidence and write for a specific reader. RiftMastery saves a draft; it never posts for you.</p>
+    <label><span class='label-title'>Post type</span><select id='xPostType'><option value='original'>Original post</option><option value='reply'>Substantive reply</option><option value='repost_test'>Rewritten repost test</option></select></label>
+    <label><span class='label-title'>Information window</span><select id='xWindow'><option>Any time</option><option>Card previews</option><option>Pre-release testing</option><option>New set launch</option><option>Rules / errata</option><option>Ban announcement</option><option>Major event prep</option><option>Fresh decklist</option><option>Post-event review</option></select></label>
+    <label><span class='label-title'>Audience</span><input id='xAudience' maxlength='100' placeholder='e.g. Jayce players preparing for locals'></label>
+    <label><span class='label-title'>Hook</span><input id='xHook' maxlength='160' placeholder='Name the reader and the assumption or question'></label>
+    <label><span class='label-title'>Claim / finding</span><textarea id='xClaim' rows='2' placeholder='Keep it as narrow as the evidence.'></textarea></label>
+    <label><span class='label-title'>Evidence status</span><select id='xEvidenceStatus'><option value='observed'>Observed</option><option value='working_hypothesis'>Working hypothesis</option><option value='unresolved'>Unresolved</option></select></label>
+    <label><span class='label-title'>Evidence / proof</span><textarea id='xEvidence' rows='2' placeholder='Specific games, list, clip, or repeated observation.'></textarea></label>
+    <label><span class='label-title'>Why should the reader care?</span><textarea id='xImplication' rows='2' placeholder='What should they test, prepare, or change?'></textarea></label>
+    <button class='btn small ghost' type='button' id='xBuildDraft'>Build a draft from these fields</button>
+    <label><span class='label-title'>Post text</span><textarea id='xPostText' rows='5' placeholder='Draft or paste the final wording here.'></textarea></label>
+    <label><span class='label-title'>Status</span><select id='xPostStatus'><option value='draft'>Draft</option><option value='posted'>Posted</option><option value='parked'>Parked</option></select></label>
+    <div class='lab-grid'><label><span class='label-title'>Views</span><input id='xViews' type='number' min='0' value='0'></label><label><span class='label-title'>Likes</span><input id='xLikes' type='number' min='0' value='0'></label><label><span class='label-title'>Bookmarks</span><input id='xBookmarks' type='number' min='0' value='0'></label><label><span class='label-title'>Replies</span><input id='xReplies' type='number' min='0' value='0'></label><label><span class='label-title'>Reposts</span><input id='xReposts' type='number' min='0' value='0'></label><label><span class='label-title'>Profile visits</span><input id='xProfileVisits' type='number' min='0' value='0'></label><label><span class='label-title'>Follows</span><input id='xFollows' type='number' min='0' value='0'></label></div>
+    <label><span class='label-title'>Evidence / clip link <span class='muted'>(optional)</span></span><input id='xSourceLink' type='url' placeholder='VOD, decklist, screenshot, or source'></label>
+    <label><span class='label-title'>Post URL <span class='muted'>(optional)</span></span><input id='xPostUrl' type='url' placeholder='https://x.com/...'></label>
+    <button class='btn primary full' id='saveXPost'>Save X record</button>`);
+  $('#xPostType').value=n.post_type||'original';$('#xWindow').value=n.window_label||'Any time';$('#xAudience').value=n.audience||'';$('#xHook').value=n.hook||'';$('#xClaim').value=n.claim||'';$('#xEvidenceStatus').value=n.evidence_status||'working_hypothesis';$('#xEvidence').value=n.evidence||'';$('#xImplication').value=n.implication||'';$('#xPostText').value=n.post_text||'';$('#xPostStatus').value=n.post_status||'draft';$('#xViews').value=n.metrics?.views||0;$('#xLikes').value=n.metrics?.likes||0;$('#xBookmarks').value=n.metrics?.bookmarks||0;$('#xReplies').value=n.metrics?.replies||0;$('#xReposts').value=n.metrics?.reposts||0;$('#xProfileVisits').value=n.metrics?.profile_visits||0;$('#xFollows').value=n.metrics?.follows||0;$('#xSourceLink').value=n.source_link||'';$('#xPostUrl').value=n.post_url||'';
+  $('#xBuildDraft').onclick=()=>{
+    const audience=$('#xAudience').value.trim(),hook=$('#xHook').value.trim(),claim=$('#xClaim').value.trim(),evidence=$('#xEvidence').value.trim(),implication=$('#xImplication').value.trim(),status=$('#xEvidenceStatus').value;
+    if(!claim||!evidence)return toast('Add a claim and its evidence before building a draft.');
+    const lead=hook||(audience?audience.toUpperCase()+':':'');
+    const qualifier=status==='observed'?'Observed: ':status==='unresolved'?'Question I’m still testing: ':'Working hypothesis: ';
+    $('#xPostText').value=[lead,qualifier+claim,evidence?'Evidence: '+evidence:'',implication?'Why it matters: '+implication:''].filter(Boolean).join('\n\n');
+  };
+  $('#saveXPost').onclick=async()=>{
+    const claim=$('#xClaim').value.trim(),postText=$('#xPostText').value.trim();if(!claim&&!postText)return toast('Add a claim or draft text.');
+    const status=$('#xPostStatus').value,metrics={views:Number($('#xViews').value)||0,likes:Number($('#xLikes').value)||0,bookmarks:Number($('#xBookmarks').value)||0,replies:Number($('#xReplies').value)||0,reposts:Number($('#xReposts').value)||0,profile_visits:Number($('#xProfileVisits').value)||0,follows:Number($('#xFollows').value)||0};
+    const row=existing||stampBase({record_type:'x_post',timestamp:iso()});
+    Object.assign(row,{record_type:'x_post',post_type:$('#xPostType').value,window_label:$('#xWindow').value,source_link:$('#xSourceLink').value.trim(),audience:$('#xAudience').value.trim(),hook:$('#xHook').value.trim(),claim,evidence_status:$('#xEvidenceStatus').value,evidence:$('#xEvidence').value.trim(),implication:$('#xImplication').value.trim(),post_text:postText,post_status:status,posted_at:status==='posted'?(row.posted_at||iso()):null,post_url:$('#xPostUrl').value.trim(),metrics,text:claim||postText.slice(0,240),timestamp:row.timestamp||iso()});
+    await save('notes',row);closeModal();await renderInsightsTab();toast('X record saved.');
+  };
+}
+
+async function processSnapshot(){
+  const [sessions,matches,notes,blocks,reviewBlocks,tournaments,weeks]=await Promise.all([all('sessions'),all('matches'),all('notes'),all('testingBlocks'),all('reviewBlocks'),all('tournaments'),all('weeklyChecklists')]);
+  const completedMatches=matches.filter(m=>m.ended_at),completedSessions=sessions.filter(s=>s.status==='completed');
+  const positionReviews=notes.filter(n=>n.record_type==='position_review'),research=notes.filter(n=>n.record_type==='preview_research'),posts=notes.filter(n=>n.record_type==='x_post');
+  const hours=completedSessions.reduce((sum,s)=>sum+(Number(s.active_play_ms)||0),0)/3600000;
+  const required=weeks.flatMap(w=>(w.items||[]).filter(i=>!i.optional)),done=required.filter(i=>i.done).length;
+  const tags={};for(const n of notes)for(const tag of new Set(n.leak_tags||[]))tags[tag]=(tags[tag]||0)+1;
+  const months=[];for(let i=5;i>=0;i--){const d=new Date();d.setDate(1);d.setMonth(d.getMonth()-i);const key=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;months.push({key,label:d.toLocaleDateString([],{month:'short'}),count:completedSessions.filter(s=>String(s.started_at||'').slice(0,7)===key).length});}
+  return {sessions,matches:completedMatches,notes,blocks,reviewBlocks,tournaments,weeks,completedSessions,positionReviews,research,posts,hours,done,required:required.length,tags,months};
+}
+async function renderDevelopmentExplorer(){
+  const p=$('#insightPanel'),s=await processSnapshot(),max=Math.max(1,...s.months.map(m=>m.count));
+  const tagRows=Object.entries(s.tags).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Development Explorer</div><div class='lab-meta'>A private view of practice, review, and follow-through. No rank score and no card or deck win-rate claims.</div></div>
+    <div class='insight-stats'><div class='lab-mini'><div class='tiny muted'>COMPLETED SESSIONS</div><div class='big'>${s.completedSessions.length}</div></div><div class='lab-mini'><div class='tiny muted'>PRACTICE HOURS</div><div class='big'>${s.hours.toFixed(1)}</div></div><div class='lab-mini'><div class='tiny muted'>POSITION REVIEWS</div><div class='big'>${s.positionReviews.length}</div></div><div class='lab-mini'><div class='tiny muted'>RESEARCH NOTES</div><div class='big'>${s.research.length}</div></div></div>
+    <div class='lab-card'><div class='lab-title'>Practice rhythm</div><div class='lab-meta'>Completed sessions by month</div><div class='insight-bars'>${s.months.map(m=>`<div class='insight-bar'><span>${m.count||''}</span><i><b style='height:${Math.max(m.count?8:0,Math.round(m.count/max*100))}%'></b></i><small>${esc(m.label)}</small></div>`).join('')}</div></div>
+    <div class='lab-card'><div class='lab-title'>Follow-through</div><div class='lab-meta'>Required weekly checklist tasks completed across saved weeks</div><div class='lab-row' style='margin-top:9px'><strong>${s.done} / ${s.required}</strong><span class='lab-chip'>${s.required?Math.round(s.done/s.required*100):0}%</span></div><div class='lab-progress'><span style='width:${s.required?Math.round(s.done/s.required*100):0}%'></span></div></div>
+    <div class='lab-card'><div class='lab-title'>Repeated review tags</div><div class='lab-meta'>Counts show how often you applied a tag; they are prompts for review, not diagnoses.</div><div class='lab-wrap' style='margin-top:9px'>${tagRows.length?tagRows.map(([tag,count])=>`<span class='lab-chip'>${esc(tag)} · ${count}</span>`).join(''):'<span class="small muted">No tagged review notes yet.</span>'}</div></div>
+    <div class='lab-card'><div class='lab-title'>Research and creator work</div><div class='lab-meta'>${s.research.filter(n=>n.evidence_status==='observed').length} research notes marked observed · ${s.posts.filter(n=>n.post_status==='posted').length} posts marked posted · ${s.blocks.filter(b=>b.status==='completed').length} testing blocks completed</div></div>`;
+}
+function milestoneCard(titleText,detail,earned){return `<article class='milestone-card ${earned?'earned':''}'><span>${earned?'✦':'◇'}</span><div><b>${esc(titleText)}</b><small>${esc(detail)}</small></div><em>${earned?'Earned':'In progress'}</em></article>`;}
+async function renderPlayerChronicle(){
+  const p=$('#insightPanel'),s=await processSnapshot(),bo3=s.matches.filter(m=>m.format==='BO3').length;
+  const earnedBlocks=s.blocks.filter(b=>b.status==='completed'),earnedEvents=s.tournaments.filter(t=>t.status==='completed');
+  const achievements=[milestoneCard('First match logged','Start building your own development record.',s.matches.length>=1),milestoneCard('Ten BO3s played','A first meaningful block of competitive reps.',bo3>=10),milestoneCard('Thirty BO3s played','Complete a sustained deck experiment.',bo3>=30),milestoneCard('First position review','Save a decision for honest after-game review.',s.positionReviews.length>=1),milestoneCard('Ten position reviews','Build a body of decision evidence.',s.positionReviews.length>=10),milestoneCard('First testing block complete','Close a focused practice block.',earnedBlocks.length>=1),milestoneCard('First tournament complete','Finish an event and keep the record.',earnedEvents.length>=1),milestoneCard('First useful post','Mark an evidence-based post as published.',s.posts.some(n=>n.post_status==='posted'))];
+  const events=[];
+  for(const m of s.matches)events.push({at:m.ended_at||m.started_at,title:'Match logged',detail:`${m.format||'Match'} · ${fmtDate(m.started_at)}`});
+  for(const x of s.positionReviews)events.push({at:x.updated_at||x.timestamp,title:'Position review saved',detail:`${x.question||'Decision review'} · ${fmtDate(x.updated_at||x.timestamp)}`});
+  for(const x of s.research)events.push({at:x.updated_at||x.timestamp,title:'Research updated',detail:`${x.research_subject||x.question} · ${fmtDate(x.updated_at||x.timestamp)}`});
+  for(const x of earnedBlocks)events.push({at:x.ended_at||x.updated_at,title:'Testing block completed',detail:`${x.name||'Practice block'} · ${fmtDate(x.ended_at||x.updated_at)}`});
+  for(const x of earnedEvents)events.push({at:x.ended_at||x.event_date,title:'Tournament completed',detail:`${x.name} · ${fmtDate(x.ended_at||x.event_date)}`});
+  for(const x of s.posts.filter(n=>n.post_status==='posted'))events.push({at:x.posted_at||x.updated_at,title:'Post published',detail:`${x.hook||x.claim||'Competitive insight'} · ${fmtDate(x.posted_at||x.updated_at)}`});
+  events.sort((a,b)=>ms(b.at)-ms(a.at));
+  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Your Player Chronicle</div><div class='lab-meta'>A record of the work, experiments, and lessons you can carry forward. Milestones reward process, not wins.</div><button class='btn small primary' id='downloadChronicleCard' style='margin-top:12px'>Create share card</button></div>
+    <div class='lab-card'><div class='lab-title'>Milestones</div><div class='milestone-grid'>${achievements.map(x=>x).join('')}</div></div>
+    <div class='lab-card'><div class='lab-title'>Recent chapters</div><div class='lab-meta'>Matches, reviews, research, events, and published ideas in one timeline.</div><div class='chronicle-list'>${events.length?events.slice(0,40).map(e=>`<div class='chronicle-event'><i></i><div><b>${esc(e.title)}</b><small>${esc(e.detail)}</small></div></div>`).join(''):'<div class="empty">Your first chapter will appear when you save a match, review, or research note.</div>'}</div></div>`;
+  $('#downloadChronicleCard').onclick=openChronicleCardModal;
+}
+function openChronicleCardModal(){
+  const prefs=(()=>{try{return JSON.parse(localStorage.getItem('riftmastery-home-prefs-v1')||'{}');}catch{return {};}})();
+  modal('Make a share card',`<p class='small muted'>This creates a downloadable image from process milestones only. Review it before sharing.</p><label><span class='label-title'>Display name</span><input id='chronicleName' maxlength='32' value='Dogma'></label><label><span class='label-title'>Season / chapter</span><input id='chronicleSeason' maxlength='32' value='${esc(prefs.season||'Competitive Development')}'></label><label><span class='label-title'>One-line focus</span><input id='chronicleFocus' maxlength='80' placeholder='Learning to be harder to beat'></label><button class='btn primary full' id='chronicleExport'>Download PNG</button>`);
+  $('#chronicleExport').onclick=async()=>{const s=await processSnapshot(),name=$('#chronicleName').value.trim()||'Player',season=$('#chronicleSeason').value.trim()||'Development Chronicle',focus=$('#chronicleFocus').value.trim()||'Play · review · study · test';const svg=`<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="675" viewBox="0 0 1200 675"><defs><linearGradient id="g" x2="1" y2="1"><stop stop-color="#263f3b"/><stop offset=".55" stop-color="#131f22"/><stop offset="1" stop-color="#0b1114"/></linearGradient><radialGradient id="r"><stop stop-color="#c8a86b" stop-opacity=".27"/><stop offset="1" stop-color="#c8a86b" stop-opacity="0"/></radialGradient></defs><rect width="1200" height="675" rx="36" fill="url(#g)"/><circle cx="1050" cy="70" r="290" fill="url(#r)"/><path d="M68 92h66" stroke="#c8a86b" stroke-width="3"/><text x="68" y="143" fill="#d7c390" font-family="Arial,sans-serif" font-size="22" font-weight="700" letter-spacing="6">RIFTMASTERY · PLAYER CHRONICLE</text><text x="68" y="255" fill="#f2f0e9" font-family="Arial,sans-serif" font-size="82" font-weight="700">${esc(name)}</text><text x="68" y="310" fill="#b2bfba" font-family="Arial,sans-serif" font-size="28">${esc(season)}</text><text x="68" y="402" fill="#e1d2ad" font-family="Arial,sans-serif" font-size="30">${esc(focus)}</text><g font-family="Arial,sans-serif"><text x="68" y="515" fill="#c8a86b" font-size="18" letter-spacing="3">PRACTICE HOURS</text><text x="68" y="575" fill="#f2f0e9" font-size="46" font-weight="700">${s.hours.toFixed(1)}</text><text x="380" y="515" fill="#c8a86b" font-size="18" letter-spacing="3">POSITION REVIEWS</text><text x="380" y="575" fill="#f2f0e9" font-size="46" font-weight="700">${s.positionReviews.length}</text><text x="710" y="515" fill="#c8a86b" font-size="18" letter-spacing="3">TEST BLOCKS</text><text x="710" y="575" fill="#f2f0e9" font-size="46" font-weight="700">${s.blocks.filter(b=>b.status==='completed').length}</text></g><text x="68" y="635" fill="#8b9a95" font-family="Arial,sans-serif" font-size="17">A record of deliberate work. Not a rank, rating, or prediction.</text></svg>`;const url=URL.createObjectURL(new Blob([svg],{type:'image/svg+xml'}));const image=new Image();image.onload=()=>{const canvas=document.createElement('canvas');canvas.width=1200;canvas.height=675;canvas.getContext('2d').drawImage(image,0,0);canvas.toBlob(blob=>{if(!blob)return toast('Could not create the image.');const out=URL.createObjectURL(blob),a=document.createElement('a');a.href=out;a.download='riftmastery-player-chronicle.png';a.click();URL.revokeObjectURL(out);URL.revokeObjectURL(url);},'image/png');};image.onerror=()=>{URL.revokeObjectURL(url);toast('Could not create the image.');};image.src=url;closeModal();};
+}
+async function renderFormatPulse(){
+  const p=$('#insightPanel'),rows=(await researchNotes()).sort((a,b)=>ms(a.window_date||'9999-12-31')-ms(b.window_date||'9999-12-31'));
+  const groups=[...new Set(rows.map(n=>n.window_label||'Any time'))];
+  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Format Pulse</div><div class='lab-meta'>Keep track of what the community is asking during previews, rules updates, set launches, and event prep. Add dates yourself; no automated alerts or filler-post quota.</div><button class='btn small primary' id='pulseAdd' style='margin-top:12px'>+ Capture a question</button></div>
+    ${rows.length?groups.map(group=>`<div class='lab-card'><div class='lab-title'>${esc(group)}</div><div class='lab-panel' style='margin-top:8px'>${rows.filter(n=>(n.window_label||'Any time')===group).map(n=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.research_subject||n.question)}</div><div class='lab-meta'>${n.window_date?'Useful until '+esc(n.window_date)+' · ':''}${esc(n.evidence_status||'working_hypothesis').replaceAll('_',' ')}</div></div><button class='btn small ghost pulseEdit' data-id='${n.id}'>Update</button></div><p>${esc(n.question||'')}</p>${n.evidence?`<p><b>Evidence:</b> ${esc(n.evidence)}</p>`:''}</article>`).join('')}</div></div>`).join(''):`<div class='empty'>No information windows yet. Capture a question when a preview, event, rules update, or new list gives players something concrete to figure out.</div>`}`;
+  $('#pulseAdd').onclick=()=>openResearchModal();$$('.pulseEdit',p).forEach(b=>b.onclick=()=>openResearchModal(b.dataset.id));
+}
+
+async function renderToolsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const scoreSources=await getMeta('score_sources',scoreDefaults());
+  const leakTags=await getMeta('leak_tags',leakDefaults());
+  p.innerHTML=`
+    <div class='lab-card'>
+      <div class='lab-title'>Global Search</div><div class='lab-meta'>Search decks, notes, opponents, events, and testing blocks.</div>
+      <div class='btn-row' style='margin-top:9px'><input id='globalSearch' placeholder='Search RiftMastery'><button class='btn primary' id='globalSearchGo' type='button'>Search</button></div>
+    </div>
+    <div class='lab-card'><div class='lab-title'>ChatGPT Analysis Brief</div><div class='lab-meta'>Build a structured snapshot of your recent development data without paying for an in-app AI API.</div><button class='btn full' id='copyAnalysisBrief' type='button' style='margin-top:9px'>Copy analysis brief</button></div>
+    <div class='lab-card'><div class='lab-title'>Old Match Import</div><div class='lab-meta'>Import a RiftMastery-format CSV or a CSV with matching column names.</div><button class='btn full' id='importMatchCsv' type='button' style='margin-top:9px'>Import match CSV</button></div>
+    <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Scoring Sources</div><div class='lab-meta'>Conquer / Hold / Effect stay built in. Add extra labels for special scoring.</div></div><button class='btn small primary' id='addScoreSource' type='button'>+ Source</button></div><div class='lab-wrap' style='margin-top:9px'>${scoreSources.map(s=>`<span class='lab-chip'>${esc(s.label)}${['conquer','hold','effect'].includes(s.id)?'':` <button class='link-btn removeScoreSource' data-id='${s.id}' type='button'>×</button>`}</span>`).join('')}</div></div>
+    <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Review Tags</div><div class='lab-meta'>Tags feed the recurring-pattern tracker.</div></div><button class='btn small primary' id='addLeakTag' type='button'>+ Tag</button></div><div class='lab-wrap' style='margin-top:9px'>${leakTags.map(t=>`<span class='lab-chip'>${esc(t)}</span>`).join('')}</div></div>
+  `;
+  $('#globalSearchGo').onclick=()=>openGlobalSearch($('#globalSearch').value);
+  $('#globalSearch').onkeydown=e=>{if(e.key==='Enter')openGlobalSearch(e.target.value);};
+  $('#copyAnalysisBrief').onclick=copyDevelopmentAnalysisBrief;
+  $('#importMatchCsv').onclick=importMatchCsv;
+  $('#addScoreSource').onclick=openScoreSourceModal;
+  $$('.removeScoreSource',p).forEach(b=>b.onclick=()=>removeScoreSource(b.dataset.id));
+  $('#addLeakTag').onclick=openLeakTagModal;
+}
+
+async function copyDevelopmentAnalysisBrief(){
+  const {deckMap,legendMap}=await maps();
+  const matches=(await all('matches')).filter(m=>m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at)).slice(0,50);
+  const rec=recordFor(matches),leaks=await leakCountsForMatches(matches.map(m=>m.id));
+  const goals=(await all('goals')).filter(g=>g.status==='active');
+  const experiments=(await all('experiments')).filter(e=>e.status==='active');
+  const notes=(await all('matchupNotes')).filter(n=>n.favorite||Number(n.confidence)>0);
+  const byDeck={};
+  for(const m of matches){const d=deckMap[m.my_deck_id],key=d?(d.name+' '+(d.version||'')):'Unknown';byDeck[key]=byDeck[key]||[];byDeck[key].push(m);}
+  const lines=[
+    'RiftMastery Development Analysis Brief',
+    'Recent formal record: '+rec.w+'-'+rec.l+' across '+rec.n+' matches',
+    '',
+    'Recent deck samples:'
+  ];
+  for(const [name,rows] of Object.entries(byDeck)){const r=recordFor(rows);lines.push('- '+name+': '+r.w+'-'+r.l+' (n='+r.n+')');}
+  lines.push('','Recurring review patterns:');
+  if(leaks.length)for(const x of leaks.slice(0,8))lines.push('- '+x.tag+': '+x.count);else lines.push('- None tagged/inferred yet');
+  lines.push('','Active goals:');
+  if(goals.length)for(const g of goals)lines.push('- '+g.label+' — target '+g.target_value+' '+g.goal_type);else lines.push('- None');
+  lines.push('','Active deck experiments:');
+  if(experiments.length)for(const e of experiments)lines.push('- '+e.name+': '+(deckMap[e.baseline_deck_id]?.name||'baseline')+' vs '+(deckMap[e.variant_deck_id]?.name||'variant')+' — '+(e.hypothesis||'no hypothesis noted'));else lines.push('- None');
+  lines.push('','Saved matchup confidence:');
+  if(notes.length)for(const n of notes)lines.push('- '+(legendMap[n.my_legend_id]?.name||'Mine')+' vs '+(legendMap[n.opponent_legend_id]?.name||'Opp')+': '+(n.confidence||0)+'/5');else lines.push('- None');
+  lines.push('','Please identify repeated development patterns, questions worth investigating, and drills to test next. Do not assume correlation proves causation.');
+  await copyOrShare(lines.join('\n'),'RiftMastery analysis brief');
+}
+async function openGlobalSearch(query){
+  const q=(query||'').trim().toLowerCase();if(!q)return toast('Enter something to search.');
+  const {deckMap,legendMap}=await maps();
+  const [decks,notes,matches,events,blocks,sessions]=await Promise.all([all('decks',{includeDeleted:true}),all('notes'),all('matches'),all('tournaments'),all('testingBlocks'),all('sessions')]);
+  const results=[];
+  for(const d of decks)if([d.name,d.version,d.notes,d.deck_list].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Deck',title:d.name+(d.version?' '+d.version:''),meta:legendMap[d.legend_id]?.name||''});
+  for(const n of notes)if(String(n.text||'').toLowerCase().includes(q))results.push({type:'Note',title:n.text.slice(0,90),meta:fmtDate(n.timestamp)});
+  for(const m of matches){const hay=[deckMap[m.my_deck_id]?.name,legendMap[m.opponent_legend_id]?.name,m.notes,m.context,m.format].join(' ').toLowerCase();if(hay.includes(q))results.push({type:'Match',title:(deckMap[m.my_deck_id]?.name||'Deck')+' vs '+(legendMap[m.opponent_legend_id]?.name||'Opponent'),meta:fmtDate(m.started_at)});}
+  for(const e of events)if([e.name,e.notes].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Event',title:e.name,meta:fmtDate(e.event_date)});
+  for(const b of blocks)if([b.name,b.hypothesis].some(x=>String(x||'').toLowerCase().includes(q)))results.push({type:'Testing',title:b.name,meta:title(b.status)});
+  for(const s of sessions){const hay=[s.event_name,s.context,...(s.tags||[])].join(' ').toLowerCase();if(hay.includes(q))results.push({type:'Session',title:s.event_name||title(s.context),meta:fmtDate(s.started_at)});}
+  modal('Search results',results.length?`<div class='list'>${results.slice(0,100).map(r=>`<div class='list-item'><div><div class='title'>${esc(r.title)}</div><div class='meta'>${esc(r.type)} • ${esc(r.meta)}</div></div></div>`).join('')}</div>`:`<div class='empty'>No results for “${esc(query)}”.</div>`);
+}
+async function openScoreSourceModal(){
+  modal('Add scoring source',`<label><span class='label-title'>Label</span><input id='scoreSourceLabel' placeholder='e.g. Champion Effect'></label><button class='btn primary full' id='scoreSourceSave' type='button'>Add source</button>`);
+  $('#scoreSourceSave').onclick=async()=>{
+    const label=$('#scoreSourceLabel').value.trim();if(!label)return toast('Name the scoring source.');
+    const list=await getMeta('score_sources',scoreDefaults());const id='custom_'+crypto.randomUUID().slice(0,8);list.push({id,label});await setMeta('score_sources',list);closeModal();renderLab();toast('Scoring source added.');
+  };
+}
+async function removeScoreSource(id){
+  const list=await getMeta('score_sources',scoreDefaults());await setMeta('score_sources',list.filter(x=>x.id!==id));renderLab();
+}
+async function openLeakTagModal(){
+  modal('Add review tag',`<label><span class='label-title'>Tag</span><input id='leakTagName' placeholder='e.g. Greedy Keep'></label><button class='btn primary full' id='leakTagSave' type='button'>Add tag</button>`);
+  $('#leakTagSave').onclick=async()=>{const tag=$('#leakTagName').value.trim();if(!tag)return;const list=await getMeta('leak_tags',leakDefaults());if(!list.some(x=>x.toLowerCase()===tag.toLowerCase()))list.push(tag);await setMeta('leak_tags',list);closeModal();renderLab();};
+}
+async function importMatchCsv(){
+  const input=document.createElement('input');input.type='file';input.accept='.csv,text/csv';
+  input.onchange=async()=>{
+    const file=input.files?.[0];if(!file)return;const rows=csvParse(await file.text());if(rows.length<2)return toast('CSV has no match rows.');
+    const headers=rows[0].map(x=>x.trim());const required=['date','mode','context','format','my_deck','my_legend','opponent_legend','result'];if(required.some(h=>!headers.includes(h)))return toast('CSV is missing required RiftMastery columns.');
+    const getCell=(row,key)=>row[headers.indexOf(key)]||'';
+    const {legends,decks}=await maps();let imported=0;
+    for(const row of rows.slice(1)){
+      const myLegendName=getCell(row,'my_legend').trim(),oppName=getCell(row,'opponent_legend').trim(),deckName=getCell(row,'my_deck').trim();if(!myLegendName||!oppName||!deckName)continue;
+      let myLegend=legends.find(l=>l.name.toLowerCase()===myLegendName.toLowerCase());if(!myLegend){myLegend=stampBase({name:myLegendName,archived:false});await save('legends',myLegend);legends.push(myLegend);}
+      let opp=legends.find(l=>l.name.toLowerCase()===oppName.toLowerCase());if(!opp){opp=stampBase({name:oppName,archived:false});await save('legends',opp);legends.push(opp);}
+      const version=getCell(row,'my_deck_version').trim();let deck=decks.find(d=>!d.deleted_at&&d.legend_id===myLegend.id&&d.name.toLowerCase()===deckName.toLowerCase()&&String(d.version||'').toLowerCase()===version.toLowerCase());
+      if(!deck){deck=stampBase({name:deckName,version,legend_id:myLegend.id,deck_list:'',notes:'Imported from CSV',archived:false});await save('decks',deck);decks.push(deck);}
+      const start=new Date(getCell(row,'date'));if(Number.isNaN(start.getTime()))continue;const dur=Math.max(0,Number(getCell(row,'active_minutes'))||0)*60000,end=new Date(start.getTime()+dur).toISOString();
+      const session=stampBase({mode:getCell(row,'mode')||'paper',context:getCell(row,'context')||'testing',event_name:'CSV import',started_at:start.toISOString(),ended_at:end,pause_intervals:[],status:'completed',active_play_ms:dur});await save('sessions',session);
+      const resultRaw=getCell(row,'result').toLowerCase();const result=resultRaw==='me'||resultRaw==='win'||resultRaw==='w'?'me':resultRaw==='opponent'||resultRaw==='loss'||resultRaw==='l'?'opponent':null;
+      const match=stampBase({session_id:session.id,mode:session.mode,context:session.context,my_deck_id:deck.id,opponent_legend_id:opp.id,format:getCell(row,'format')||'BO3',started_at:start.toISOString(),ended_at:end,result,notes:getCell(row,'notes'),active_duration_ms:dur});await save('matches',match);
+      const gw=Math.max(0,Number(getCell(row,'games_won'))||0),gl=Math.max(0,Number(getCell(row,'games_lost'))||0);let n=1;
+      for(let i=0;i<gw;i++)await save('games',stampBase({match_id:match.id,game_number:n++,winner:'me',who_started:'unknown',started_at:start.toISOString(),ended_at:end,final_my_points:null,final_opponent_points:null}));
+      for(let i=0;i<gl;i++)await save('games',stampBase({match_id:match.id,game_number:n++,winner:'opponent',who_started:'unknown',started_at:start.toISOString(),ended_at:end,final_my_points:null,final_opponent_points:null}));
+      imported++;
+    }
+    toast('Imported '+imported+' matches.');if($('#screen-history')?.classList.contains('active'))document.querySelector('[data-nav="history"]')?.click();
+  };
+  input.click();
+}
+
+async function renderSkillsTab(){
+  const p=$('#labPanel');if(!p)return;
+  const rows=(await all('skillAreas')).filter(x=>!x.archived).sort((a,b)=>a.name.localeCompare(b.name));
+  p.innerHTML=`
+    <div class='lab-row'><div><div class='strong'>Training Areas</div><div class='small muted'>Use these as personal progress markers.</div></div><button class='btn small primary' id='newTrainingArea'>+ Area</button></div>
+    <div class='lab-panel'>${rows.length?rows.map(x=>`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(x.name)}</div><div class='lab-meta'>Current self-rating: ${Number(x.rating)||0}/5</div></div><button class='btn small ghost trainingEdit' data-id='${x.id}'>Edit</button></div><div class='segmented trainingRate' data-id='${x.id}' style='margin-top:9px'>${[1,2,3,4,5].map(n=>`<button data-rate='${n}' class='${Number(x.rating)===n?'active':''}'>${n}</button>`).join('')}</div>${x.notes?`<div class='small muted' style='margin-top:8px'>${esc(x.notes)}</div>`:''}</div>`).join(''):`<div class='empty'>No training areas yet.</div>`}</div>`;
+  $('#newTrainingArea').onclick=()=>openTrainingAreaModal();
+  $$('.trainingEdit',p).forEach(b=>b.onclick=()=>openTrainingAreaModal(b.dataset.id));
+  $$('.trainingRate button',p).forEach(b=>b.onclick=async()=>{const id=b.closest('.trainingRate').dataset.id,row=await get('skillAreas',id);row.rating=Number(b.dataset.rate);await save('skillAreas',row);renderLab();});
+}
+async function openTrainingAreaModal(id=null){
+  const row=id?await get('skillAreas',id):null;
   modal(row?'Edit training area':'Add training area',`
     <label><span class='label-title'>Name</span><input id='trainingName' value='${esc(row?.name||'')}'></label>
     <label><span class='label-title'>Notes</span><textarea id='trainingNotes'>${esc(row?.notes||'')}</textarea></label>
