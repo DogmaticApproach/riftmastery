@@ -1,4 +1,5 @@
-import { mountCultivation } from './cultivation.js?v=0.13.0';
+import {mountCardLibrary} from './card-library.js?v=0.16.0';
+import { mountCultivation } from './cultivation.js?v=0.16.0';
 import { prepareEditor } from './ui.js?v=0.13.0';
 export const RIFTMASTERY_LAB_VERSION = '0.13.0';
 
@@ -92,7 +93,7 @@ async function ensureLabShell(){
 
 const workspaces=[
   ['PRACTICE',[['blocks','Testing blocks'],['matchups','Matchups'],['positions','Position reviews'],['queue','Training queue'],['events','Events'],['experiments','Deck experiments']]],
-  ['RESEARCH',[['research','Research board'],['pulse','Format pulse']]],
+  ['RESEARCH',[['cards','Card library'],['research','Research board'],['pulse','Format pulse']]],
   ['DEVELOPMENT',[['goals','Goals'],['skills','Skills'],['explorer','Explorer'],['chronicle','Chronicle'],['tools','Tools']]]
 ];
 window.riftmasteryOpenWorkspace=async(name)=>{
@@ -125,7 +126,7 @@ async function renderLab(){
   root.innerHTML=`<div class="lab-navigation" aria-label="Lab tools">${workspaces.map(([label,items])=>`<div class="lab-nav-group"><span>${label}</span>${items.map(([id,name])=>`<button data-lab-tab="${id}" class="${labTab===id?'active':''}" aria-current="${labTab===id?'page':'false'}">${name}</button>`).join('')}</div>`).join('')}</div><label class="lab-mobile-picker"><span class="label-title">Lab workspace</span><select id="labToolSelect">${workspaces.map(([label,items])=>`<optgroup label="${label}">${items.map(([id,name])=>`<option value="${id}" ${labTab===id?'selected':''}>${name}</option>`).join('')}</optgroup>`).join('')}</select></label><div id="labPanel" class="lab-panel"></div>`;
   $('#labToolSelect').onchange=e=>{labTab=e.target.value;renderLab();};
   $$('[data-lab-tab]',root).forEach(b=>b.onclick=()=>{labTab=b.dataset.labTab;renderLab();});
-  const renders={blocks:renderBlocksTab,matchups:renderMatchupsTab,events:renderEventsTab,experiments:renderExperimentsTab,goals:renderGoalsTab,skills:renderSkillsTab,tools:renderToolsTab};
+  const renders={cards:()=>mountCardLibrary($('#labPanel'),{modal,closeModal,toast}),blocks:renderBlocksTab,matchups:renderMatchupsTab,events:renderEventsTab,experiments:renderExperimentsTab,goals:renderGoalsTab,skills:renderSkillsTab,tools:renderToolsTab};
   if(renders[labTab])await renders[labTab]();else{insightTab=labTab;await renderInsightsTab();}
   polishEmpty(root);
 }
