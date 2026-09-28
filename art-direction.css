@@ -1,0 +1,33 @@
+/* The Moon Courtyard — architectural framing, etched landscapes, quiet gold. */
+body{background:#0a100d;background-image:radial-gradient(ellipse at 80% 0,#23392a44,transparent 65%)}
+.topbar{background:#0b120eee;border-bottom-color:#5a624244;backdrop-filter:blur(18px)}
+.topbar h1{font-size:23px;letter-spacing:.02em}.save-status{border:0;background:transparent;color:#a2b39f}
+.bottom-nav{background:linear-gradient(180deg,#0d1611,#090f0c)}
+.nav-item.active{background:linear-gradient(90deg,#34473599,#20302444);color:#e3d4ac}
+.nav-item:hover{background-color:#24362955}
+.hero.portrait-hero,.practice-hero.portrait-hero,#screen-home .hero.portrait-hero{background:linear-gradient(90deg,#101d16 0%,#14261bde 50%,transparent 76%),url('./assets/moon-courtyard.svg') center/cover;border:1px solid #65715380;box-shadow:0 24px 70px #0005;isolation:isolate}
+.hero.portrait-hero:after,.practice-hero.portrait-hero:after{content:'';position:absolute;inset:10px;border:1px solid #c7ac722d;pointer-events:none;z-index:3}
+#dailyPractice .daily-hero{min-height:490px;grid-template-columns:minmax(0,1fr) 36%;padding:40px}
+#dailyPractice .daily-hero .hero-art{margin:-40px -40px -40px 0;mask-image:linear-gradient(90deg,transparent,#000 13%);position:relative}
+.hero-art:after{content:'REST IS PART OF MASTERY';position:absolute;bottom:20px;right:20px;font-size:8px;letter-spacing:2px;color:#eee7d6;background:#0b160dc9;padding:9px 12px;border-left:1px solid #c7ac72}
+#dailyPractice .daily-hero h2{font-size:clamp(40px,4.3vw,66px)!important;line-height:1.04;letter-spacing:-.04em;max-width:620px;margin:22px 0}
+#dailyPractice .hero-copy>p{max-width:44ch;font-size:15px;line-height:1.75;color:#c1cbbd}
+.hero-kicker{font-size:9px;letter-spacing:.19em;color:#c6cba8}
+.daily-skill{color:#cbbb8e;margin-top:30px}.daily-skill .link-btn{color:#afc1ac}
+.daily-meta{letter-spacing:.12em;font-size:9px;color:#b3c1aa}
+#dailyPractice .primary-actions{margin-top:28px!important;gap:18px!important}
+.btn.primary{background:linear-gradient(115deg,#e1cca0,#bba36b);border-color:#ddc48c;color:#152017;box-shadow:inset 0 0 0 1px #fff2;min-height:46px}
+.btn.primary:hover{background:#ead8ae;box-shadow:0 4px 25px #c7ac7226}
+.daily-path{padding:22px 26px;background:#15231a;border:1px solid #53624566;border-top:0;justify-content:space-between;margin-top:0;gap:18px}.daily-path>b,.daily-path b{font:23px Georgia,serif;color:#c7ac72}.daily-path i{flex:1;background:#6f78544a}.daily-path span{font-size:12px}
+.courtyard-play{padding:22px 0}.courtyard-rank{background:linear-gradient(90deg,#19291dcc,transparent);padding:22px;border-color:#5e6d4b66}.courtyard-rank h3{font-size:25px}
+.cult-realm{min-height:300px;grid-template-columns:150px minmax(0,1fr) 180px;padding:40px;gap:36px;background:linear-gradient(90deg,#14231be8,#14231b88),url('./assets/moon-courtyard.svg') center/cover;border-color:#79815a88}
+.cult-realm:before{inset:11px;border-color:#c7ac723d}.cult-realm h2{font-size:clamp(36px,4vw,55px);letter-spacing:-.03em}.cult-crest{filter:drop-shadow(0 0 20px #c7ac7226)}.cult-realm .cult-crest:before{content:'';position:absolute;inset:-18px;border:1px solid #c7ac7233;transform:rotate(45deg);z-index:-1}.cult-realm .cult-crest svg{stroke-width:1}.cult-number{font-size:49px}.cult-realm-copy{z-index:1}
+.journey-tabs{gap:36px;margin-top:20px}.journey-tabs button{padding:19px 3px;font-size:13px;letter-spacing:.04em}.journey-tabs [aria-selected=true]{border-bottom-width:2px}
+.cult-skill{position:relative;border-top:1px solid #75846166;background:linear-gradient(135deg,#21332655,#101a13);padding:25px}.cult-skill.is-focus{border-color:#baa471;background:linear-gradient(135deg,#34402a88,#142219)}
+.cult-seal{background:linear-gradient(160deg,#25342477,#101811);padding:28px 20px;border-color:#64724b66}.cult-seal>span{display:grid;place-items:center;width:72px;height:88px;margin:0 auto 20px;border:1px solid #84936755;outline:1px solid #84936733;outline-offset:5px;clip-path:polygon(0 0,100% 0,100% 82%,50% 100%,0 82%);font-size:40px}.cult-seal.earned{background:linear-gradient(160deg,#4b4d2b88,#192b1e);border-color:#c7ac7288}
+.practice-receipt{background:radial-gradient(ellipse at top,#45512a55,transparent 55%);padding:12px}.practice-receipt-seal{width:100px;height:110px;margin:16px auto 30px;display:grid;place-items:center;background:url('./assets/jade-seal.svg') center/90px no-repeat;font-size:0;filter:drop-shadow(0 0 22px #c7ac7240)}.practice-receipt h3{font-size:36px;letter-spacing:-.02em}.practice-receipt blockquote{background:#1a291e;font-family:Georgia,serif;font-size:20px}
+.modal-card{border-top:2px solid #bca772;background:linear-gradient(145deg,#1c2b20,#101a14)}
+@media(min-width:1100px){.main-content{padding-top:30px}.bottom-nav:after{letter-spacing:1.5px!important}}
+@media(max-width:1100px) and (min-width:561px){#dailyPractice .daily-hero{padding:28px;grid-template-columns:minmax(0,1fr) 33%;min-height:430px}#dailyPractice .daily-hero .hero-art{margin:-28px -28px -28px 0}.cult-realm{padding:28px;gap:25px;grid-template-columns:90px minmax(0,1fr) 150px}}
+@media(max-width:560px){#dailyPractice .daily-hero{padding:24px;min-height:0;gap:12px}#dailyPractice .daily-hero .hero-art{margin:-24px -24px 0;height:200px;min-height:200px;mask-image:linear-gradient(0deg,transparent,#000 10%)}.hero-art img{object-position:65% 28%}.hero-art:after{bottom:18px;right:18px;font-size:7px;letter-spacing:1.2px;padding:6px 8px}#dailyPractice .daily-hero h2{font-size:39px!important;margin:18px 0;max-width:100%}.daily-skill{margin-top:18px}.hero-kicker{font-size:8px;letter-spacing:.13em}#dailyPractice .primary-actions{margin-top:14px!important;gap:4px!important}.daily-path{padding:16px 12px;gap:8px}.daily-path span{font-size:10px}.daily-path b{font-size:16px}.daily-path i{display:none}.courtyard-rank{padding:18px 12px}.cult-realm{padding:26px 20px;grid-template-columns:64px minmax(0,1fr);gap:24px 18px;min-height:0}.cult-realm h2{font-size:33px}.cult-realm .cult-crest:before{inset:-8px}.cult-realm-side{grid-column:1/-1}.cult-number{font-size:34px}.journey-tabs{gap:24px}.cult-seal{padding:24px 14px}.practice-receipt{padding:0}.practice-receipt h3{font-size:29px}.practice-receipt blockquote{font-size:18px}}
+@media(prefers-reduced-motion:no-preference){.screen.active{animation:hall-arrival .3s ease-out}@keyframes hall-arrival{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:none}}}
