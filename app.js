@@ -1,4 +1,5 @@
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.7.1';
+import { prepareEditor } from './ui.js?v=0.8.0';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.8.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -63,7 +64,7 @@ function toast(msg){ toastEl.textContent=msg; toastEl.classList.add('show'); cle
 function markSaved(){ saveStatus.textContent='Saved on this device'; saveStatus.style.color='var(--good)'; }
 function markSaving(){ saveStatus.textContent='Saving…'; saveStatus.style.color='var(--warn)'; }
 async function save(store,row){ markSaving(); await put(store,row); markSaved(); window.dispatchEvent(new Event('riftmastery:localchange')); return row; }
-function showModal(title,html){ modalTitle.textContent=title; modalBody.innerHTML=html; if(!modal.open) modal.showModal(); }
+function showModal(title,html){ modalTitle.textContent=title; modalBody.innerHTML=html; prepareEditor(); if(!modal.open) modal.showModal(); }
 function closeModal(){ if(modal.open) modal.close(); }
 function confirmModal(title,message,onConfirm,label='Confirm'){
   showModal(title, `<p class="muted small">${esc(message)}</p><div class="btn-row"><button type="button" class="btn ghost" id="cancelConfirm">Cancel</button><button type="button" class="btn danger" id="doConfirm">${esc(label)}</button></div>`);
@@ -116,12 +117,18 @@ function setScreen(name){
   state.screen=name;
   $$('.screen').forEach(s=>s.classList.toggle('active',s.dataset.screen===name));
   $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));
-  const titles={home:'Training Hall',play:'Train',decks:'Decks',history:'Review',stats:'Progress',more:'Journal & Lab'};
+  const titles={home:'Home',play:'Train',decks:'Decks',history:'Review',stats:'Progress',more:'Journal',lab:'Lab',studio:'X Studio',settings:'Settings'};
   $('#screenTitle').textContent=titles[name]||'RiftMastery';
-  renderCurrent();
+  window.scrollTo(0,0);
+  return renderCurrent();
 }
 
 $$('.nav-item').forEach(b=>b.addEventListener('click',()=>setScreen(b.dataset.nav)));
+$('#navigationMenu').onclick=()=>{
+  const items=$$('.nav-item').map(b=>`<button type="button" class="menu-destination ${state.screen===b.dataset.nav?'active':''}" data-destination="${b.dataset.nav}">${b.innerHTML}</button>`).join('');
+  showModal('Your workspace',`<div class="mobile-destinations">${items}</div>`);
+  $$('[data-destination]',modalBody).forEach(b=>b.onclick=()=>{closeModal();setScreen(b.dataset.destination);});
+};
 
 async function lookups(){
   const [legends,decks]=await Promise.all([all('legends'),all('decks',{includeDeleted:true})]);
@@ -299,14 +306,14 @@ async function renderHome(){
     </section>
     ${homePrefs.season?`<div class="home-season-label">${esc(homePrefs.season)} <span>FIELD JOURNAL</span></div>`:''}
     <div class="home-toolbar"><span>YOUR COMMAND CENTER</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
-    <div class="section-head" data-home-widget="stats"><div><h3>Your development</h3><div class="sub">Progress is built through deliberate reps.</div></div></div>
-    <div class="grid-2 home-widget" data-home-widget="stats">
+
+    <div class="home-metrics home-widget" data-home-widget="stats">
       <div class="card stat-card"><div class="k">Active development</div><div class="v">${fmtHours(s.total)}</div></div>
       <div class="card stat-card"><div class="k">Formal record</div><div class="v">${s.wins}–${s.losses}</div></div>
       <div class="card stat-card"><div class="k">Matches</div><div class="v">${s.matches}</div></div>
       <div class="card stat-card"><div class="k">Games</div><div class="v">${s.games}</div></div>
     </div>
-    <section class="focus-panel home-widget" data-home-widget="focus">
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus">
       <div class="focus-topline"><div class="focus-kicker">${activeBlock?'Active testing block':'Today’s development focus'}</div><span class="focus-mark" aria-hidden="true">✦</span></div>
       <h3>${esc(focusTitle)}</h3>
       <p>${esc(focusDescription)}</p>
@@ -319,7 +326,7 @@ async function renderHome(){
       <div class="weekly-items">${weeklyChecklist.items.map(item=>`<button class="weekly-item ${item.done?'is-done':''}" data-weekly-item="${esc(item.id)}" aria-pressed="${Boolean(item.done)}"><span class="weekly-check" aria-hidden="true">${item.done?'✓':''}</span><span class="weekly-copy"><strong>${esc(item.title)}${item.optional?` <em>Optional</em>`:''}</strong><small>${esc(item.detail)}</small></span></button>`).join('')}</div>
       <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
     </section>
-    <div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    </div><div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
     <div class="list">${matches.length?matches.map(m=>{
       const d=deckMap[m.my_deck_id], l=legendMap[m.opponent_legend_id];
       const result=m.result==='me'?'W':m.result==='opponent'?'L':'—';
@@ -328,7 +335,7 @@ async function renderHome(){
   const hidden=new Set(Object.entries(homePrefs.widgets||{}).filter(([,shown])=>!shown).map(([id])=>id));$$('.home-widget[data-home-widget], [data-home-widget]',el).forEach(node=>node.hidden=hidden.has(node.dataset.homeWidget));
   $('#homePaper').onclick=()=>{ if(active?.mode==='paper') setScreen('play'); else openStartSession('paper'); };
   $('#homeOnline').onclick=()=>{ if(active?.mode==='online') setScreen('play'); else openOnlineChoice(); };
-  $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="more"]')?.click();
+  $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="lab"]')?.click();
   $('#homeCustomize').onclick=openHomeCustomizer;
   $$('.weekly-item',el).forEach(button=>button.onclick=async()=>{const row=await get('weeklyChecklists',weeklyChecklist.week_start);const item=row?.items?.find(x=>x.id===button.dataset.weeklyItem);if(!item)return;item.done=!item.done;await save('weeklyChecklists',row);renderHome();});
   $('#weeklyEdit').onclick=()=>openWeeklyEditor(weeklyChecklist);
@@ -989,6 +996,7 @@ async function openOnlineMatchModal(session=null,prefill={}){
   };
 }
 async function renderHistory(){
+  const hasFilters=Object.entries(state.historyFilters).some(([key,value])=>key!=='_open'&&Boolean(value));
   const el=$('#screen-history'); const {legends,decks,legendMap,deckMap}=await lookups(); const sessions=await all('sessions'); const sessionMap=Object.fromEntries(sessions.map(s=>[s.id,s]));
   const f=state.historyFilters;
   let matches=(await all('matches')).sort((a,b)=>ms(b.started_at)-ms(a.started_at));
@@ -998,7 +1006,7 @@ async function renderHistory(){
     if(f.from && ms(m.started_at)<new Date(`${f.from}T00:00:00`).getTime())return false; if(f.to && ms(m.started_at)>new Date(`${f.to}T23:59:59`).getTime())return false; return true;
   });
   el.innerHTML=`
-    <div class="section-head"><div><h2>Match history</h2><div class="sub">${matches.length} matching record${matches.length===1?'':'s'}</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small primary" id="logPastMatch">+ Past Match</button><button class="btn small ghost" id="toggleFilters">Filters</button></div></div>
+    <div class="section-head"><div><h2>Match history</h2><div class="sub">${matches.length} matching record${matches.length===1?'':'s'}</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small primary" id="logPastMatch">Log match</button><button class="btn small ghost" id="toggleFilters">Filters</button></div></div>
     <div id="historyFilterBox" class="card filters" style="display:${f._open?'grid':'none'}">
       <div class="row"><select id="hfLegend"><option value="">My Legend — all</option>${legends.map(l=>`<option value="${l.id}" ${f.legend===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfDeck"><option value="">My Deck — all</option>${decks.map(d=>`<option value="${d.id}" ${f.deck===d.id?'selected':''}>${esc(d.name)} ${esc(d.version||'')}${d.deleted_at?' (deleted)':''}</option>`).join('')}</select></div>
       <div class="row"><select id="hfOpp"><option value="">Opponent — all</option>${legends.map(l=>`<option value="${l.id}" ${f.opp===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select><select id="hfMode"><option value="">Paper/Online — all</option><option value="paper" ${f.mode==='paper'?'selected':''}>Paper</option><option value="online" ${f.mode==='online'?'selected':''}>Online</option></select></div>
@@ -1006,7 +1014,7 @@ async function renderHistory(){
       <div class="row"><select id="hfResult"><option value="">Result — all</option><option value="me" ${f.result==='me'?'selected':''}>Win</option><option value="opponent" ${f.result==='opponent'?'selected':''}>Loss</option></select><button class="btn small ghost" id="clearFilters">Clear</button></div>
       <div class="row"><label><span class="label-title">From</span><input id="hfFrom" type="date" value="${esc(f.from||'')}"></label><label><span class="label-title">To</span><input id="hfTo" type="date" value="${esc(f.to||'')}"></label></div>
     </div>
-    <div class="list history-list" style="margin-top:10px">${matches.length?matches.map(m=>{const d=deckMap[m.my_deck_id],opp=legendMap[m.opponent_legend_id];const result=m.result==='me'?'W':m.result==='opponent'?'L':m.format==='FREE_PLAY'?(m.free_play_record||'FP'):'—';return `<button class="list-item historyOpen" data-id="${m.id}" style="width:100%;text-align:left;color:inherit"><div><div class="title">${esc(d?.name||'Unknown')} ${d?.version?`<span class="chip">${esc(d.version)}</span>`:''} <span class="muted">vs</span> ${esc(opp?.name||'Unknown')}</div><div class="meta">${titleCase(m.mode||'paper')} • ${titleCase(m.context||sessionMap[m.session_id]?.context||'')} • ${m.format==='FREE_PLAY'?'Free Play':m.format} • ${fmtDate(m.started_at)}</div></div><div class="right"><span class="chip ${result==='W'?'good':result==='L'?'warn':''}">${result}</span></div></button>`}).join(''):`<div class="empty-state history-empty"><div class="empty-emblem" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="47"/><path d="M60 31v30l19 12M23 31l11 7M97 31l-11 7"/><path d="M37 88h46"/></svg></div><span class="eyebrow">YOUR RECORD BEGINS HERE</span><h3>${state.historyFilters._open?'No matches in this view':'Your match history is ready'}</h3><p>${state.historyFilters._open?'Adjust or clear your filters to see more matches.':'Log a result after a game to build your personal record and make each review count.'}</p>${state.historyFilters._open?`<button class='btn small ghost' id='historyEmptyClear'>Clear filters</button>`:`<button class='btn small primary' id='historyEmptyLog'>Log your first match</button>`}</div>`}</div>`;
+    <div class="list history-list" style="margin-top:10px">${matches.length?matches.map(m=>{const d=deckMap[m.my_deck_id],opp=legendMap[m.opponent_legend_id];const result=m.result==='me'?'W':m.result==='opponent'?'L':m.format==='FREE_PLAY'?(m.free_play_record||'FP'):'—';return `<button class="list-item historyOpen" data-id="${m.id}" style="width:100%;text-align:left;color:inherit"><div><div class="title">${esc(d?.name||'Unknown')} ${d?.version?`<span class="chip">${esc(d.version)}</span>`:''} <span class="muted">vs</span> ${esc(opp?.name||'Unknown')}</div><div class="meta">${titleCase(m.mode||'paper')} • ${titleCase(m.context||sessionMap[m.session_id]?.context||'')} • ${m.format==='FREE_PLAY'?'Free Play':m.format} • ${fmtDate(m.started_at)}</div></div><div class="right"><span class="chip ${result==='W'?'good':result==='L'?'warn':''}">${result}</span></div></button>`}).join(''):`<div class="empty-state history-empty"><div class="empty-emblem" aria-hidden="true"><svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="47"/><path d="M60 31v30l19 12M23 31l11 7M97 31l-11 7"/><path d="M37 88h46"/></svg></div><span class="eyebrow">YOUR RECORD BEGINS HERE</span><h3>${hasFilters?'No matches in this view':'Your match history is ready'}</h3><p>${hasFilters?'Adjust or clear your filters to see more matches.':'Log a result after a game to build your personal record and make each review count.'}</p>${hasFilters?`<button class='btn small ghost' id='historyEmptyClear'>Clear filters</button>`:`<button class='btn small primary' id='historyEmptyLog'>Log your first match</button>`}</div>`}</div>`;
   $('#logPastMatch').onclick=openPastMatchModal;
   $('#historyEmptyLog')?.addEventListener('click',openPastMatchModal);
   $('#historyEmptyClear')?.addEventListener('click',()=>{state.historyFilters={};renderHistory();});
@@ -1115,25 +1123,29 @@ async function renderStats(){
 function sourceBars(obj,total){ return `<div class="card source-bars">${['conquer','hold','effect'].map(k=>{const v=obj[k]||0,p=total?v/total*100:0;return `<div class="source-row"><span>${titleCase(k)}</span><div class="progress"><span style="width:${p}%"></span></div><strong>${total?`${p.toFixed(0)}%`:'—'}</strong></div>`}).join('')}</div>`; }
 
 async function renderMore(){
-  const el=$('#screen-more'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).sort((a,b)=>ms(b.timestamp)-ms(a.timestamp)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>n.text.toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
+  const el=$('#screen-more'); const settings=$('#screen-settings'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).sort((a,b)=>ms(b.timestamp)-ms(a.timestamp)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>(n.text||'').toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
+  settings.replaceChildren();
   el.innerHTML=`
     <div class="section-head"><div><h2>Journal</h2><div class="sub">Quick notes stay attached to their original context.</div></div></div>
     <input id="noteSearch" placeholder="Search notes" value="${esc(state.notesQuery)}">
-    <div class="list" style="margin-top:10px">${shown.length?shown.slice(0,50).map(n=>`<div class="note">${esc(n.text)}<div class="context">${n.score_snapshot?`Score ${esc(n.score_snapshot)} • `:''}${fmtDate(n.timestamp)}</div></div>`).join(''):`<div class="empty">No notes${q?' match that search':' yet'}.</div>`}</div>
-    <div class="section-head"><div><h2>Legends</h2><div class="sub">Editable so new releases never require a rebuild.</div></div><button class="btn small primary" id="addLegend">+ Legend</button></div>
+    <div class="list" style="margin-top:10px">${shown.length?shown.slice(0,50).map(n=>`<div class="note">${esc(n.text)}<div class="context">${n.score_snapshot?`Score ${esc(n.score_snapshot)} • `:''}${fmtDate(n.timestamp)}</div></div>`).join(''):`<div class="empty">${q?'<h3>No matching notes</h3><p>Try another search.</p>':'<span class="empty-glyph" aria-hidden="true">◇</span><h3>Keep the lessons that matter.</h3><p>Your saved reviews and research will collect here.</p><button type="button" class="btn primary" id="journalStart">Review a position</button>'}</div>`}</div>
+    <div id="settingsContents"><div class="page-intro"><span class="eyebrow">YOUR WORKSPACE</span><h2>Settings</h2><p>Manage your library, account, and backups.</p></div><div class="section-head"><div><h2>Legends</h2><div class="sub">Manage the Legends available in your decks and records.</div></div><button class="btn small primary" id="addLegend">+ Legend</button></div>
     <details id="legendLibrary" class="legend-library" ${legendsOpen?'open':''}>
       <summary><span>Legend library</span><span class="chip">${activeLegends} active · ${archivedLegends} archived</span></summary>
-      <div class="list">${legends.map(l=>`<div class="list-item"><div><div class="title">${esc(l.name)}</div><div class="meta">${l.archived?'Archived':'Active'}</div></div><button class="btn small ghost legendToggle" data-id="${l.id}">${l.archived?'Restore':'Archive'}</button></div>`).join('')}</div>
+      <input id="legendSearch" type="search" placeholder="Find a Legend" aria-label="Find a Legend"><div class="list legend-grid">${legends.map(l=>`<div class="list-item" data-legend-name="${esc(l.name.toLowerCase())}"><div><div class="title">${esc(l.name)}</div>${l.archived?'<div class="meta">Archived</div>':''}</div><button class="btn small ghost legendToggle" data-id="${l.id}">${l.archived?'Restore':'Archive'}</button></div>`).join('')}</div>
     </details>
     <div class="section-head"><h2>Cloud</h2></div>
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.7.1 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
-    <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div>`;
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.8.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
+  $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
   $('#exportJson').onclick=downloadJSON; $('#importJson').onclick=openImportBackup; $('#exportCsv').onclick=downloadCSV; $('#resetData').onclick=()=>confirmModal('Reset RiftMastery data','This clears decks, sessions, matches, games, point events, notes, and Lab records on this device and in your signed-in cloud account. Your account, Legend library, and skill categories stay.',async()=>{try{if(typeof window.riftmasteryResetCloudData!=='function')throw new Error('Cloud reset is still loading. Try again in a moment.');const cloud=await window.riftmasteryResetCloudData();await clearAll();await seedLegends();await window.riftmasterySeedLabDefaults?.();state.activeSession=state.activeMatch=state.activeGame=null;window.dispatchEvent(new Event('riftmastery:localchange'));setScreen('home');toast(cloud?.signedIn?`Reset complete • ${cloud.cleared} cloud records cleared.`:'Device reset complete • sign in to clear cloud data.');}catch(err){toast(`Reset failed: ${err?.message||'Cloud sync error.'}`);}},'Reset data');
+  settings.replaceChildren($('#settingsContents',el));
+  $('#legendSearch').oninput=e=>$$('[data-legend-name]',settings).forEach(row=>row.hidden=!row.dataset.legendName.includes(e.target.value.toLowerCase()));
   window.dispatchEvent(new Event('riftmastery:more-rendered'));
 }
 
@@ -1184,7 +1196,7 @@ async function downloadCSV(){
 }
 
 async function renderCurrent(){
-  if(state.screen==='home') return renderHome(); if(state.screen==='play') return renderPlay(); if(state.screen==='decks') return renderDecks(); if(state.screen==='history') return renderHistory(); if(state.screen==='stats') return renderStats(); if(state.screen==='more') return renderMore();
+  if(state.screen==='home') return renderHome(); if(state.screen==='play') return renderPlay(); if(state.screen==='decks') return renderDecks(); if(state.screen==='history') return renderHistory(); if(state.screen==='stats') return renderStats(); if(state.screen==='more'||state.screen==='settings') return renderMore(); if(state.screen==='lab'||state.screen==='studio') return window.riftmasteryOpenWorkspace?.(state.screen);
 }
 
 async function tick(){

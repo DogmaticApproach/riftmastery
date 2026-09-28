@@ -1,0 +1,128 @@
+/* RiftMastery 0.8 — shared workspace system */
+:root{--muted:#aab7b2;--line:#2b3b37;--radius:16px}
+[hidden]{display:none!important}
+body{font-size:14px;line-height:1.5}
+button,input,select,textarea{font-size:14px}
+button{touch-action:manipulation}
+input,select,textarea{background-color:#101a1b}
+input::placeholder,textarea::placeholder{color:#8c9e97;opacity:1}
+.btn{white-space:nowrap;flex-shrink:0;border-radius:10px;box-shadow:none}
+.btn.primary{box-shadow:0 3px 12px #0002}
+.btn.small{font-size:13px;min-height:40px;padding:9px 14px}
+.small,.sub,.lab-meta{font-size:13px;line-height:1.55}
+.tiny{font-size:11px;line-height:1.5}
+.card,.lab-card,.insight-card{background:#111d1d;box-shadow:none;border-color:#2b3b37;border-radius:14px}
+.section-head{margin:24px 0 12px;align-items:center}
+.section-head h2,.section-head h3{font-size:19px}
+.section-head .sub{font-size:13px;margin-top:4px;line-height:1.5}
+.topbar{min-height:76px}
+.topbar>div:first-child{margin-right:auto}
+.topbar h1{font-size:22px}
+.topbar .eyebrow{display:none}
+.navigation-menu{display:none}
+.page-intro{margin-bottom:24px}
+.page-intro h2{font-size:28px;line-height:1.2;margin:7px 0 8px;letter-spacing:-.035em}
+.page-intro p{margin:0;color:var(--muted);max-width:620px}
+.empty{border-style:solid;border-color:#263834;background:linear-gradient(150deg,#14232188,transparent);padding:40px 28px;line-height:1.65;font-size:14px}
+.empty-state{border-radius:18px;box-shadow:none}
+.empty-state p{font-size:14px;line-height:1.65}
+.lab-title,.lab-row .strong{font-size:21px;font-weight:700;line-height:1.3;letter-spacing:-.02em}
+.lab-card .lab-title,.insight-card .lab-title{font-size:17px}
+.lab-meta,.lab-card .lab-meta{font-size:13px;line-height:1.55;color:var(--muted);margin-top:6px;max-width:650px}
+.lab-row{align-items:flex-start;gap:20px}
+.lab-row>div{min-width:0}
+.lab-row>.btn{align-self:flex-start}
+.lab-panel{gap:18px;min-width:0;align-content:start}
+.lab-panel>.lab-row:first-child{padding:0 0 20px;border-bottom:1px solid var(--line);margin-bottom:0}
+.insight-panel{gap:20px}
+.insight-header{padding-bottom:20px;border-bottom:1px solid var(--line)}
+.insight-intro{background:none;border:0;border-radius:0;padding:0 0 20px;border-bottom:1px solid var(--line)}
+.insight-intro .lab-title{font-size:25px}
+.insight-intro .btn{margin-top:16px}
+.lab-chip,.insight-metrics span{font-size:12px;padding:5px 9px}
+.insight-card p,.x-draft-preview{font-size:14px}
+.insight-pair b,.insight-pair span{font-size:12px}
+.insight-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+.lab-mini{text-align:left;padding:18px;border-radius:12px;background:#101c1b}
+.lab-mini .big{font-size:26px;line-height:1.3;margin-top:6px}
+.milestone-card{opacity:1;background:transparent;border:0;border-bottom:1px solid var(--line);border-radius:0;padding:16px 4px}
+.milestone-card b{font-size:14px}.milestone-card small{font-size:12px;color:var(--muted)}.milestone-card em{font-size:10px;color:#b4a278}
+.chronicle-event b{font-size:14px}.chronicle-event small{font-size:12px}
+/* Home: a small welcome, then the work. */
+#screen-home .hero{min-height:240px;padding:30px;margin:0 0 12px;border-radius:18px;justify-content:center}
+#screen-home .hero:before,.practice-hero:before{background-image:linear-gradient(90deg,#0b1716 0%,#0b1716e8 45%,#0b171622 100%),url('./assets/training-portrait.webp');background-size:cover,auto 150%;background-position:center,right 47%;background-repeat:no-repeat}
+#screen-home .hero h2{font-size:40px;max-width:560px;margin-bottom:10px}
+#screen-home .hero p{font-size:14px;max-width:470px}
+#screen-home .hero-copy{max-width:70%}
+#screen-home .primary-actions{display:flex;flex-wrap:wrap;max-width:none;gap:10px;margin-top:22px}
+#screen-home .primary-actions .btn{min-height:44px;font-size:13px;padding:10px 18px}
+.home-toolbar{margin:8px 0 10px;letter-spacing:.12em;font-size:10px}
+.home-metrics{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));padding:14px 0;margin-bottom:22px;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.home-metrics .stat-card{min-height:0;background:none;border:0;border-right:1px solid var(--line);border-radius:0;padding:0 20px;box-shadow:none}
+.home-metrics .stat-card:first-child{padding-left:0}.home-metrics .stat-card:last-child{border:0}
+.home-metrics .stat-card:after{display:none}.home-metrics .stat-card .v{font-size:25px;margin-top:3px}.home-metrics .stat-card .k{font-size:10px;letter-spacing:.09em}
+.home-workspace{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(250px,1fr);gap:20px;align-items:start}
+.home-workspace .weekly-card{grid-column:1;grid-row:1;margin:0;padding:22px;background:#121e1c;border-radius:16px;box-shadow:none}
+.home-workspace .focus-panel{grid-column:2;grid-row:1;margin:0;padding:24px;background:#101a1a;box-shadow:none;border:1px solid var(--line);border-top:2px solid #b49c69;border-radius:14px}
+.focus-panel h3{font-size:23px;line-height:1.25;margin-top:14px}.focus-panel p{font-size:14px;line-height:1.7}.focus-steps{flex-wrap:wrap}.focus-link{font-size:13px;line-height:1.5;text-align:left}
+.weekly-head h3{font-size:21px}.weekly-head p{font-size:13px}.weekly-copy strong{font-size:14px;font-weight:600}.weekly-copy small{font-size:12px;line-height:1.5}.weekly-item{padding:12px 0;border-radius:0;border-bottom:1px solid #ffffff08}.weekly-footer{padding-top:16px}.weekly-footer button{min-height:36px}
+/* One artwork treatment across the two training destinations. */
+.practice-hero{min-height:260px;border-radius:18px;padding:30px}
+.practice-hero-mark{display:none}.practice-hero-copy h2{font-size:37px;max-width:570px}.practice-hero-copy p{font-size:14px;max-width:500px}
+.practice-option{min-height:175px;border-radius:14px;box-shadow:none}.practice-copy small{font-size:13px;line-height:1.5}.practice-copy strong{font-size:17px}
+/* A workspace within Lab, with direct access to every tool. */
+.lab-shell{display:grid;grid-template-columns:180px minmax(0,1fr);gap:32px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+.lab-navigation{display:grid;gap:22px;align-content:start;border-right:1px solid var(--line);padding-right:18px;position:sticky;top:106px;max-height:calc(100vh - 130px);overflow:auto}
+.lab-nav-group{display:grid;gap:3px}.lab-nav-group>span{font-size:10px;color:#859b91;letter-spacing:.14em;font-weight:700;margin:0 10px 7px}
+.lab-navigation button{border:0;background:none;color:#aebdb5;padding:10px 12px;border-radius:7px;text-align:left;font-size:13px;line-height:1.4;min-height:40px}
+.lab-navigation button:hover{background:#172724;color:#edf1e9}.lab-navigation button.active{background:#21352c;color:#ecdcaf;box-shadow:inset 2px 0 #c2a66f}
+.studio-shell{display:block;max-width:960px;margin:auto}
+.skill-row{display:grid;grid-template-columns:minmax(0,1fr) 220px;align-items:center;gap:16px;padding:18px 20px}
+.skill-row .lab-title{font-size:16px}.skill-row .lab-meta{font-size:12px;margin-top:3px}
+.skill-row .lab-row{align-items:center;gap:10px}.skill-row .lab-row .btn{align-self:center}
+.skill-row .trainingRate{grid-template-columns:repeat(5,minmax(0,1fr));margin-top:0!important;gap:4px}
+.trainingRate button{min-height:42px;font-size:14px;padding:8px;border-radius:7px}.trainingRate button.active{background:#2d4435;color:#f2dfac;border-color:#c2a66f}
+.skill-row>.small{grid-column:1/-1}
+/* Editors: visible heading and save controls, even on long forms. */
+.modal{width:min(600px,100%);max-height:96dvh;padding:14px}
+.modal-card{padding:0;max-height:90dvh;overflow:auto;border-radius:18px;background:#111c1c;scroll-padding-top:85px;scroll-padding-bottom:85px}
+.modal-head{position:sticky;top:0;z-index:3;padding:20px 24px;margin:0;background:#111c1cf5;border-bottom:1px solid var(--line);backdrop-filter:blur(16px);gap:12px}
+.modal-head h2{font-size:20px;letter-spacing:-.02em}.icon-btn{flex-shrink:0}
+#modalBody{padding:24px}#modalBody>p:first-child{margin-top:0}
+.modal.editor-wide{width:min(1000px,100%)}
+.editor-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px 24px;align-items:start}
+.editor-grid>label{margin:0}.editor-grid .editor-span{grid-column:1/-1}
+.editor-grid textarea{min-height:112px}
+.editor-footer{position:sticky;bottom:-24px;z-index:2;display:flex;justify-content:flex-end;gap:10px;align-items:center;background:#111c1cf5;border-top:1px solid var(--line);padding:16px 24px;margin:4px -24px -24px;backdrop-filter:blur(16px)}
+.editor-footer>.btn.full{width:auto;min-width:180px}.editor-footer>.btn-row{flex:1}.editor-footer>.btn-row .btn{flex:0 1 auto}
+.weekly-editor-items{gap:0;margin:0}.weekly-edit-row{display:grid;grid-template-columns:1.1fr 1fr;gap:12px 18px;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:18px 0}.weekly-edit-field{margin:0}.weekly-edit-actions{grid-column:1/-1}.weekly-optional{margin:0}.weekly-optional input{min-height:0}.weekly-editor-head{margin:0}
+#modalBody:has(.x-evidence){grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)}
+.editor-grid>.x-evidence,.editor-grid>.x-writing{grid-column:auto;min-width:0}.x-evidence h3,.x-writing h3{margin:0 0 22px;color:#cdb780;font-size:13px;letter-spacing:.04em}.x-writing{position:sticky;top:100px}.x-writing #xPostText{min-height:320px;font-size:16px;line-height:1.8}.performance-details{border-top:1px solid var(--line);margin:18px 0;padding:16px 0}.performance-details summary{cursor:pointer;font-weight:600;color:#e9d6a5}
+/* Compact library and utilities. */
+.legend-library #legendSearch{width:calc(100% - 32px);margin:8px 16px 16px}.legend-grid{grid-template-columns:repeat(3,minmax(0,1fr));padding:0 16px 16px;gap:0 16px}
+.legend-grid .list-item{align-items:center;border:0;border-bottom:1px solid var(--line);border-radius:0;background:none;padding:10px 0}.legend-grid .title{font-size:14px}.legend-grid .btn{font-size:12px;padding:7px 9px;min-height:36px}
+#screen-settings{max-width:930px}.danger-zone .full,#cloudSyncCard .full{width:auto}.danger-zone{margin-bottom:16px}
+#labPanel:has(#globalSearchGo){grid-template-columns:repeat(2,minmax(0,1fr))}#labPanel:has(#globalSearchGo)>.lab-card:first-child{grid-column:1/-1}#labPanel:has(#globalSearchGo) .full{width:auto}#labPanel:has(#globalSearchGo) .btn{max-width:100%}
+#screen-history .section-head>.btn-row{flex-shrink:0}.history-list .list-item{align-items:center}
+.mobile-destinations{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.menu-destination{display:flex;align-items:center;gap:12px;text-align:left;min-height:64px;border:1px solid var(--line);background:#142321;border-radius:12px;padding:14px}.menu-destination.active{border-color:var(--accent);color:#ecdcaf}.menu-destination svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.6}.menu-destination small{font-size:14px}
+@media(min-width:820px){
+ .app-shell{width:calc(100% - 220px);max-width:1440px;margin-left:220px;margin-right:0}.bottom-nav{width:220px;padding:26px 16px;gap:4px;overflow:auto}.bottom-nav:before{margin-bottom:26px}.bottom-nav:after{font-size:8px}.nav-item{min-height:46px;border-radius:8px}.nav-item small{font-size:13px}.nav-item[data-nav=settings]{margin-top:auto}.bottom-nav:after{margin-top:12px}.nav-item[data-nav=lab]{order:0}.topbar{padding:20px 36px}.main-content{padding:30px 36px;max-width:1360px;margin:auto}
+}
+@media(min-width:820px) and (max-width:1150px){.lab-shell{grid-template-columns:150px minmax(0,1fr);gap:20px}.main-content{padding:24px}.skill-row{grid-template-columns:1fr}.home-workspace{grid-template-columns:1fr}.home-workspace .focus-panel{grid-column:1;grid-row:2}.insight-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.legend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:819px){
+ .app-shell{max-width:none;padding-bottom:90px}.main-content{padding:18px 16px 28px}.navigation-menu{display:block}.topbar{gap:10px;padding:14px 16px;min-height:70px}.save-status{font-size:10px;max-width:120px}.bottom-nav{width:100%;grid-template-columns:repeat(5,1fr);padding:8px 8px var(--safe-bottom)}.nav-item{display:none}.nav-item:is([data-nav=home],[data-nav=play],[data-nav=decks],[data-nav=history],[data-nav=lab]){display:flex}.nav-item small{font-size:11px}.nav-item{min-height:48px}
+ .lab-shell{grid-template-columns:minmax(0,1fr);gap:22px}.lab-navigation{display:flex;position:static;border:0;border-bottom:1px solid var(--line);max-height:none;overflow:auto;gap:20px;padding:0 0 14px}.lab-nav-group{display:flex;align-items:center;gap:6px}.lab-nav-group>span{display:none}.lab-navigation button{white-space:nowrap;min-height:42px;border:1px solid var(--line)}
+ .home-workspace{grid-template-columns:1fr}.home-workspace .focus-panel{grid-column:1;grid-row:2}.home-workspace .weekly-card{padding:18px}.home-metrics .stat-card{padding:0 12px}.home-metrics .stat-card .v{font-size:21px}.home-metrics .stat-card .k{font-size:9px;letter-spacing:.025em}
+ #screen-home .hero{min-height:235px;padding:24px}#screen-home .hero h2{font-size:34px}#screen-home .hero-copy{max-width:85%}.practice-hero{min-height:240px}.practice-hero-copy h2{font-size:31px}.practice-options{grid-template-columns:1fr}.practice-option{min-height:112px}.practice-copy strong{font-size:15px}.practice-copy small{font-size:12px}
+ .skill-row{grid-template-columns:minmax(0,1fr) 210px}.legend-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.insight-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .modal{padding:8px}.modal-card{max-height:94dvh}.modal-head{padding:16px 18px}.modal-head h2{font-size:18px}#modalBody{padding:18px}.editor-footer{bottom:-18px;margin:0 -18px -18px;padding:14px 18px}.editor-grid{gap:16px}.weekly-edit-row{grid-template-columns:1fr}.weekly-edit-actions{grid-column:1}.x-writing{position:static}
+}
+@media(max-width:560px){
+ .save-status{display:none}.topbar h1{font-size:21px}.home-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}.home-metrics .stat-card:nth-child(3){padding-left:0}.home-metrics .stat-card:nth-child(2){border:0}.home-metrics .stat-card .k{font-size:10px}.home-metrics .stat-card .v{font-size:23px}#screen-home .hero-copy{max-width:100%}#screen-home .hero:before{opacity:.65}#screen-home .primary-actions{display:grid;grid-template-columns:1fr 1fr}#screen-home .primary-actions .btn{white-space:normal;padding:10px;font-size:12px}#screen-home .hero h2{font-size:32px}.home-toolbar{font-size:9px}
+ .lab-row{gap:12px;flex-wrap:wrap}.lab-title,.lab-row .strong{font-size:22px}.lab-card .lab-title{font-size:17px}.skill-row{grid-template-columns:1fr;padding:16px}.skill-row .lab-row{flex-wrap:nowrap}.trainingRate button{min-height:44px}.legend-grid{grid-template-columns:1fr}.legend-library summary{gap:8px;font-size:13px}.legend-library .chip{font-size:10px;padding:5px 7px}
+ .editor-grid,#modalBody:has(.x-evidence){grid-template-columns:1fr}.editor-grid>.x-evidence,.editor-grid>.x-writing{grid-column:1}.editor-footer>.btn.full{width:100%}.modal-card input,.modal-card textarea,.modal-card select{font-size:16px}.editor-grid>label{grid-column:1/-1}.x-writing #xPostText{min-height:240px}
+ #labPanel:has(#globalSearchGo){grid-template-columns:1fr}.milestone-grid{grid-template-columns:1fr}.collection-head .btn-row{flex-direction:row}.collection-head{flex-wrap:wrap}.practice-hero{padding:24px}.practice-hero-copy h2{font-size:30px}.empty-state,.empty{padding:28px 18px}.weekly-copy em{font-size:9px}.btn-row .btn{flex:1 1 auto}
+}
+@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+.empty-glyph{display:grid;place-items:center;margin:0 auto 18px;width:60px;height:60px;border:1px solid #766b46;border-radius:50%;font-size:28px;color:#d4bb83;background:#c7a86b08}.empty h3{font-size:23px;letter-spacing:-.025em;color:var(--text);line-height:1.25;margin:0 0 10px}.empty p{max-width:430px;margin:0 auto;color:var(--muted);line-height:1.7}.empty .btn{margin-top:22px}.lab-panel>.empty,.insight-panel>.empty{min-height:280px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:42px 26px}.home-workspace:not(:has(.weekly-card:not([hidden]))){grid-template-columns:1fr}.home-workspace:not(:has(.weekly-card:not([hidden]))) .focus-panel{grid-column:1}.home-workspace:not(:has(.focus-panel:not([hidden]))){grid-template-columns:1fr}
+@media(max-width:819px){.bottom-nav:before,.bottom-nav:after{display:none}.lab-navigation{scrollbar-width:thin;scrollbar-color:#627565 transparent}}

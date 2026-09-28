@@ -1,8 +1,9 @@
-export const RIFTMASTERY_LAB_VERSION = '0.7.1';
+import { prepareEditor } from './ui.js?v=0.8.0';
+export const RIFTMASTERY_LAB_VERSION = '0.8.0';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.7.1';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.8.0';
 
-const VERSION='0.7.1';
+const VERSION='0.8.0';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -25,7 +26,7 @@ function toast(msg){
 }
 function modal(titleText,html){
   const d=$('#modal'); if(!d)return;
-  $('#modalTitle').textContent=titleText; $('#modalBody').innerHTML=html; if(!d.open)d.showModal();
+  $('#modalTitle').textContent=titleText; $('#modalBody').innerHTML=html; prepareEditor(); if(!d.open)d.showModal();
 }
 function closeModal(){const d=$('#modal');if(d?.open)d.close();}
 async function save(store,row){row.updated_at=iso();row.sync_status=row.sync_status||'local';await put(store,row);window.dispatchEvent(new Event('riftmastery:localchange'));return row;}
@@ -76,8 +77,9 @@ let lastMoreKey='';
 let lastStatsKey='';
 
 async function ensureLabShell(){
-  const more=$('#screen-more');
-  if(more?.classList.contains('active')&&!$('#riftLab',more)){
+  const more=$('#screen-lab.active')||$('#screen-studio.active');
+  if(more&&!$('#riftLab',more)){
+    $('#riftLab')?.remove();
     const shell=document.createElement('div');shell.id='riftLab';shell.className='lab-shell';
     more.prepend(shell); await renderLab();
   }
@@ -87,23 +89,43 @@ async function ensureLabShell(){
   await enhanceLiveScore();
 }
 
+const workspaces=[
+  ['PRACTICE',[['blocks','Testing blocks'],['matchups','Matchups'],['positions','Position reviews'],['queue','Training queue'],['events','Events'],['experiments','Deck experiments']]],
+  ['RESEARCH',[['research','Research board'],['pulse','Format pulse']]],
+  ['DEVELOPMENT',[['goals','Goals'],['skills','Skills'],['explorer','Explorer'],['chronicle','Chronicle'],['tools','Tools']]]
+];
+window.riftmasteryOpenWorkspace=async(name)=>{
+  const destination=$('#screen-'+name);
+  if(!destination)return;
+  let root=$('#riftLab');
+  if(!root){root=document.createElement('div');root.id='riftLab';root.className='lab-shell';}
+  destination.replaceChildren(root);await renderLab();
+};
+function polishEmpty(root){
+  const content={blocks:['Give every session a question.','Create a testing block with a deck, a target, and one idea to test.'],events:['Prepare for your next event.','Keep your deck, preparation checklist, and round results together.'],experiments:['Find out what the change does.','Compare two saved builds across focused games.'],goals:['Set your next milestone.','Choose a useful target for matches, games, or practice time.'],positions:['Start with one difficult decision.','After a game, compare your lines and record what changed your read.'],research:['Follow a question worth answering.','Save a hypothesis, collect evidence, and decide what to test next.'],pulse:['Stay close to the format.','Capture a question from previews, a rules update, or an upcoming event.'],x:['Turn a lesson into something useful.','Draft from a position review, a research finding, or an idea you want to explore.']};
+  const key=root.closest('#screen-studio')?'x':labTab;
+  const message=content[key];if(!message)return;
+  const empty=root.querySelector('.empty');if(!empty||empty.children.length)return;
+  empty.innerHTML=`<span class="empty-glyph" aria-hidden="true">${key==='x'?'↗':'◇'}</span><h3>${message[0]}</h3><p>${message[1]}</p>`;
+}
+function needsDeck(message='Save a deck to start this workspace.'){
+  modal('Start with a deck',`<p class="muted">${message}</p><button type="button" class="btn primary full" id="labGoDecks">Open Decks</button>`);
+  $('#labGoDecks').onclick=()=>{closeModal();document.querySelector('[data-nav="decks"]').click();};
+}
+window.riftmasterySelectTool=async(tool)=>{labTab=tool;await renderLab();};
 async function renderLab(){
   const root=$('#riftLab'); if(!root)return;
-  const tabs=[
-    ['blocks','Testing'],['matchups','Matchups'],['events','Events'],['experiments','A/B'],
-    ['goals','Goals'],['skills','Skills'],['insights','Insights'],['tools','Tools']
-  ];
-  root.innerHTML="<div class='section-head'><div><h2>Development Lab</h2><div class='sub'>Turn match data into deliberate practice.</div></div><span class='chip'>v"+VERSION+"</span></div>"+
-    "<div class='lab-tabs'>"+tabs.map(([id,label])=>"<button data-lab-tab='"+id+"' class='"+(labTab===id?'active':'')+"'>"+label+"</button>").join('')+"</div><div id='labPanel' class='lab-panel'></div>";
-  $$('.lab-tabs button',root).forEach(b=>b.onclick=()=>{labTab=b.dataset.labTab;renderLab();});
-  if(labTab==='blocks')await renderBlocksTab();
-  if(labTab==='matchups')await renderMatchupsTab();
-  if(labTab==='events')await renderEventsTab();
-  if(labTab==='experiments')await renderExperimentsTab();
-  if(labTab==='goals')await renderGoalsTab();
-  if(labTab==='skills')await renderSkillsTab();
-  if(labTab==='insights')await renderInsightsTab();
-  if(labTab==='tools')await renderToolsTab();
+  const studio=!!root.closest('#screen-studio');
+  root.classList.toggle('studio-shell',studio);
+  if(studio){
+    insightTab='x';root.innerHTML="<div id='labPanel' class='lab-panel'><div id='insightPanel' class='insight-panel'></div></div>";await renderXStudio();polishEmpty(root);return;
+  }
+  if(labTab==='insights')labTab=insightTab==='x'?'research':insightTab;
+  root.innerHTML=`<div class="lab-navigation" aria-label="Lab tools">${workspaces.map(([label,items])=>`<div class="lab-nav-group"><span>${label}</span>${items.map(([id,name])=>`<button data-lab-tab="${id}" class="${labTab===id?'active':''}" aria-current="${labTab===id?'page':'false'}">${name}</button>`).join('')}</div>`).join('')}</div><div id="labPanel" class="lab-panel"></div>`;
+  $$('[data-lab-tab]',root).forEach(b=>b.onclick=()=>{labTab=b.dataset.labTab;renderLab();});
+  const renders={blocks:renderBlocksTab,matchups:renderMatchupsTab,events:renderEventsTab,experiments:renderExperimentsTab,goals:renderGoalsTab,skills:renderSkillsTab,tools:renderToolsTab};
+  if(renders[labTab])await renders[labTab]();else{insightTab=labTab;await renderInsightsTab();}
+  polishEmpty(root);
 }
 
 async function blockProgress(block){
@@ -136,7 +158,7 @@ async function renderBlocksTab(){
 async function openTestingBlockModal(){
   const {decks,legends,legendMap}=await maps();
   const active=decks.filter(d=>!d.deleted_at&&!d.archived);
-  if(!active.length)return toast('Create a deck first.');
+  if(!active.length)return needsDeck();
   modal('New testing block',`
     <label><span class='label-title'>Block name</span><input id='tbName' placeholder='e.g. Jayce v3 matchup block'></label>
     <label><span class='label-title'>Deck</span><select id='tbDeck'>${active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('')}</select></label>
@@ -250,7 +272,7 @@ async function renderMatchupsTab(){
     <div class='lab-row'><div><div class='strong'>Matchup Notebook</div><div class='small muted'>Persistent matchup plans backed by your own results.</div></div><button class='btn small primary' id='openMatchup'>Open matchup</button></div>
     ${favorites.length?`<div class='section-head'><h3>Favorites</h3></div><div class='lab-panel'>${favorites.map(n=>`<button class='lab-card favoriteMatchup' data-me='${n.my_legend_id}' data-opp='${n.opponent_legend_id}' style='text-align:left;color:inherit'><div class='lab-title'>${esc(legends.find(l=>l.id===n.my_legend_id)?.name||'My Legend')} vs ${esc(legends.find(l=>l.id===n.opponent_legend_id)?.name||'Opponent')}</div><div class='lab-meta'>Confidence ${n.confidence||0}/5</div></button>`).join('')}</div>`:''}
     <div class='section-head'><h3>Recurring Leak Tracker</h3><div class='sub'>Based on tagged notes</div></div>
-    ${leaks.length?`<div class='lab-card'><div class='lab-wrap'>${leaks.slice(0,9).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>${leaks[0]?.count>=3?`<div class='small muted' style='margin-top:9px'>Most repeated pattern: ${esc(leaks[0].tag)}. Treat this as a review signal, not proof of cause.</div>`:''}</div>`:`<div class='empty'>Tag notes during matches to build your leak tracker.</div>`}
+    ${leaks.length?`<div class='lab-card'><div class='lab-wrap'>${leaks.slice(0,9).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>${leaks[0]?.count>=3?`<div class='small muted' style='margin-top:9px'>Most repeated pattern: ${esc(leaks[0].tag)}. Treat this as a review signal, not proof of cause.</div>`:''}</div>`:`<div class='empty'>Tag your after-game reviews to discover recurring patterns.</div>`}
   `;
   $('#openMatchup').onclick=()=>openMatchupPicker();
   $$('.favoriteMatchup',p).forEach(b=>b.onclick=()=>openMatchupPage(b.dataset.me,b.dataset.opp));
@@ -330,7 +352,7 @@ async function renderEventsTab(){
 }
 async function openTournamentModal(){
   const {decks,legendMap}=await maps(),active=decks.filter(d=>!d.deleted_at&&!d.archived);
-  if(!active.length)return toast('Create a deck first.');
+  if(!active.length)return needsDeck();
   const date=new Date(),pad=n=>String(n).padStart(2,'0'),dateValue=`${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
   modal('Create tournament event',`
     <label><span class='label-title'>Event name</span><input id='evName' placeholder='e.g. Dallas Regional'></label>
@@ -406,7 +428,7 @@ async function renderExperimentsTab(){
 }
 async function openExperimentModal(){
   const {decks,legends,legendMap}=await maps(),active=decks.filter(d=>!d.deleted_at&&!d.archived);
-  if(active.length<2)return toast('You need at least two active deck versions/builds.');
+  if(active.length<2)return needsDeck('Save two active deck versions to compare them in an experiment.');
   const opts=active.map(d=>`<option value='${d.id}'>${esc(legendMap[d.legend_id]?.name||'')} — ${esc(d.name)} ${esc(d.version||'')}</option>`).join('');
   modal('New deck experiment',`
     <label><span class='label-title'>Experiment name</span><input id='exName' placeholder='e.g. Jayce v3 vs v4'></label>
@@ -486,8 +508,7 @@ async function openGoalModal(){
 const insightTabs=[['positions','Position Lab'],['research','Research'],['pulse','Format Pulse'],['queue','Training Queue'],['x','X Studio'],['explorer','Explorer'],['chronicle','Chronicle']];
 async function renderInsightsTab(){
   const root=$('#labPanel');if(!root)return;
-  root.innerHTML=`<div class='insight-intro'><div class='lab-title'>Connect decisions to practice and useful content</div><div class='lab-meta'>Save what you saw, keep hypotheses honest, and carry one supported lesson forward.</div></div><div class='insight-tabs'>${insightTabs.map(([id,label])=>`<button class='${insightTab===id?'active':''}' data-insight-tab='${id}'>${label}</button>`).join('')}</div><div id='insightPanel' class='insight-panel'></div>`;
-  $$('.insight-tabs button',root).forEach(b=>b.onclick=()=>{insightTab=b.dataset.insightTab;renderInsightsTab();});
+  root.innerHTML="<div id='insightPanel' class='insight-panel'></div>";
   if(insightTab==='positions')await renderPositionReviews();
   if(insightTab==='research')await renderPreviewResearch();
   if(insightTab==='queue')await renderTrainingQueue();
@@ -495,6 +516,7 @@ async function renderInsightsTab(){
   if(insightTab==='pulse')await renderFormatPulse();
   if(insightTab==='explorer')await renderDevelopmentExplorer();
   if(insightTab==='chronicle')await renderPlayerChronicle();
+  polishEmpty(root);
 }
 function insightHeader(titleText,description,buttonId,buttonLabel){return `<div class='lab-row insight-header'><div><div class='lab-title'>${titleText}</div><div class='lab-meta'>${description}</div></div><button class='btn small primary' id='${buttonId}'>${buttonLabel}</button></div>`;}
 const positionNotes=async()=> (await all('notes')).filter(n=>n.record_type==='position_review').sort((a,b)=>ms(b.timestamp)-ms(a.timestamp));
@@ -573,8 +595,8 @@ async function renderTrainingQueue(){
     ${suggestions.length?suggestions.map((x,i)=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(x.title)}</div><div class='lab-meta'>${esc(x.detail)}</div></div><button class='btn small primary queueWeekly' data-i='${i}'>Add to this week</button></div></article>`).join(''):`<div class='empty'>Your queue will fill from repeated tagged notes and saved 10-BO3 review drills. You can also add a focused task from a research idea.</div>`}
     <div class='lab-wrap' style='margin-top:12px'><button class='btn small ghost' id='queuePosition'>Review a difficult position</button><button class='btn small ghost' id='queueResearch'>Add preview test</button></div>`;
   $$('.queueWeekly',p).forEach(b=>b.onclick=()=>queueWeeklyTask(suggestions[Number(b.dataset.i)].title,suggestions[Number(b.dataset.i)].detail));
-  $('#queuePosition').onclick=()=>{insightTab='positions';renderInsightsTab();setTimeout(()=>$('#newPositionReview')?.click(),0);};
-  $('#queueResearch').onclick=()=>{insightTab='research';renderInsightsTab();setTimeout(()=>$('#newResearch')?.click(),0);};
+  $('#queuePosition').onclick=async()=>{labTab='positions';await renderLab();$('#newPositionReview')?.click();};
+  $('#queueResearch').onclick=async()=>{labTab='research';await renderLab();$('#newResearch')?.click();};
 }
 async function queueWeeklyTask(titleText,detail){
   if(typeof window.riftmasteryAddWeeklyTask!=='function')return toast('Weekly checklist is still loading.');
@@ -591,7 +613,7 @@ async function renderXStudio(){
 async function openXPostModal(prefill={},id=null){
   const existing=id?await get('notes',id):null,n=existing||prefill||{};
   modal(existing?'Edit X insight':'Draft an X insight',`<p class='small muted'>Build from evidence and write for a specific reader. RiftMastery saves a draft; it never posts for you.</p>
-    <label><span class='label-title'>Post type</span><select id='xPostType'><option value='original'>Original post</option><option value='reply'>Substantive reply</option><option value='repost_test'>Rewritten repost test</option></select></label>
+    <div class='x-evidence'><h3>01 · Shape the idea</h3><label><span class='label-title'>Post type</span><select id='xPostType'><option value='original'>Original post</option><option value='reply'>Substantive reply</option><option value='repost_test'>Rewritten repost test</option></select></label>
     <label><span class='label-title'>Information window</span><select id='xWindow'><option>Any time</option><option>Card previews</option><option>Pre-release testing</option><option>New set launch</option><option>Rules / errata</option><option>Ban announcement</option><option>Major event prep</option><option>Fresh decklist</option><option>Post-event review</option></select></label>
     <label><span class='label-title'>Audience</span><input id='xAudience' maxlength='100' placeholder='e.g. Jayce players preparing for locals'></label>
     <label><span class='label-title'>Hook</span><input id='xHook' maxlength='160' placeholder='Name the reader and the assumption or question'></label>
@@ -600,13 +622,14 @@ async function openXPostModal(prefill={},id=null){
     <label><span class='label-title'>Evidence / proof</span><textarea id='xEvidence' rows='2' placeholder='Specific games, list, clip, or repeated observation.'></textarea></label>
     <label><span class='label-title'>Why should the reader care?</span><textarea id='xImplication' rows='2' placeholder='What should they test, prepare, or change?'></textarea></label>
     <button class='btn small ghost' type='button' id='xBuildDraft'>Build a draft from these fields</button>
-    <label><span class='label-title'>Post text</span><textarea id='xPostText' rows='5' placeholder='Draft or paste the final wording here.'></textarea></label>
+    </div><div class='x-writing'><h3>02 · Write your post</h3><label><span class='label-title'>Post text</span><textarea id='xPostText' rows='5' placeholder='Draft or paste the final wording here.'></textarea></label>
     <label><span class='label-title'>Status</span><select id='xPostStatus'><option value='draft'>Draft</option><option value='posted'>Posted</option><option value='parked'>Parked</option></select></label>
-    <div class='lab-grid'><label><span class='label-title'>Views</span><input id='xViews' type='number' min='0' value='0'></label><label><span class='label-title'>Likes</span><input id='xLikes' type='number' min='0' value='0'></label><label><span class='label-title'>Bookmarks</span><input id='xBookmarks' type='number' min='0' value='0'></label><label><span class='label-title'>Replies</span><input id='xReplies' type='number' min='0' value='0'></label><label><span class='label-title'>Reposts</span><input id='xReposts' type='number' min='0' value='0'></label><label><span class='label-title'>Profile visits</span><input id='xProfileVisits' type='number' min='0' value='0'></label><label><span class='label-title'>Follows</span><input id='xFollows' type='number' min='0' value='0'></label></div>
-    <label><span class='label-title'>Evidence / clip link <span class='muted'>(optional)</span></span><input id='xSourceLink' type='url' placeholder='VOD, decklist, screenshot, or source'></label>
+    <details id='xPerformance' class='performance-details'><summary>Published results</summary><p class='small muted'>Record these after publishing.</p><div class='lab-grid'><label><span class='label-title'>Views</span><input id='xViews' type='number' min='0' value='0'></label><label><span class='label-title'>Likes</span><input id='xLikes' type='number' min='0' value='0'></label><label><span class='label-title'>Bookmarks</span><input id='xBookmarks' type='number' min='0' value='0'></label><label><span class='label-title'>Replies</span><input id='xReplies' type='number' min='0' value='0'></label><label><span class='label-title'>Reposts</span><input id='xReposts' type='number' min='0' value='0'></label><label><span class='label-title'>Profile visits</span><input id='xProfileVisits' type='number' min='0' value='0'></label><label><span class='label-title'>Follows</span><input id='xFollows' type='number' min='0' value='0'></label></div>
+    </details><label><span class='label-title'>Evidence / clip link <span class='muted'>(optional)</span></span><input id='xSourceLink' type='url' placeholder='VOD, decklist, screenshot, or source'></label>
     <label><span class='label-title'>Post URL <span class='muted'>(optional)</span></span><input id='xPostUrl' type='url' placeholder='https://x.com/...'></label>
-    <button class='btn primary full' id='saveXPost'>Save X record</button>`);
+    </div><button class='btn primary full' id='saveXPost'>Save X record</button>`);
   $('#xPostType').value=n.post_type||'original';$('#xWindow').value=n.window_label||'Any time';$('#xAudience').value=n.audience||'';$('#xHook').value=n.hook||'';$('#xClaim').value=n.claim||'';$('#xEvidenceStatus').value=n.evidence_status||'working_hypothesis';$('#xEvidence').value=n.evidence||'';$('#xImplication').value=n.implication||'';$('#xPostText').value=n.post_text||'';$('#xPostStatus').value=n.post_status||'draft';$('#xViews').value=n.metrics?.views||0;$('#xLikes').value=n.metrics?.likes||0;$('#xBookmarks').value=n.metrics?.bookmarks||0;$('#xReplies').value=n.metrics?.replies||0;$('#xReposts').value=n.metrics?.reposts||0;$('#xProfileVisits').value=n.metrics?.profile_visits||0;$('#xFollows').value=n.metrics?.follows||0;$('#xSourceLink').value=n.source_link||'';$('#xPostUrl').value=n.post_url||'';
+  const performance=$('#xPerformance');const updatePerformance=()=>{performance.hidden=$('#xPostStatus').value!=='posted';performance.open=!performance.hidden;};$('#xPostStatus').onchange=updatePerformance;updatePerformance();
   $('#xBuildDraft').onclick=()=>{
     const audience=$('#xAudience').value.trim(),hook=$('#xHook').value.trim(),claim=$('#xClaim').value.trim(),evidence=$('#xEvidence').value.trim(),implication=$('#xImplication').value.trim(),status=$('#xEvidenceStatus').value;
     if(!claim||!evidence)return toast('Add a claim and its evidence before building a draft.');
@@ -636,7 +659,8 @@ async function processSnapshot(){
 async function renderDevelopmentExplorer(){
   const p=$('#insightPanel'),s=await processSnapshot(),max=Math.max(1,...s.months.map(m=>m.count));
   const tagRows=Object.entries(s.tags).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Development Explorer</div><div class='lab-meta'>A private view of practice, review, and follow-through. No rank score and no card or deck win-rate claims.</div></div>
+  if(!s.completedSessions.length&&!s.positionReviews.length&&!s.research.length&&!s.done&&!s.posts.length){p.innerHTML=`<div class='page-intro'><span class='eyebrow'>DEVELOPMENT</span><h2>Explorer</h2><p>Your practice and review habits, in one place.</p></div><div class='empty-state'><span class='empty-symbol' aria-hidden='true'>↗</span><h3>Build a rhythm worth reviewing.</h3><p>Complete a session, review a position, or finish a weekly task to start seeing your development here.</p><button class='btn primary' id='explorerStart'>Review a position</button></div>`;$('#explorerStart').onclick=()=>openPositionReviewModal();return;}
+  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Development Explorer</div><div class='lab-meta'>See your practice rhythm, review habits, and weekly follow-through.</div></div>
     <div class='insight-stats'><div class='lab-mini'><div class='tiny muted'>COMPLETED SESSIONS</div><div class='big'>${s.completedSessions.length}</div></div><div class='lab-mini'><div class='tiny muted'>PRACTICE HOURS</div><div class='big'>${s.hours.toFixed(1)}</div></div><div class='lab-mini'><div class='tiny muted'>POSITION REVIEWS</div><div class='big'>${s.positionReviews.length}</div></div><div class='lab-mini'><div class='tiny muted'>RESEARCH NOTES</div><div class='big'>${s.research.length}</div></div></div>
     <div class='lab-card'><div class='lab-title'>Practice rhythm</div><div class='lab-meta'>Completed sessions by month</div><div class='insight-bars'>${s.months.map(m=>`<div class='insight-bar'><span>${m.count||''}</span><i><b style='height:${Math.max(m.count?8:0,Math.round(m.count/max*100))}%'></b></i><small>${esc(m.label)}</small></div>`).join('')}</div></div>
     <div class='lab-card'><div class='lab-title'>Follow-through</div><div class='lab-meta'>Required weekly checklist tasks completed across saved weeks</div><div class='lab-row' style='margin-top:9px'><strong>${s.done} / ${s.required}</strong><span class='lab-chip'>${s.required?Math.round(s.done/s.required*100):0}%</span></div><div class='lab-progress'><span style='width:${s.required?Math.round(s.done/s.required*100):0}%'></span></div></div>
@@ -669,7 +693,7 @@ function openChronicleCardModal(){
 async function renderFormatPulse(){
   const p=$('#insightPanel'),rows=(await researchNotes()).sort((a,b)=>ms(a.window_date||'9999-12-31')-ms(b.window_date||'9999-12-31'));
   const groups=[...new Set(rows.map(n=>n.window_label||'Any time'))];
-  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Format Pulse</div><div class='lab-meta'>Keep track of what the community is asking during previews, rules updates, set launches, and event prep. Add dates yourself; no automated alerts or filler-post quota.</div><button class='btn small primary' id='pulseAdd' style='margin-top:12px'>+ Capture a question</button></div>
+  p.innerHTML=`<div class='insight-intro'><div class='lab-title'>Format Pulse</div><div class='lab-meta'>Keep track of what the community is asking during previews, rules updates, set launches, and event prep. Save a question and a date to revisit it.</div><button class='btn small primary' id='pulseAdd' style='margin-top:12px'>+ Capture a question</button></div>
     ${rows.length?groups.map(group=>`<div class='lab-card'><div class='lab-title'>${esc(group)}</div><div class='lab-panel' style='margin-top:8px'>${rows.filter(n=>(n.window_label||'Any time')===group).map(n=>`<article class='insight-card'><div class='lab-row'><div><div class='lab-title'>${esc(n.research_subject||n.question)}</div><div class='lab-meta'>${n.window_date?'Useful until '+esc(n.window_date)+' · ':''}${esc(n.evidence_status||'working_hypothesis').replaceAll('_',' ')}</div></div><button class='btn small ghost pulseEdit' data-id='${n.id}'>Update</button></div><p>${esc(n.question||'')}</p>${n.evidence?`<p><b>Evidence:</b> ${esc(n.evidence)}</p>`:''}</article>`).join('')}</div></div>`).join(''):`<div class='empty'>No information windows yet. Capture a question when a preview, event, rules update, or new list gives players something concrete to figure out.</div>`}`;
   $('#pulseAdd').onclick=()=>openResearchModal();$$('.pulseEdit',p).forEach(b=>b.onclick=()=>openResearchModal(b.dataset.id));
 }
@@ -683,7 +707,7 @@ async function renderToolsTab(){
       <div class='lab-title'>Global Search</div><div class='lab-meta'>Search decks, notes, opponents, events, and testing blocks.</div>
       <div class='btn-row' style='margin-top:9px'><input id='globalSearch' placeholder='Search RiftMastery'><button class='btn primary' id='globalSearchGo' type='button'>Search</button></div>
     </div>
-    <div class='lab-card'><div class='lab-title'>ChatGPT Analysis Brief</div><div class='lab-meta'>Build a structured snapshot of your recent development data without paying for an in-app AI API.</div><button class='btn full' id='copyAnalysisBrief' type='button' style='margin-top:9px'>Copy analysis brief</button></div>
+    <div class='lab-card'><div class='lab-title'>ChatGPT Analysis Brief</div><div class='lab-meta'>Build a structured snapshot of your recent development data to review in ChatGPT.</div><button class='btn full' id='copyAnalysisBrief' type='button' style='margin-top:9px'>Copy analysis brief</button></div>
     <div class='lab-card'><div class='lab-title'>Old Match Import</div><div class='lab-meta'>Import a RiftMastery-format CSV or a CSV with matching column names.</div><button class='btn full' id='importMatchCsv' type='button' style='margin-top:9px'>Import match CSV</button></div>
     <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Scoring Sources</div><div class='lab-meta'>Conquer / Hold / Effect stay built in. Add extra labels for special scoring.</div></div><button class='btn small primary' id='addScoreSource' type='button'>+ Source</button></div><div class='lab-wrap' style='margin-top:9px'>${scoreSources.map(s=>`<span class='lab-chip'>${esc(s.label)}${['conquer','hold','effect'].includes(s.id)?'':` <button class='link-btn removeScoreSource' data-id='${s.id}' type='button'>×</button>`}</span>`).join('')}</div></div>
     <div class='lab-card'><div class='lab-row'><div><div class='lab-title'>Review Tags</div><div class='lab-meta'>Tags feed the recurring-pattern tracker.</div></div><button class='btn small primary' id='addLeakTag' type='button'>+ Tag</button></div><div class='lab-wrap' style='margin-top:9px'>${leakTags.map(t=>`<span class='lab-chip'>${esc(t)}</span>`).join('')}</div></div>
@@ -782,8 +806,8 @@ async function renderSkillsTab(){
   const p=$('#labPanel');if(!p)return;
   const rows=(await all('skillAreas')).filter(x=>!x.archived).sort((a,b)=>a.name.localeCompare(b.name));
   p.innerHTML=`
-    <div class='lab-row'><div><div class='strong'>Training Areas</div><div class='small muted'>Use these as personal progress markers.</div></div><button class='btn small primary' id='newTrainingArea'>+ Area</button></div>
-    <div class='lab-panel'>${rows.length?rows.map(x=>`<div class='lab-card'><div class='lab-row'><div><div class='lab-title'>${esc(x.name)}</div><div class='lab-meta'>Current self-rating: ${Number(x.rating)||0}/5</div></div><button class='btn small ghost trainingEdit' data-id='${x.id}'>Edit</button></div><div class='segmented trainingRate' data-id='${x.id}' style='margin-top:9px'>${[1,2,3,4,5].map(n=>`<button data-rate='${n}' class='${Number(x.rating)===n?'active':''}'>${n}</button>`).join('')}</div>${x.notes?`<div class='small muted' style='margin-top:8px'>${esc(x.notes)}</div>`:''}</div>`).join(''):`<div class='empty'>No training areas yet.</div>`}</div>`;
+    <div class='lab-row'><div><div class='strong'>Training Areas</div><div class='small muted'>Rate consistency: 1 Learning · 2 Developing · 3 Reliable · 4 Strong · 5 Consistent under pressure.</div></div><button class='btn small primary' id='newTrainingArea'>+ Area</button></div>
+    <div class='lab-panel'>${rows.length?rows.map(x=>`<div class='lab-card skill-row'><div class='lab-row'><div><div class='lab-title'>${esc(x.name)}</div><div class='lab-meta'>Current self-rating: ${Number(x.rating)||0}/5</div></div><button class='btn small ghost trainingEdit' data-id='${x.id}'>Edit</button></div><div class='segmented trainingRate' data-id='${x.id}' style='margin-top:9px'>${[1,2,3,4,5].map(n=>`<button data-rate='${n}' aria-label='${esc(x.name)}: ${n} of 5' aria-pressed='${Number(x.rating)===n}' title='${['Learning','Developing','Reliable','Strong','Consistent under pressure'][n-1]}' class='${Number(x.rating)===n?'active':''}'>${n}</button>`).join('')}</div>${x.notes?`<div class='small muted' style='margin-top:8px'>${esc(x.notes)}</div>`:''}</div>`).join(''):`<div class='empty'>No training areas yet.</div>`}</div>`;
   $('#newTrainingArea').onclick=()=>openTrainingAreaModal();
   $$('.trainingEdit',p).forEach(b=>b.onclick=()=>openTrainingAreaModal(b.dataset.id));
   $$('.trainingRate button',p).forEach(b=>b.onclick=async()=>{const id=b.closest('.trainingRate').dataset.id,row=await get('skillAreas',id);row.rating=Number(b.dataset.rate);await save('skillAreas',row);renderLab();});
@@ -870,7 +894,7 @@ async function enhanceStats(stats){
   const sources=await getMeta('score_sources',scoreDefaults());
   const custom=sources.filter(s=>!['conquer','hold','effect'].includes(s.id)).map(s=>({label:s.label,me:pointEvents.filter(e=>e.side==='me'&&e.source===s.id).reduce((a,e)=>a+Number(e.amount),0),opp:pointEvents.filter(e=>e.side==='opponent'&&e.source===s.id).reduce((a,e)=>a+Number(e.amount),0)})).filter(x=>x.me||x.opp);
   if(custom.length)extra.insertAdjacentHTML('beforeend',`<div class='section-head'><h3>Custom Scoring Sources</h3></div><div class='lab-panel'>${custom.map(x=>`<div class='lab-card lab-row'><span>${esc(x.label)}</span><span class='small muted'>You ${x.me} • Opp ${x.opp}</span></div>`).join('')}</div>`);
-  $('.labFavMu',extra).forEach(b=>b.onclick=()=>openMatchupPage(id,b.dataset.opp));
+  $$('.labFavMu',extra).forEach(b=>b.onclick=()=>openMatchupPage(id,b.dataset.opp));
   if(type==='legend'){
     $$('.matrixRow',stats).forEach(row=>{
       if(row.dataset.labBound)return;row.dataset.labBound='1';
@@ -951,7 +975,7 @@ async function enhanceModal(){
   if((titleText==='Quick note'||titleText==='Match saved')&&!$('#labLeakChooser',body)){
     const wrap=document.createElement('div');wrap.innerHTML=await leakChooserHtml();const node=wrap.firstElementChild;
     const target=titleText==='Quick note'?$('#saveQuickNote',body):$('#saveReview',body);
-    target?.parentNode?.insertBefore(node,target);
+    if(target){const anchor=target.closest('.editor-footer')||target;anchor.parentNode.insertBefore(node,anchor);node.classList.add('editor-span');}
     if(target)target.addEventListener('click',()=>{const tags=$$('#labLeakChooser input:checked',body).map(x=>x.value);queueLeakTags(tags);},{capture:true});
   }
 
@@ -959,7 +983,7 @@ async function enhanceModal(){
     const btn=$('#createSession',body);if(btn){
       const label=document.createElement('label');
       label.innerHTML="<span class='label-title'>Session tags <span class='muted'>(optional, comma-separated)</span></span><input id='labSessionTags' placeholder='regional prep, new list, matchup lab'>";
-      btn.parentNode.insertBefore(label,btn);
+      const anchor=btn.closest('.editor-footer')||btn;anchor.parentNode.insertBefore(label,anchor);label.classList.add('editor-span');
       btn.addEventListener('click',()=>{
         const tags=$('#labSessionTags',body).value.split(',').map(x=>x.trim()).filter(Boolean);
         if(tags.length)setMeta('pending_session_tags',{tags,at:Date.now()}).then(()=>setTimeout(assignPendingSessionTags,700));
@@ -986,7 +1010,7 @@ async function enhanceModal(){
           }
         }
       };
-      await refresh();deckSel.addEventListener('change',refresh);btn.parentNode.insertBefore(holder,btn);
+      await refresh();deckSel.addEventListener('change',refresh);const anchor=btn.closest('.editor-footer')||btn;anchor.parentNode.insertBefore(holder,anchor);holder.classList.add('editor-span');
       btn.addEventListener('click',()=>{
         const blockId=$('#labTestingBlock',body)?.value||'';
         const tags=($('#labMatchTags',body)?.value||'').split(',').map(x=>x.trim()).filter(Boolean);
@@ -1075,7 +1099,7 @@ async function enhanceOnlineLogModal(){
     holder.innerHTML=`<label><span class='label-title'>Testing block <span class='muted'>(optional)</span></span><select id='labOnlineBlock'><option value=''>None</option>${blocks.map(b=>`<option value='${b.id}'>${esc(b.name)}</option>`).join('')}</select></label>
       <div class='small muted' style='margin:8px 0 5px'>Review tags</div><div class='lab-tag-grid' id='labOnlineTags'>${tags.map(t=>`<label><input type='checkbox' value='${esc(t)}'>${esc(t)}</label>`).join('')}</div>`;
   };
-  await refresh();deckSel.addEventListener('change',refresh);btn.parentNode.insertBefore(holder,btn);
+  await refresh();deckSel.addEventListener('change',refresh);const anchor=btn.closest('.editor-footer')||btn;anchor.parentNode.insertBefore(holder,anchor);holder.classList.add('editor-span');
   btn.addEventListener('click',async()=>{
     const blockId=$('#labOnlineBlock',body)?.value||'',tags=$$('#labOnlineTags input:checked',body).map(x=>x.value);
     if(blockId)await setMeta('pending_online_block',{testing_block_id:blockId,at:Date.now()});

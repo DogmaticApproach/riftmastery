@@ -9,10 +9,11 @@
   <meta name="apple-mobile-web-app-title" content="RiftMastery" />
   <title>RiftMastery</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./icon.svg?v=0.7.1" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="./icon.svg?v=0.7.1" />
-  <link rel="stylesheet" href="./styles.css?v=0.7.1" />
-  <link rel="stylesheet" href="./lab.css?v=0.7.1" />
+  <link rel="icon" href="./icon.svg?v=0.8.0" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icon.svg?v=0.8.0" />
+  <link rel="stylesheet" href="./styles.css?v=0.8.0" />
+  <link rel="stylesheet" href="./lab.css?v=0.8.0" />
+  <link rel="stylesheet" href="./ui.css?v=0.8.0" />
 </head>
 <body>
   <div id="app" class="app-shell">
@@ -21,7 +22,7 @@
         <div class="eyebrow">RIFTMASTERY</div>
         <h1 id="screenTitle">Home</h1>
       </div>
-      <div id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
     </header>
 
     <main id="main" class="main-content">
@@ -30,16 +31,22 @@
       <section id="screen-decks" class="screen" data-screen="decks"></section>
       <section id="screen-history" class="screen" data-screen="history"></section>
       <section id="screen-stats" class="screen" data-screen="stats"></section>
+      <section id="screen-lab" class="screen" data-screen="lab"></section>
+      <section id="screen-studio" class="screen" data-screen="studio"></section>
+      <section id="screen-settings" class="screen" data-screen="settings"></section>
       <section id="screen-more" class="screen" data-screen="more"></section>
     </main>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
-      <button class="nav-item active" data-nav="home" aria-label="Training Hall"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10 8.5-7 8.5 7v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/></svg></span><small>Home</small></button>
+      <button class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10 8.5-7 8.5 7v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/></svg></span><small>Home</small></button>
       <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg></span><small>Train</small></button>
       <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7z"/><path d="M4 6v15h13M10 7h7M10 11h7M10 15h5"/></svg></span><small>Decks</small></button>
       <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><small>Review</small></button>
       <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9M10 20V5h4v15M16 20V8h4v12"/></svg></span><small>Progress</small></button>
-      <button class="nav-item" data-nav="more" aria-label="Journal and Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-6 10q-1 2 2 2h12q3 0 2-2L14 9V3M8 14h8"/></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4l12 16h-4zM20 4 4 20"/></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/></svg></span><small>Settings</small></button>
     </nav>
   </div>
 
@@ -68,8 +75,8 @@
       }
     }
   </script>
-  <script type="module" src="./app.js?v=0.7.1"></script>
-  <script type="module" src="./lab.js?v=0.7.1"></script>
-  <script type="module" src="./sync.js?v=0.7.1"></script>
+  <script type="module" src="./app.js?v=0.8.0"></script>
+  <script type="module" src="./lab.js?v=0.8.0"></script>
+  <script type="module" src="./sync.js?v=0.8.0"></script>
 </body>
 </html>
