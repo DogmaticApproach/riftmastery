@@ -1,6 +1,7 @@
-import { configureCultivation, mountCultivation } from './cultivation.js?v=0.12.0';
-import { prepareEditor } from './ui.js?v=0.12.0';
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.12.0';
+import {mountHomePractice} from './practice.js?v=0.13.0';
+import { configureCultivation, mountCultivation } from './cultivation.js?v=0.13.0';
+import { prepareEditor } from './ui.js?v=0.13.0';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.13.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -299,15 +300,8 @@ async function renderHome(){
   const focusTitle=activeBlock?.name||'Compare before committing';
   const focusDescription=activeBlock?.hypothesis||'Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.';
   el.innerHTML=`
-    <section class="hero portrait-hero">
-      <div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high" /></div>
-      <div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · RIFTBOUND</div><h2>${active?'Your session is underway':'Build the edge.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Train with intent. Review with honesty. Carry one lesson into the next game.'}</p></div>
-      ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}${active.planned_bo3_count?` • Committed: ${active.planned_bo3_count} BO3s`:''}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
-      <div class="primary-actions">
-        <button class="btn primary" id="homePaper">${active?.mode==='paper'?'Resume Paper Session':'Start Paper Session'}</button>
-        <button class="btn" id="homeOnline">${active?.mode==='online'?'Resume Online Session':'Log Online Match'}</button>
-      </div>
-    </section>
+    <div id="dailyPractice"></div>
+    <div class="courtyard-play"><span>${active?'SESSION IN PROGRESS':'PLAYING TODAY?'}</span><div><button class="btn small ghost" id="homePaper">${active?.mode==='paper'?'Resume Paper Session':'Paper session'}</button><button class="btn small ghost" id="homeOnline">${active?.mode==='online'?'Resume Online Session':'Online match'}</button></div></div>
     ${homePrefs.season?`<div class="home-season-label">${esc(homePrefs.season)} <span>FIELD JOURNAL</span></div>`:''}
     <div id="cultHome" class="cultivation"></div>
     <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
@@ -318,7 +312,7 @@ async function renderHome(){
       <div class="card stat-card"><div class="k">Matches</div><div class="v">${s.matches}</div></div>
       <div class="card stat-card"><div class="k">Games</div><div class="v">${s.games}</div></div>
     </div>
-    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus">
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus" ${activeBlock?'':'hidden'}>
       <div class="focus-topline"><div class="focus-kicker">${activeBlock?'Active testing block':'Today’s development focus'}</div><span class="focus-mark" aria-hidden="true">✦</span></div>
       <h3>${esc(focusTitle)}</h3>
       <p>${esc(focusDescription)}</p>
@@ -326,7 +320,7 @@ async function renderHome(){
       <button class="focus-link" id="homeLab">${activeBlock?'Review your training block':'Open the Development Lab'} <span aria-hidden="true">↗</span></button>
     </section>
     <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
-      <div class="weekly-head"><div><div class="focus-kicker">${esc(weeklyPhaseTemplates[weeklyChecklist.phase]?.label||'CUSTOM WEEK')} · WEEK OF ${new Date(weeklyChecklist.week_start+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'})}</div><h3 id="weeklyTitle">Weekly training checklist</h3><p>${esc(weeklyChecklist.focus||'Set a focus for this week, then shape the tasks around it.')}</p></div><div class="weekly-count">${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}<span> / ${weeklyChecklist.items.filter(i=>!i.optional).length}</span></div></div>
+      <div class="weekly-head"><div><div class="focus-kicker">${esc(weeklyPhaseTemplates[weeklyChecklist.phase]?.label||'CUSTOM WEEK')} · WEEK OF ${new Date(weeklyChecklist.week_start+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'})}</div><h3 id="weeklyTitle">This week, at your pace.</h3><p>${esc(weeklyChecklist.focus||'Set a focus for this week, then shape the tasks around it.')}</p></div><div class="weekly-count">${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}<span> / ${weeklyChecklist.items.filter(i=>!i.optional).length}</span></div></div>
       <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="${weeklyChecklist.items.filter(i=>!i.optional).length}" aria-valuenow="${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}"><span style="width:${weeklyChecklist.items.filter(i=>!i.optional).length?Math.round(weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length/weeklyChecklist.items.filter(i=>!i.optional).length*100):0}%"></span></div>
       <div class="weekly-items">${weeklyChecklist.items.map(item=>`<button class="weekly-item ${item.done?'is-done':''}" data-weekly-item="${esc(item.id)}" aria-pressed="${Boolean(item.done)}"><span class="weekly-check" aria-hidden="true">${item.done?'✓':''}</span><span class="weekly-copy"><strong>${esc(item.title)}${item.optional?` <em>Optional</em>`:''}</strong><small>${esc(item.detail)}</small></span></button>`).join('')}</div>
       <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
@@ -337,7 +331,7 @@ async function renderHome(){
       const result=m.result==='me'?'W':m.result==='opponent'?'L':'—';
       return `<div class="list-item"><div><div class="title">${esc(d?.name||'Unknown deck')} <span class="muted">vs</span> ${esc(l?.name||'Unknown')}</div><div class="meta">${titleCase(m.format)} • ${titleCase(m.mode||'paper')} • ${fmtDate(m.started_at)}</div></div><div class="right"><span class="chip ${result==='W'?'good':result==='L'?'warn':''}">${result}</span></div></div>`;
     }).join(''):`<div class="empty">No matches yet. Create a deck, then start your first session.</div>`}</div></div>`;
-  const hidden=new Set(Object.entries(homePrefs.widgets||{}).filter(([,shown])=>!shown).map(([id])=>id));$$('.home-widget[data-home-widget], [data-home-widget]',el).forEach(node=>node.hidden=hidden.has(node.dataset.homeWidget));
+  const hidden=new Set(Object.entries(homePrefs.widgets||{}).filter(([,shown])=>!shown).map(([id])=>id));$$('.home-widget[data-home-widget], [data-home-widget]',el).forEach(node=>node.hidden=hidden.has(node.dataset.homeWidget)||(node.dataset.homeWidget==='focus'&&!activeBlock));
   $('#homePaper').onclick=()=>{ if(active?.mode==='paper') setScreen('play'); else openStartSession('paper'); };
   $('#homeOnline').onclick=()=>{ if(active?.mode==='online') setScreen('play'); else openOnlineChoice(); };
   $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="lab"]')?.click();
@@ -346,6 +340,9 @@ async function renderHome(){
   $('#weeklyEdit').onclick=()=>openWeeklyEditor(weeklyChecklist);
   $('#weeklyHistory').onclick=openWeeklyHistory;
   $('#goHistory').onclick=()=>setScreen('history');
+  const optional=$$('.weekly-item',el).filter(x=>x.querySelector('em'));if(optional.length){const details=document.createElement('details');details.className='weekly-optional-drawer';details.innerHTML='<summary>Optional opportunities</summary>';optional.forEach(x=>details.append(x));$('.weekly-items',el).append(details);}
+  const overview=document.createElement('details');overview.className='courtyard-overview';overview.innerHTML='<summary>Match record & recent activity</summary>';overview.append($('.home-metrics',el),$('[data-home-widget=recent]',el));el.append(overview);
+  await mountHomePractice($('#dailyPractice'));
   await mountCultivation($('#cultHome'),'home');
 }
 
@@ -714,9 +711,9 @@ async function renderPlay(){
       </section>
       <div class="practice-section-head"><div><span class="eyebrow">SESSION SETUP</span><h3>How do you want to train?</h3></div><span class="practice-note">No notes during play</span></div>
       <div class="practice-options">
-        <button class="practice-option paper-option" id="playStartPaper"><span class="practice-index">01</span><span class="practice-icon" aria-hidden="true"><img src="./assets/jade-seal.svg?v=0.12.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">PAPER PLAY</span><strong>Start a paper session</strong><small>Track rounds, games, and score in one place.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
-        <button class="practice-option online-option" id="playStartOnline"><span class="practice-index">02</span><span class="practice-icon" aria-hidden="true"><img src="./assets/cultivation-array.svg?v=0.12.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">ONLINE PLAY</span><strong>Start a timed session</strong><small>Keep the timer running while you play online.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
-        <button class="practice-option log-option" id="playLogOnline"><span class="practice-index">03</span><span class="practice-icon" aria-hidden="true"><img src="./assets/bamboo-scroll.svg?v=0.12.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">AFTER THE GAME</span><strong>Log a finished match</strong><small>Add the result when you’re ready to review.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option paper-option" id="playStartPaper"><span class="practice-index">01</span><span class="practice-icon" aria-hidden="true"><img src="./assets/jade-seal.svg?v=0.13.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">PAPER PLAY</span><strong>Start a paper session</strong><small>Track rounds, games, and score in one place.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option online-option" id="playStartOnline"><span class="practice-index">02</span><span class="practice-icon" aria-hidden="true"><img src="./assets/cultivation-array.svg?v=0.13.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">ONLINE PLAY</span><strong>Start a timed session</strong><small>Keep the timer running while you play online.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option log-option" id="playLogOnline"><span class="practice-index">03</span><span class="practice-icon" aria-hidden="true"><img src="./assets/bamboo-scroll.svg?v=0.13.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">AFTER THE GAME</span><strong>Log a finished match</strong><small>Add the result when you’re ready to review.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
       </div>`;
     $('#playStartPaper').onclick=()=>openStartSession('paper'); $('#playStartOnline').onclick=()=>openStartSession('online'); $('#playLogOnline').onclick=()=>openOnlineMatchModal(null); return;
   }
@@ -1134,7 +1131,7 @@ async function renderStats(){
 function sourceBars(obj,total){ return `<div class="card source-bars">${['conquer','hold','effect'].map(k=>{const v=obj[k]||0,p=total?v/total*100:0;return `<div class="source-row"><span>${titleCase(k)}</span><div class="progress"><span style="width:${p}%"></span></div><strong>${total?`${p.toFixed(0)}%`:'—'}</strong></div>`}).join('')}</div>`; }
 
 async function renderMore(){
-  const el=$('#screen-more'); const settings=$('#screen-settings'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).filter(n=>!['cultivation_focus','cultivation_assessment'].includes(n.record_type)).sort((a,b)=>ms(b.timestamp||b.created_at)-ms(a.timestamp||a.created_at)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>(n.text||'').toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
+  const el=$('#screen-more'); const settings=$('#screen-settings'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).filter(n=>!['cultivation_focus','cultivation_assessment','cultivation_practice'].includes(n.record_type)).sort((a,b)=>ms(b.timestamp||b.created_at)-ms(a.timestamp||a.created_at)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>(n.text||'').toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
   const searchFocused=document.activeElement?.id==='noteSearch',searchCursor=$('#noteSearch')?.selectionStart;
   settings.replaceChildren();
   el.innerHTML=`
@@ -1150,7 +1147,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.12.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.13.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
   $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};

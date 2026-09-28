@@ -1,10 +1,10 @@
-import { mountCultivation } from './cultivation.js?v=0.12.0';
-import { prepareEditor } from './ui.js?v=0.12.0';
-export const RIFTMASTERY_LAB_VERSION = '0.12.0';
+import { mountCultivation } from './cultivation.js?v=0.13.0';
+import { prepareEditor } from './ui.js?v=0.13.0';
+export const RIFTMASTERY_LAB_VERSION = '0.13.0';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.12.0';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.13.0';
 
-const VERSION='0.12.0';
+const VERSION='0.13.0';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));

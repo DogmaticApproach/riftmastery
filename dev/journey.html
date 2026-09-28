@@ -1,0 +1,368 @@
+<!doctype html><html lang="en"><head><base href="../">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0b0e0d">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RiftMastery">
+  <title>RiftMastery</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./icon.svg?v=0.13.0" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./icon.svg?v=0.13.0">
+  <link rel="stylesheet" href="./styles.css?v=0.13.0">
+  <link rel="stylesheet" href="./lab.css?v=0.13.0">
+  <link rel="stylesheet" href="./ui.css?v=0.13.0">
+  <link rel="stylesheet" href="./brand.css?v=0.13.0">
+  <link rel="stylesheet" href="./cultivation.css?v=0.13.0">
+<style>.preview-controls{position:relative;z-index:200;padding:10px 24px;background:#d1b77b;color:#131a14;display:flex;align-items:center;gap:20px;font:12px system-ui}.preview-controls select{width:160px;padding:6px;font:12px system-ui}.preview-controls~#previewContents{padding-top:4px}</style></head><body><div class="preview-controls"><strong>FICTIONAL DATA · STATIC LAYOUT PREVIEW</strong><label>State <select id="previewState"><option>Ready</option><option>Paused</option><option>Receipt</option><option>Completed</option><option>Transfer</option></select></label></div><div id="previewContents"></div><template data-preview="Ready">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Home</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Fictional layout preview</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <section id="screen-home" class="screen active" data-screen="home">
+    <div id="dailyPractice"><section class="hero portrait-hero daily-hero"><div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high"></div><div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · YOUR NEXT EDGE</div><div class="daily-skill">Open-board judgment <button type="button" class="link-btn" id="dailyFocus">Change</button></div><h2>Compare before you commit.</h2><p>Choose one unfamiliar board from a replay or a practice setup. Stop before the next action.</p><div class="daily-meta"><span>10–20 MINUTES</span><span>ONE FOCUSED PRACTICE</span></div></div><div class="primary-actions"><button type="button" class="btn primary" id="dailyBegin">Begin practice <span aria-hidden="true">↗</span></button><button type="button" class="link-btn" id="dailyDebrief">I already practiced</button></div></section><div class="daily-path" aria-label="Your practice loop"><span class="current"><b>01</b> Practice</span><i aria-hidden="true"></i><span><b>02</b> Capture one lesson</span><i aria-hidden="true"></i><span><b>03</b> Test it again</span></div></div>
+    <div class="courtyard-play"><span>PLAYING TODAY?</span><div><button class="btn small ghost" id="homePaper">Paper session</button><button class="btn small ghost" id="homeOnline">Online match</button></div></div>
+    
+    <div id="cultHome" class="cultivation"><section class="courtyard-rank" aria-label="Cultivation progression"><div class="courtyard-rank-crest"><svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 4 88 26v48L50 96 12 74V26Z" /><path d="M50 14 79 31v38L50 86 21 69V31Z" /><path d="M34 67V40l16-13 16 13v27M29 67h42M42 60V44l8-7 8 7v16M50 19v8M50 67v12" /><path d="m47 53 3-5 3 5-3 5Z" /></svg></div><div><span class="eyebrow">YOUR CULTIVATION</span><strong>Outer Disciple</strong></div><div class="courtyard-rank-meter"><div class="cult-bar" role="progressbar" aria-label="Cultivation title progress" aria-valuemin="0" aria-valuemax="150" aria-valuenow="0"><span style="width:0%"></span></div><span>0 XP · 150 to Inner Disciple</span></div><button class="link-btn" data-cult="progress">See what changed ↗</button></section></div>
+    <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+
+    
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus" hidden>
+      <div class="focus-topline"><div class="focus-kicker">Today’s development focus</div><span class="focus-mark" aria-hidden="true">✦</span></div>
+      <h3>Compare before committing</h3>
+      <p>Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.</p>
+      <div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>
+      <button class="focus-link" id="homeLab">Open the Development Lab <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
+      <div class="weekly-head"><div><div class="focus-kicker">Preview season · WEEK OF Sep 28</div><h3 id="weeklyTitle">This week, at your pace.</h3><p>Read the whole board, compare two lines, and update the opponent’s range.</p></div><div class="weekly-count">0<span> / 5</span></div></div>
+      <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"><span style="width:0%"></span></div>
+      <div class="weekly-items"><button class="weekly-item" data-weekly-item="preview-question" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Pick one question the previews raise</strong><small>What are competitive players trying to figure out right now?</small></span></button><button class="weekly-item" data-weekly-item="preview-test" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Test one new-set idea</strong><small>Theorycraft or proxy a card, deck, or matchup idea; record what you observed.</small></span></button><button class="weekly-item" data-weekly-item="board-drill" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Run one open-board decision drill</strong><small>Name both roles, compare two lines, and say what changes your read.</small></span></button><button class="weekly-item" data-weekly-item="vod-1" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a high-level VOD</strong><small>Follow one concept that connects to your focus.</small></span></button><button class="weekly-item" data-weekly-item="vod-2" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a second high-level VOD</strong><small>Pause before a key decision and compare your line.</small></span></button><details class="weekly-optional-drawer"><summary>Optional opportunities</summary><button class="weekly-item" data-weekly-item="preview-share" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Share a useful, evidence-backed finding <em>Optional</em></strong><small>Optional. A relevant reply counts; skip it when you have nothing defensible to add.</small></span></button><button class="weekly-item" data-weekly-item="preview-ranked" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Play ranked for a specific question <em>Optional</em></strong><small>Optional. Keep ladder reps purposeful during previews.</small></span></button><button class="weekly-item" data-weekly-item="preview-local" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Get local tournament reps <em>Optional</em></strong><small>Optional. Mark this when an event is available.</small></span></button></details></div>
+      <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
+    </section>
+    </div><details class="courtyard-overview"><summary>Match record &amp; recent activity</summary><div class="home-metrics home-widget" data-home-widget="stats">
+      <div class="card stat-card"><div class="k">Active development</div><div class="v">0h 00m</div></div>
+      <div class="card stat-card"><div class="k">Formal record</div><div class="v">0–0</div></div>
+      <div class="card stat-card"><div class="k">Matches</div><div class="v">0</div></div>
+      <div class="card stat-card"><div class="k">Games</div><div class="v">0</div></div>
+    </div><div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    <div class="list"><div class="empty">No matches yet. Create a deck, then start your first session.</div></div></div></details></section>
+      
+      
+      
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button aria-current="page" class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  
+  
+  
+  
+</template><template data-preview="Paused">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Home</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Fictional layout preview</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <section id="screen-home" class="screen active" data-screen="home">
+    <div id="dailyPractice"><section class="hero portrait-hero daily-hero"><div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high"></div><div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · YOUR NEXT EDGE</div><div class="daily-skill">Open-board judgment <button type="button" class="link-btn" id="dailyFocus">Change</button></div><h2>Compare before you commit.</h2><p>Your practice is saved. Pick up where you left off, then capture one useful observation.</p><div class="daily-meta"><span>10 MINUTES</span><span>ONE FOCUSED PRACTICE</span></div></div><div class="primary-actions"><button type="button" class="btn primary" id="dailyBegin">Resume practice <span aria-hidden="true">↗</span></button><button type="button" class="link-btn" id="dailyDebrief">I already practiced</button></div></section><div class="daily-path" aria-label="Your practice loop"><span class="complete"><b>01</b> Practice</span><i aria-hidden="true"></i><span class="current"><b>02</b> Capture one lesson</span><i aria-hidden="true"></i><span><b>03</b> Test it again</span></div></div>
+    <div class="courtyard-play"><span>PLAYING TODAY?</span><div><button class="btn small ghost" id="homePaper">Paper session</button><button class="btn small ghost" id="homeOnline">Online match</button></div></div>
+    
+    <div id="cultHome" class="cultivation"><section class="courtyard-rank" aria-label="Cultivation progression"><div class="courtyard-rank-crest"><svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 4 88 26v48L50 96 12 74V26Z" /><path d="M50 14 79 31v38L50 86 21 69V31Z" /><path d="M34 67V40l16-13 16 13v27M29 67h42M42 60V44l8-7 8 7v16M50 19v8M50 67v12" /><path d="m47 53 3-5 3 5-3 5Z" /></svg></div><div><span class="eyebrow">YOUR CULTIVATION</span><strong>Outer Disciple</strong></div><div class="courtyard-rank-meter"><div class="cult-bar" role="progressbar" aria-label="Cultivation title progress" aria-valuemin="0" aria-valuemax="150" aria-valuenow="0"><span style="width:0%"></span></div><span>0 XP · 150 to Inner Disciple</span></div><button class="link-btn" data-cult="progress">See what changed ↗</button></section></div>
+    <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+
+    
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus" hidden>
+      <div class="focus-topline"><div class="focus-kicker">Today’s development focus</div><span class="focus-mark" aria-hidden="true">✦</span></div>
+      <h3>Compare before committing</h3>
+      <p>Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.</p>
+      <div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>
+      <button class="focus-link" id="homeLab">Open the Development Lab <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
+      <div class="weekly-head"><div><div class="focus-kicker">Preview season · WEEK OF Sep 28</div><h3 id="weeklyTitle">This week, at your pace.</h3><p>Read the whole board, compare two lines, and update the opponent’s range.</p></div><div class="weekly-count">0<span> / 5</span></div></div>
+      <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"><span style="width:0%"></span></div>
+      <div class="weekly-items"><button class="weekly-item" data-weekly-item="preview-question" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Pick one question the previews raise</strong><small>What are competitive players trying to figure out right now?</small></span></button><button class="weekly-item" data-weekly-item="preview-test" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Test one new-set idea</strong><small>Theorycraft or proxy a card, deck, or matchup idea; record what you observed.</small></span></button><button class="weekly-item" data-weekly-item="board-drill" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Run one open-board decision drill</strong><small>Name both roles, compare two lines, and say what changes your read.</small></span></button><button class="weekly-item" data-weekly-item="vod-1" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a high-level VOD</strong><small>Follow one concept that connects to your focus.</small></span></button><button class="weekly-item" data-weekly-item="vod-2" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a second high-level VOD</strong><small>Pause before a key decision and compare your line.</small></span></button><details class="weekly-optional-drawer"><summary>Optional opportunities</summary><button class="weekly-item" data-weekly-item="preview-share" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Share a useful, evidence-backed finding <em>Optional</em></strong><small>Optional. A relevant reply counts; skip it when you have nothing defensible to add.</small></span></button><button class="weekly-item" data-weekly-item="preview-ranked" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Play ranked for a specific question <em>Optional</em></strong><small>Optional. Keep ladder reps purposeful during previews.</small></span></button><button class="weekly-item" data-weekly-item="preview-local" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Get local tournament reps <em>Optional</em></strong><small>Optional. Mark this when an event is available.</small></span></button></details></div>
+      <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
+    </section>
+    </div><details class="courtyard-overview"><summary>Match record &amp; recent activity</summary><div class="home-metrics home-widget" data-home-widget="stats">
+      <div class="card stat-card"><div class="k">Active development</div><div class="v">0h 00m</div></div>
+      <div class="card stat-card"><div class="k">Formal record</div><div class="v">0–0</div></div>
+      <div class="card stat-card"><div class="k">Matches</div><div class="v">0</div></div>
+      <div class="card stat-card"><div class="k">Games</div><div class="v">0</div></div>
+    </div><div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    <div class="list"><div class="empty">No matches yet. Create a deck, then start your first session.</div></div></div></details></section>
+      
+      
+      
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button aria-current="page" class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  
+  
+  
+  
+</template><template data-preview="Receipt">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Home</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Fictional layout preview</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <section id="screen-home" class="screen active" data-screen="home">
+    <div id="dailyPractice"><section class="hero portrait-hero daily-hero"><div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high"></div><div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · YOUR NEXT EDGE</div><div class="daily-skill">Open-board judgment <button type="button" class="link-btn" id="dailyFocus">Change</button></div><h2>Today’s work is banked.</h2><p>One deliberate rep is enough for today. Let the lesson settle; return to it in a different position.</p><div class="daily-lesson"><span>YOUR LATEST OBSERVATION</span><p>I committed before comparing the line that preserved interaction.</p></div></div><div class="primary-actions"><button type="button" class="btn primary" id="dailyBegin">See what changed <span aria-hidden="true">↗</span></button><button type="button" class="link-btn" id="dailyDebrief">Another practice</button></div></section><div class="daily-path" aria-label="Your practice loop"><span class="complete"><b>01</b> Practice</span><i aria-hidden="true"></i><span class="complete"><b>02</b> Capture one lesson</span><i aria-hidden="true"></i><span><b>03</b> Test it again</span></div></div>
+    <div class="courtyard-play"><span>PLAYING TODAY?</span><div><button class="btn small ghost" id="homePaper">Paper session</button><button class="btn small ghost" id="homeOnline">Online match</button></div></div>
+    
+    <div id="cultHome" class="cultivation"><section class="courtyard-rank" aria-label="Cultivation progression"><div class="courtyard-rank-crest"><svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 4 88 26v48L50 96 12 74V26Z" /><path d="M50 14 79 31v38L50 86 21 69V31Z" /><path d="M34 67V40l16-13 16 13v27M29 67h42M42 60V44l8-7 8 7v16M50 19v8M50 67v12" /><path d="m47 53 3-5 3 5-3 5Z" /></svg></div><div><span class="eyebrow">YOUR CULTIVATION</span><strong>Outer Disciple</strong></div><div class="courtyard-rank-meter"><div class="cult-bar" role="progressbar" aria-label="Cultivation title progress" aria-valuemin="0" aria-valuemax="150" aria-valuenow="30"><span style="width:20%"></span></div><span>30 XP · 120 to Inner Disciple</span></div><button class="link-btn" data-cult="progress">See what changed ↗</button></section></div>
+    <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+
+    
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus" hidden>
+      <div class="focus-topline"><div class="focus-kicker">Today’s development focus</div><span class="focus-mark" aria-hidden="true">✦</span></div>
+      <h3>Compare before committing</h3>
+      <p>Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.</p>
+      <div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>
+      <button class="focus-link" id="homeLab">Open the Development Lab <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
+      <div class="weekly-head"><div><div class="focus-kicker">Preview season · WEEK OF Sep 28</div><h3 id="weeklyTitle">This week, at your pace.</h3><p>Read the whole board, compare two lines, and update the opponent’s range.</p></div><div class="weekly-count">1<span> / 5</span></div></div>
+      <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1"><span style="width:20%"></span></div>
+      <div class="weekly-items"><button class="weekly-item" data-weekly-item="preview-question" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Pick one question the previews raise</strong><small>What are competitive players trying to figure out right now?</small></span></button><button class="weekly-item" data-weekly-item="preview-test" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Test one new-set idea</strong><small>Theorycraft or proxy a card, deck, or matchup idea; record what you observed.</small></span></button><button class="weekly-item is-done" data-weekly-item="board-drill" aria-pressed="true"><span class="weekly-check" aria-hidden="true">✓</span><span class="weekly-copy"><strong>Run one open-board decision drill</strong><small>Name both roles, compare two lines, and say what changes your read.</small></span></button><button class="weekly-item" data-weekly-item="vod-1" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a high-level VOD</strong><small>Follow one concept that connects to your focus.</small></span></button><button class="weekly-item" data-weekly-item="vod-2" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a second high-level VOD</strong><small>Pause before a key decision and compare your line.</small></span></button><details class="weekly-optional-drawer"><summary>Optional opportunities</summary><button class="weekly-item" data-weekly-item="preview-share" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Share a useful, evidence-backed finding <em>Optional</em></strong><small>Optional. A relevant reply counts; skip it when you have nothing defensible to add.</small></span></button><button class="weekly-item" data-weekly-item="preview-ranked" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Play ranked for a specific question <em>Optional</em></strong><small>Optional. Keep ladder reps purposeful during previews.</small></span></button><button class="weekly-item" data-weekly-item="preview-local" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Get local tournament reps <em>Optional</em></strong><small>Optional. Mark this when an event is available.</small></span></button></details></div>
+      <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
+    </section>
+    </div><details class="courtyard-overview"><summary>Match record &amp; recent activity</summary><div class="home-metrics home-widget" data-home-widget="stats">
+      <div class="card stat-card"><div class="k">Active development</div><div class="v">0h 00m</div></div>
+      <div class="card stat-card"><div class="k">Formal record</div><div class="v">0–0</div></div>
+      <div class="card stat-card"><div class="k">Matches</div><div class="v">0</div></div>
+      <div class="card stat-card"><div class="k">Games</div><div class="v">0</div></div>
+    </div><div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    <div class="list"><div class="empty">No matches yet. Create a deck, then start your first session.</div></div></div></details></section>
+      
+      
+      
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button aria-current="page" class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  <dialog open id="modal" class="modal">
+    <form method="dialog" class="modal-card" id="modalCard">
+      <div class="modal-head">
+        <h2 id="modalTitle">A lesson worth carrying forward</h2>
+        <button class="icon-btn" value="cancel" aria-label="Close">×</button>
+      </div>
+      <div id="modalBody"><div class="practice-receipt"><span class="practice-receipt-seal" aria-hidden="true">✧</span><span class="eyebrow">+30 XP · EVIDENCE SAVED</span><h3>A useful weakness found.</h3><blockquote>I committed before comparing the line that preserved interaction.</blockquote><div class="practice-next"><span>NEXT TIME</span><p>Repeat the two-line comparison in a different open-board position.</p></div><p class="small muted">Your next practice can return to this lesson on a later day. You can stop here.</p><button type="button" class="btn primary full" id="practiceReturn">Back to my courtyard</button><button type="button" class="link-btn" id="practiceEvidence">See my evidence</button></div></div>
+    </form>
+  </dialog>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  
+  
+  
+  
+</template><template data-preview="Completed">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Home</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Fictional layout preview</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <section id="screen-home" class="screen active" data-screen="home">
+    <div id="dailyPractice"><section class="hero portrait-hero daily-hero"><div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high"></div><div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · YOUR NEXT EDGE</div><div class="daily-skill">Open-board judgment <button type="button" class="link-btn" id="dailyFocus">Change</button></div><h2>Today’s work is banked.</h2><p>One deliberate rep is enough for today. Let the lesson settle; return to it in a different position.</p><div class="daily-lesson"><span>YOUR LATEST OBSERVATION</span><p>I committed before comparing the line that preserved interaction.</p></div></div><div class="primary-actions"><button type="button" class="btn primary" id="dailyBegin">See what changed <span aria-hidden="true">↗</span></button><button type="button" class="link-btn" id="dailyDebrief">Another practice</button></div></section><div class="daily-path" aria-label="Your practice loop"><span class="complete"><b>01</b> Practice</span><i aria-hidden="true"></i><span class="complete"><b>02</b> Capture one lesson</span><i aria-hidden="true"></i><span><b>03</b> Test it again</span></div></div>
+    <div class="courtyard-play"><span>PLAYING TODAY?</span><div><button class="btn small ghost" id="homePaper">Paper session</button><button class="btn small ghost" id="homeOnline">Online match</button></div></div>
+    
+    <div id="cultHome" class="cultivation"><section class="courtyard-rank" aria-label="Cultivation progression"><div class="courtyard-rank-crest"><svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 4 88 26v48L50 96 12 74V26Z" /><path d="M50 14 79 31v38L50 86 21 69V31Z" /><path d="M34 67V40l16-13 16 13v27M29 67h42M42 60V44l8-7 8 7v16M50 19v8M50 67v12" /><path d="m47 53 3-5 3 5-3 5Z" /></svg></div><div><span class="eyebrow">YOUR CULTIVATION</span><strong>Outer Disciple</strong></div><div class="courtyard-rank-meter"><div class="cult-bar" role="progressbar" aria-label="Cultivation title progress" aria-valuemin="0" aria-valuemax="150" aria-valuenow="30"><span style="width:20%"></span></div><span>30 XP · 120 to Inner Disciple</span></div><button class="link-btn" data-cult="progress">See what changed ↗</button></section></div>
+    <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+
+    
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus" hidden>
+      <div class="focus-topline"><div class="focus-kicker">Today’s development focus</div><span class="focus-mark" aria-hidden="true">✦</span></div>
+      <h3>Compare before committing</h3>
+      <p>Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.</p>
+      <div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>
+      <button class="focus-link" id="homeLab">Open the Development Lab <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
+      <div class="weekly-head"><div><div class="focus-kicker">Preview season · WEEK OF Sep 28</div><h3 id="weeklyTitle">This week, at your pace.</h3><p>Read the whole board, compare two lines, and update the opponent’s range.</p></div><div class="weekly-count">1<span> / 5</span></div></div>
+      <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="5" aria-valuenow="1"><span style="width:20%"></span></div>
+      <div class="weekly-items"><button class="weekly-item" data-weekly-item="preview-question" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Pick one question the previews raise</strong><small>What are competitive players trying to figure out right now?</small></span></button><button class="weekly-item" data-weekly-item="preview-test" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Test one new-set idea</strong><small>Theorycraft or proxy a card, deck, or matchup idea; record what you observed.</small></span></button><button class="weekly-item is-done" data-weekly-item="board-drill" aria-pressed="true"><span class="weekly-check" aria-hidden="true">✓</span><span class="weekly-copy"><strong>Run one open-board decision drill</strong><small>Name both roles, compare two lines, and say what changes your read.</small></span></button><button class="weekly-item" data-weekly-item="vod-1" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a high-level VOD</strong><small>Follow one concept that connects to your focus.</small></span></button><button class="weekly-item" data-weekly-item="vod-2" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a second high-level VOD</strong><small>Pause before a key decision and compare your line.</small></span></button><details class="weekly-optional-drawer"><summary>Optional opportunities</summary><button class="weekly-item" data-weekly-item="preview-share" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Share a useful, evidence-backed finding <em>Optional</em></strong><small>Optional. A relevant reply counts; skip it when you have nothing defensible to add.</small></span></button><button class="weekly-item" data-weekly-item="preview-ranked" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Play ranked for a specific question <em>Optional</em></strong><small>Optional. Keep ladder reps purposeful during previews.</small></span></button><button class="weekly-item" data-weekly-item="preview-local" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Get local tournament reps <em>Optional</em></strong><small>Optional. Mark this when an event is available.</small></span></button></details></div>
+      <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
+    </section>
+    </div><details class="courtyard-overview"><summary>Match record &amp; recent activity</summary><div class="home-metrics home-widget" data-home-widget="stats">
+      <div class="card stat-card"><div class="k">Active development</div><div class="v">0h 00m</div></div>
+      <div class="card stat-card"><div class="k">Formal record</div><div class="v">0–0</div></div>
+      <div class="card stat-card"><div class="k">Matches</div><div class="v">0</div></div>
+      <div class="card stat-card"><div class="k">Games</div><div class="v">0</div></div>
+    </div><div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    <div class="list"><div class="empty">No matches yet. Create a deck, then start your first session.</div></div></div></details></section>
+      
+      
+      
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button aria-current="page" class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  
+  
+  
+  
+</template><template data-preview="Transfer">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Progress</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Fictional layout preview</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      <section id="screen-stats" class="screen active" data-screen="stats">
+    <div class="section-head stats-head"><div><div class="eyebrow">THE CULTIVATION PATH</div><h2>Progress</h2><div class="sub">Turn deliberate practice into a visible journey. Carry each lesson into the next test.</div></div></div>
+    <div id="cultProgress" class="cultivation"><section class="cult-realm" aria-label="Cultivation progression"><div class="cult-crest"><svg viewBox="0 0 100 100" fill="none" aria-hidden="true"><path d="M50 4 88 26v48L50 96 12 74V26Z" /><path d="M50 14 79 31v38L50 86 21 69V31Z" /><path d="M34 67V40l16-13 16 13v27M29 67h42M42 60V44l8-7 8 7v16M50 19v8M50 67v12" /><path d="m47 53 3-5 3 5-3 5Z" /></svg><span>01</span></div><div class="cult-realm-copy"><div class="eyebrow">YOUR CULTIVATION · 80 XP</div><h2>Outer Disciple</h2><p>70 XP to Inner Disciple</p><div class="cult-bar" role="progressbar" aria-label="Cultivation title progress" aria-valuemin="0" aria-valuemax="150" aria-valuenow="80"><span style="width:53.333333333333336%"></span></div><small>Practice titles track learning work. Skill is earned through evidence.</small></div><div class="cult-realm-side"><span class="cult-number">+50</span><span class="eyebrow">XP THIS WEEK</span><button class="btn primary" data-cult="home">Open today’s practice</button></div></section><div class="journey-tabs" role="tablist" aria-label="Progress view"><button type="button" role="tab" aria-selected="true" aria-controls="journey-evidence" id="journey-tab-evidence" tabindex="0" data-journey-tab="evidence">Evidence</button><button type="button" role="tab" aria-selected="false" aria-controls="journey-skills" id="journey-tab-skills" tabindex="-1" data-journey-tab="skills">Skill path</button><button type="button" role="tab" aria-selected="false" aria-controls="journey-milestones" id="journey-tab-milestones" tabindex="-1" data-journey-tab="milestones">Milestones</button></div><section role="tabpanel" aria-labelledby="journey-tab-evidence" id="journey-evidence"><section class="journey-focus"><div><span class="eyebrow">YOUR CURRENT DEVELOPMENT TARGET</span><h3>Open-board judgment</h3><p>Read the position, compare two lines, preserve the next turn.</p><div class="journey-focus-meta"><span class="cult-badge">Developing</span><span>2 evidence days</span><span>1 successful retests</span></div></div><div class="journey-next"><span class="eyebrow">NEXT ASSESSMENT · Functional</span><p>2 / 2 evidence days toward a Functional assessment</p><button class="link-btn" data-cult="skill" data-skill="open-board">Review this skill ↗</button></div></section><div class="cult-section-head"><div><span class="eyebrow">LESSON → LATER TEST → WHAT CHANGED</span><h3>Evidence of change</h3></div></div><article class="journey-change"><div class="journey-change-label">Open-board judgment<span>Reported improvement</span></div><div class="journey-compare"><div><span>EARLIER LESSON · 2026-09-27</span><p>I committed before comparing the line that preserved interaction.</p></div><div><span>LATER TEST · 2026-09-28</span><p>In the second position I compared both lines first and preserved interaction for the next turn.</p></div></div><button class="link-btn small" data-cult="record" data-id="fc2d41cd-a499-49b0-b093-d4c76fc3727b">Revisit this evidence ↗</button></article><div class="cult-section-head"><div><span class="eyebrow">YOUR MOST RECENT WORK</span><h3>Learning journal</h3></div><button class="link-btn small" data-cult="log">Add an existing practice</button></div><div class="journey-recent"><button type="button" class="journey-entry" data-cult="record" data-id="fc2d41cd-a499-49b0-b093-d4c76fc3727b"><span class="journey-entry-date">2026-09-28<small>Transfer</small></span><span>In the second position I compared both lines first and preserved interaction for the next turn.</span><b aria-hidden="true">↗</b></button><button type="button" class="journey-entry" data-cult="record" data-id="practice-evidence:5c67aef8-9daf-479b-be8d-7100bea5b414"><span class="journey-entry-date">2026-09-27<small>Drill</small></span><span>I committed before comparing the line that preserved interaction.</span><b aria-hidden="true">↗</b></button></div><details class="cult-ledger"><summary>Evidence ledger <span>2 records</span></summary><p class="small muted">Existing completed reviews, research, supported X drafts, and precommitted BO3 sessions count automatically. Don’t log them twice. Each category has a weekly XP cap; additional evidence still counts for skills.</p><div class="cult-ledger-list"><div class="cult-ledger-row"><div><strong>In the second position I compared both lines first and preserved interaction for the next turn.</strong><small>2026-09-28 · Transfer · observed</small></div><span>+50 XP</span><button class="link-btn" data-cult="record" data-id="fc2d41cd-a499-49b0-b093-d4c76fc3727b">Inspect</button></div><div class="cult-ledger-row"><div><strong>I committed before comparing the line that preserved interaction.</strong><small>2026-09-27 · Drill · needs work</small></div><span>+30 XP</span><button class="link-btn" data-cult="record" data-id="practice-evidence:5c67aef8-9daf-479b-be8d-7100bea5b414">Inspect</button></div></div><div class="cult-rule-grid"><span>Study<b>30 XP × 2/week</b></span><span>Drill<b>30 XP × 2/week</b></span><span>Review<b>40 XP × 2/week</b></span><span>Research<b>30 XP × 2/week</b></span><span>Transfer<b>50 XP × 2/week</b></span><span>Discipline<b>20 XP × 3/week</b></span><span>Explain<b>25 XP × 2/week</b></span><span>Weekly checklist<b>40 XP / week</b></span><span>Breakthrough review<b>60 XP / week</b></span></div><p class="small muted">XP recalculates from saved records, so editing or correcting a record cannot award it twice. Removing its evidence removes its XP. Wins, losses, time spent, and social metrics award no XP.</p></details></section><section role="tabpanel" aria-labelledby="journey-tab-skills" id="journey-skills" hidden><div class="cult-section-head"><div><span class="eyebrow">EVIDENCE BEFORE PROMOTION</span><h3>Your skill path</h3></div><span class="small muted">Self-assessed · never raised by XP</span></div><div class="cult-skills"><article class="cult-skill is-focus"><div class="cult-skill-title"><h4>Open-board judgment</h4><span class="cult-badge">Developing</span></div><p>Read the position, compare two lines, preserve the next turn.</p><div class="cult-skill-steps" aria-label="Open-board judgment: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">2 evidence days · 1 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="open-board">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="open-board" aria-pressed="true">Current focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Ranges &amp; information</h4><span class="cult-badge">Developing</span></div><p>Update plausible answers from actions and non-actions.</p><div class="cult-skill-steps" aria-label="Ranges & information: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="ranges">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="ranges" aria-pressed="false">Set focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Contingency openings</h4><span class="cult-badge">Developing</span></div><p>Build a functional plan when the ideal pieces are missing.</p><div class="cult-skill-steps" aria-label="Contingency openings: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="openings">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="openings" aria-pressed="false">Set focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Sequencing &amp; resources</h4><span class="cult-badge">Developing</span></div><p>Work backward from the end state you want.</p><div class="cult-skill-steps" aria-label="Sequencing & resources: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="sequencing">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="sequencing" aria-pressed="false">Set focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Battlefields &amp; scoring</h4><span class="cult-badge">Developing</span></div><p>Decide when to take, hold, trade, or wait.</p><div class="cult-skill-steps" aria-label="Battlefields & scoring: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="geometry">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="geometry" aria-pressed="false">Set focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Matchup construction</h4><span class="cult-badge">Developing</span></div><p>Know your role, sideboard plan, and alternate win condition.</p><div class="cult-skill-steps" aria-label="Matchup construction: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="matchups">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="matchups" aria-pressed="false">Set focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Session discipline</h4><span class="cult-badge">Developing</span></div><p>Precommit your block and review without chasing losses.</p><div class="cult-skill-steps" aria-label="Session discipline: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="discipline">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="discipline" aria-pressed="false">Set focus</button></div></article><article class="cult-skill"><div class="cult-skill-title"><h4>Research &amp; explanation</h4><span class="cult-badge">Developing</span></div><p>Test a claim and explain only what the evidence supports.</p><div class="cult-skill-steps" aria-label="Research & explanation: Developing"><span class="earned" title="Developing"></span><span title="Functional"></span><span title="Reliable"></span><span title="Weapon"></span></div><div class="small muted">0 evidence days · 0 successful retests</div><div class="cult-skill-actions"><button class="link-btn" data-cult="skill" data-skill="theory">Inspect evidence</button><button class="link-btn" data-cult="focus" data-skill="theory" aria-pressed="false">Set focus</button></div></article></div></section><section role="tabpanel" aria-labelledby="journey-tab-milestones" id="journey-milestones" hidden><div class="cult-section-head"><div><span class="eyebrow">MILESTONES ALONG THE WAY</span><h3>Your seals</h3></div></div><div class="cult-seals"><div class="cult-seal earned"><span aria-hidden="true">✧</span><strong>First insight</strong><small>Save your first learning record.</small><b>Earned</b></div><div class="cult-seal earned"><span aria-hidden="true">✧</span><strong>Return to the lesson</strong><small>Retest a lesson on a later day.</small><b>Earned</b></div><div class="cult-seal"><span aria-hidden="true">◇</span><strong>Full circle</strong><small>Complete a weekly breakthrough review.</small><b>Not yet earned</b></div><div class="cult-seal"><span aria-hidden="true">◇</span><strong>Steady practice</strong><small>Record learning in four different weeks.</small><b>Not yet earned</b></div></div><section class="cult-breakthrough"><div><span class="eyebrow">OPTIONAL WEEKLY REFLECTION · 60 XP</span><h3>Close the loop on your week.</h3><p>After three kinds of practice and a later-day retest, name what changed and choose one next drill.</p><span class="small muted">Keep practicing. This reflection unlocks as evidence accumulates.</span></div><button class="btn" data-cult="checkpoint" disabled>Reflect on the week</button></section><details class="cult-ledger"><summary>The cultivation path</summary><div class="cult-realm-list"><div class="earned"><span>01</span><strong>Outer Disciple</strong><small>0 XP</small></div><div><span>02</span><strong>Inner Disciple</strong><small>150 XP</small></div><div><span>03</span><strong>Jade Adept</strong><small>400 XP</small></div><div><span>04</span><strong>Core Disciple</strong><small>850 XP</small></div><div><span>05</span><strong>Mountain Keeper</strong><small>1,500 XP</small></div><div><span>06</span><strong>Dao Seeker</strong><small>2,500 XP</small></div></div><p class="small muted">Personal practice titles, not competitive ratings. Rest days and losses do not reset progress.</p></details></section><button class="link-btn small journey-archive" data-cult="archive">Removed trial records</button></div>
+    
+    
+    <details class="cult-ledger" id="matchAnalytics"><summary>Match analytics &amp; session history</summary><div class="section-head"><h3>Match analytics</h3><span class="sub">Results alongside your learning evidence</span></div><label><span class="label-title">Stats scope</span><select id="statsScope"><option value="overall" selected>Overall</option><option value="legend:10b35d05-25f5-4503-ba52-9f57cc33bf39">Legend — Ornn</option><option value="legend:174e3ce1-bd3b-4660-8fa9-839eac4a6eed">Legend — Jax</option><option value="legend:29503c57-cfb4-4378-8e86-887da3770fd6">Legend — Fiora</option><option value="legend:2f16f8e3-3f08-4ec3-bf19-b9455a0d3001">Legend — Vi</option><option value="legend:32a42f48-7499-4890-9ee1-9b703dfc96ed">Legend — Ambessa</option><option value="legend:39022c4f-2c95-46f5-92f1-1584a75af6e8">Legend — Shen</option><option value="legend:5a23ea03-62dc-425d-a7a3-d3987ea58bd1">Legend — Akali</option><option value="legend:5ea0c961-11d4-4548-9500-40654882d888">Legend — Vex</option><option value="legend:5f619202-3902-4f14-b8cb-d6a5a73549ea">Legend — Kha'Zix</option><option value="legend:61ebc85d-28cf-4558-b45f-3e9294b86242">Legend — Rumble</option><option value="legend:6903fe74-735b-46e8-9419-1cba45c57aea">Legend — Zed</option><option value="legend:7dddc0b2-639b-4b01-8d12-84419f57b431">Legend — Kennen</option><option value="legend:88577387-c2f6-4951-bdab-bc8563c4799e">Legend — Rengar</option><option value="legend:8ffd760e-3467-42bb-8ef0-180ad4ba1c41">Legend — Draven</option><option value="legend:90214c70-28c9-4da9-8a4b-5542e4d86553">Legend — Annie</option><option value="legend:a32dcb23-8f3f-4e2b-8ce1-56e8d7ea717b">Legend — Pyke</option><option value="legend:a98c74bb-07d8-4004-a564-8d085e45d22e">Legend — Jayce</option><option value="legend:ab774cc4-dea7-48a0-915a-a27784068f9c">Legend — Azir</option><option value="legend:ae52b3a5-cfa1-4bc7-ba04-57d865e78fc1">Legend — Diana</option><option value="legend:b268d5f9-3cd8-471e-bc16-3e1443a268ab">Legend — Irelia</option><option value="legend:b57ca328-0aaa-4fe5-8ef3-b48ade0530ab">Legend — Mel</option><option value="legend:b8838afc-90cf-44c2-9221-c566041a9dc9">Legend — Ezreal</option><option value="legend:cb75ad67-8781-49e8-9266-8f659e1ef842">Legend — Rek'Sai</option><option value="legend:e7133e7f-c59a-4476-8c18-e6ca5795bfe5">Legend — Master Yi</option></select></label><section class="empty-state analytics-empty"><div class="empty-emblem" aria-hidden="true"><svg viewBox="0 0 120 120"><path d="M24 91V57h17v34M52 91V39h17v52M80 91V27h17v64" /><path d="m22 45 26-17 20 8 28-22" /><circle cx="96" cy="14" r="3" /></svg></div><span class="eyebrow">YOUR DATA, YOUR EDGE</span><h3>Your first match starts the story.</h3><p>Record a game and this space will turn it into trends, matchup reads, and progress you can trust.</p><button class="btn primary" id="statsStartMatch">Log a match</button></section><div data-lab-key="overall|0||3|2026-09-28T12:57:49.686Z|0||0|" class="lab-shell" id="labStatsExtra">
+    <div class="section-head"><h3>Rolling Form</h3><div class="sub">Recent formal matches</div></div>
+    <div class="lab-trend"><div class="lab-mini"><div class="tiny muted">LAST 10</div><div class="big">0–0</div><div class="tiny muted">— • n=0</div></div><div class="lab-mini"><div class="tiny muted">LAST 25</div><div class="big">0–0</div><div class="tiny muted">— • n=0</div></div><div class="lab-mini"><div class="tiny muted">LAST 50</div><div class="big">0–0</div><div class="tiny muted">— • n=0</div></div></div>
+    <div class="section-head"><h3>First / Second</h3><div class="sub">Game results</div></div>
+    <div class="grid-2"><div class="lab-card"><div class="tiny muted">GOING FIRST</div><div class="lab-title">0–0</div><div class="lab-meta">n=0</div></div><div class="lab-card"><div class="tiny muted">GOING SECOND</div><div class="lab-title">0–0</div><div class="lab-meta">n=0</div></div></div>
+    <div class="section-head"><h3>Development Rhythm</h3></div>
+    <div class="lab-card"><div class="tiny muted">PRACTICE DAYS RECORDED</div><div class="lab-title">0</div><p class="small muted">Return when you can train with intent. Rest days do not erase your work.</p></div>
+    <div class="section-head"><h3>Calendar</h3></div><div class="small muted" style="margin-bottom:6px">September 2026</div><div class="lab-calendar"><div class="lab-day" style="opacity:.25"></div><div class="lab-day" style="opacity:.25"></div><div class="lab-day"><strong>1</strong></div><div class="lab-day"><strong>2</strong></div><div class="lab-day"><strong>3</strong></div><div class="lab-day"><strong>4</strong></div><div class="lab-day"><strong>5</strong></div><div class="lab-day"><strong>6</strong></div><div class="lab-day"><strong>7</strong></div><div class="lab-day"><strong>8</strong></div><div class="lab-day"><strong>9</strong></div><div class="lab-day"><strong>10</strong></div><div class="lab-day"><strong>11</strong></div><div class="lab-day"><strong>12</strong></div><div class="lab-day"><strong>13</strong></div><div class="lab-day"><strong>14</strong></div><div class="lab-day"><strong>15</strong></div><div class="lab-day"><strong>16</strong></div><div class="lab-day"><strong>17</strong></div><div class="lab-day"><strong>18</strong></div><div class="lab-day"><strong>19</strong></div><div class="lab-day"><strong>20</strong></div><div class="lab-day"><strong>21</strong></div><div class="lab-day"><strong>22</strong></div><div class="lab-day"><strong>23</strong></div><div class="lab-day"><strong>24</strong></div><div class="lab-day"><strong>25</strong></div><div class="lab-day"><strong>26</strong></div><div class="lab-day"><strong>27</strong></div><div class="lab-day"><strong>28</strong></div><div class="lab-day"><strong>29</strong></div><div class="lab-day"><strong>30</strong></div></div>
+    
+    <div class="section-head"><h3>Repeated Review Tags</h3></div><div class="empty">No tagged review patterns in this scope yet.</div>
+  </div></details></section>
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div>
+
+  
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  
+  
+  
+  
+</template><script>const render=()=>{document.querySelector('#previewContents').innerHTML=[...document.querySelectorAll('template')].find(t=>t.dataset.preview===document.querySelector('#previewState').value).innerHTML;window.scrollTo(0,0)};document.querySelector('#previewState').onchange=render;render();</script></body></html>

@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict';
+import {practiceState,suggestedWeeklyItem,PRACTICES} from '../practice-model.js';
+const now=new Date('2026-09-30T12:00:00');
+let state=practiceState({},now);
+assert.equal(state.skill,'open-board');assert.equal(state.recommendation.kind,'drill');assert.equal(state.doneToday,false);
+const notes=[{id:'a',record_type:'cultivation_trial',kind:'drill',skill:'open-board',day:'2026-09-29',context:'drill',lesson:'Waiting preserved the interaction for next turn.',next_test:'Try another board before committing resources.'}];
+state=practiceState({notes},now);assert.equal(state.recommendation.kind,'transfer');assert.equal(state.recommendation.source_id,'a');
+state=practiceState({notes:[{...notes[0],day:'2026-09-30'}]},now);assert.equal(state.doneToday,true);assert.equal(state.recommendation.kind,'drill','no same-day retest');
+const plan={id:'p',record_type:'cultivation_practice',status:'active',created_at:'2026-09-28',...PRACTICES['open-board'],skill:'open-board'};
+state=practiceState({notes:[plan]},now);assert.equal(state.active.id,'p');assert.equal(state.p.xp,0,'starting practice earns nothing');
+state=practiceState({notes:[plan,{...notes[0],practice_id:'p'}]},now);assert.equal(state.active,undefined,'saved evidence resolves partially completed practice');
+state=practiceState({notes:[{...plan,status:'parked'}]},now);assert.equal(state.active,undefined);
+state=practiceState({notes:[{id:'cultivation-focus',skill:'ranges'}]},now);assert.equal(state.recommendation.title,PRACTICES.ranges.title);
+state=practiceState({notes:[{...notes[0],deleted_at:'yes'}]},now);assert.equal(state.recommendation.kind,'drill');
+const week={items:[{id:'vod-1',done:false},{id:'vod-2',done:false},{id:'board-drill',done:false}]};assert.equal(suggestedWeeklyItem({kind:'study'},week).id,'vod-1');week.items[0].done=true;assert.equal(suggestedWeeklyItem({kind:'study'},week).id,'vod-2');assert.equal(suggestedWeeklyItem({kind:'discipline'},week),null);assert.equal(suggestedWeeklyItem({kind:'drill',skill:'open-board'},week).id,'board-drill');
+console.log('Practice: focus, resume, no start XP, later-day retest, completion recovery, and weekly suggestions passed.');
