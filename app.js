@@ -1,5 +1,5 @@
-import { prepareEditor } from './ui.js?v=0.9.3';
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.9.3';
+import { prepareEditor } from './ui.js?v=0.10.0';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.10.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -298,7 +298,7 @@ async function renderHome(){
   el.innerHTML=`
     <section class="hero portrait-hero">
       <div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high" /></div>
-      <div class="hero-copy"><div class="hero-kicker">Riftbound • Player development</div><h2>${active?'Your session is underway':'Build the edge.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Train with intent. Review with honesty. Carry one lesson into the next game.'}</p></div>
+      <div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · RIFTBOUND</div><h2>${active?'Your session is underway':'Build the edge.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Train with intent. Review with honesty. Carry one lesson into the next game.'}</p></div>
       ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}${active.planned_bo3_count?` • Committed: ${active.planned_bo3_count} BO3s`:''}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
       <div class="primary-actions">
         <button class="btn primary" id="homePaper">${active?.mode==='paper'?'Resume Paper Session':'Start Paper Session'}</button>
@@ -306,7 +306,7 @@ async function renderHome(){
       </div>
     </section>
     ${homePrefs.season?`<div class="home-season-label">${esc(homePrefs.season)} <span>FIELD JOURNAL</span></div>`:''}
-    <div class="home-toolbar"><span>YOUR COMMAND CENTER</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+    <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
 
     <div class="home-metrics home-widget" data-home-widget="stats">
       <div class="card stat-card"><div class="k">Active development</div><div class="v">${fmtHours(s.total)}</div></div>
@@ -709,9 +709,9 @@ async function renderPlay(){
       </section>
       <div class="practice-section-head"><div><span class="eyebrow">SESSION SETUP</span><h3>How do you want to train?</h3></div><span class="practice-note">No notes during play</span></div>
       <div class="practice-options">
-        <button class="practice-option paper-option" id="playStartPaper"><span class="practice-index">01</span><span class="practice-icon" aria-hidden="true"><img src="./assets/jade-seal.svg?v=0.9.3" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">PAPER PLAY</span><strong>Start a paper session</strong><small>Track rounds, games, and score in one place.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
-        <button class="practice-option online-option" id="playStartOnline"><span class="practice-index">02</span><span class="practice-icon" aria-hidden="true"><img src="./assets/cultivation-array.svg?v=0.9.3" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">ONLINE PLAY</span><strong>Start a timed session</strong><small>Keep the timer running while you play online.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
-        <button class="practice-option log-option" id="playLogOnline"><span class="practice-index">03</span><span class="practice-icon" aria-hidden="true"><img src="./assets/bamboo-scroll.svg?v=0.9.3" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">AFTER THE GAME</span><strong>Log a finished match</strong><small>Add the result when you’re ready to review.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option paper-option" id="playStartPaper"><span class="practice-index">01</span><span class="practice-icon" aria-hidden="true"><img src="./assets/jade-seal.svg?v=0.10.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">PAPER PLAY</span><strong>Start a paper session</strong><small>Track rounds, games, and score in one place.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option online-option" id="playStartOnline"><span class="practice-index">02</span><span class="practice-icon" aria-hidden="true"><img src="./assets/cultivation-array.svg?v=0.10.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">ONLINE PLAY</span><strong>Start a timed session</strong><small>Keep the timer running while you play online.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option log-option" id="playLogOnline"><span class="practice-index">03</span><span class="practice-icon" aria-hidden="true"><img src="./assets/bamboo-scroll.svg?v=0.10.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">AFTER THE GAME</span><strong>Log a finished match</strong><small>Add the result when you’re ready to review.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
       </div>`;
     $('#playStartPaper').onclick=()=>openStartSession('paper'); $('#playStartOnline').onclick=()=>openStartSession('online'); $('#playLogOnline').onclick=()=>openOnlineMatchModal(null); return;
   }
@@ -1141,7 +1141,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.9.3 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.10.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
   $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};

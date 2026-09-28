@@ -1,16 +1,17 @@
-/* RiftMastery brand system 1.0 — shared by the app and brand guide.
+/* RiftMastery brand system 1.2 — shared by the app and brand guide.
    Semantic roles first. Keep new components on this scale. */
 :root {
-  --rm-ink:#080e0f; --rm-surface:#111d1d; --rm-raised:#192625;
-  --rm-ivory:#f2f0e9; --rm-muted:#aab7b2; --rm-border:#2b3b37;
-  --rm-gold:#d4b878; --rm-gold-light:#ead8ad; --rm-sage:#8bd0aa;
+  --rm-ink:#0b0e0d; --rm-surface:#141b17; --rm-raised:#1d2922;
+  --rm-ivory:#eee7d6; --rm-muted:#a8b2a8; --rm-border:#334038;
+  --rm-gold:#c7ac72; --rm-gold-light:#e0cb9b; --rm-sage:#9fc4a9;
   --rm-amber:#e8bd6a; --rm-coral:#f17d79;
   --rm-font:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
   --rm-text-xs:11px; --rm-text-sm:13px; --rm-text-base:14px; --rm-text-lg:18px;
   --rm-heading:28px; --rm-display:40px;
   --rm-space-1:4px; --rm-space-2:8px; --rm-space-3:12px; --rm-space-4:16px;
   --rm-space-5:24px; --rm-space-6:32px; --rm-space-7:48px; --rm-space-8:64px;
-  --rm-radius-control:10px; --rm-radius-card:14px; --rm-radius-hero:18px;
+  --rm-radius-control:3px; --rm-radius-card:2px; --rm-radius-hero:2px;
+  --rm-font-display:Georgia,"Times New Roman",serif; --rm-jade:#819b89; --radius:2px;
   --rm-icon-size:20px; --rm-icon-stroke:1.7; --rm-motion-fast:160ms;
   --bg:var(--rm-ink); --panel:var(--rm-surface); --panel-2:var(--rm-raised);
   --text:var(--rm-ivory); --muted:var(--rm-muted); --line:var(--rm-border);
@@ -80,3 +81,58 @@ input,select,textarea{border-radius:var(--rm-radius-control)}
  #screen-play .practice-copy strong{font-size:16px}
 }
 @media(max-width:360px){#screen-play .practice-option{padding:16px 12px;gap:10px;grid-template-columns:52px minmax(0,1fr) 12px}#screen-play .practice-icon{width:52px;height:52px}#screen-play .practice-icon img{width:52px;height:52px}}
+
+/* Cultivation Hall: ink, jade, parchment, and architectural frames. */
+html,body{background-color:var(--bg);background-image:none}
+body{background-image:url('./assets/ink-mountains.svg');background-repeat:no-repeat;background-position:right bottom;background-size:min(960px,100vw) auto;background-attachment:fixed}
+.topbar,.bottom-nav{background:#0b0e0df5;border-color:var(--line)}
+.topbar h1{font-family:var(--rm-font-display);font-size:26px;font-weight:400;letter-spacing:.01em}
+.bottom-nav:before{font-family:var(--rm-font-display);font-weight:400;font-size:12px;letter-spacing:.15em;color:var(--text)}
+.bottom-nav:after{color:var(--rm-jade);letter-spacing:.15em}
+/* The shape rule deliberately supersedes older page-specific radii. Circles in charts and SVG artwork retain their geometry. */
+:is(.hero,.practice-hero,.hero-art,.card,.lab-card,.insight-card,.weekly-card,.focus-panel,.list-item,.note,.empty,.empty-state,.modal-card,.score-side,.session-strip,.undo-bar,.table-wrap,.match-detail-game,.lab-mini,.lab-day,.milestone-card,.insight-pair>div,.x-draft-preview,.menu-destination,.legend-library,.practice-option){border-radius:2px!important}
+:is(.btn,.icon-btn,.nav-item,.chip,.save-status,.practice-note,.lab-chip,.insight-metrics span,.focus-steps span,.weekly-check,.weekly-count,.lab-navigation button,.trainingRate button,.pill-tabs button,.lab-tabs button,.insight-tabs button,.segmented button,.score-actions button,.editor-step-tabs button,.lab-tag-grid label,input,select,textarea){border-radius:3px!important}
+:is(.weekly-progress,.weekly-progress span,.lab-progress,.lab-progress span,.progress,.progress>span,.focus-progress){border-radius:0}
+.nav-item.active{background:#203027;color:var(--accent);box-shadow:none}
+.nav-item.active:before{box-shadow:none;border-radius:0}
+.btn,.btn.primary,.btn:hover:not(:disabled),.btn.primary:hover:not(:disabled){box-shadow:none;transform:none;filter:none}
+.btn:not(.primary):not(.danger):not(.good){border-color:var(--line)}
+.hero.portrait-hero,.practice-hero.portrait-hero{background:var(--panel);border:1px solid #59624b;box-shadow:none}
+#screen-home .hero.portrait-hero{gap:12px 28px}
+.hero.portrait-hero h2,.practice-hero.portrait-hero h2,#screen-home .hero.portrait-hero h2{font-family:var(--rm-font-display);font-weight:400;letter-spacing:-.025em;line-height:1.14;font-size:clamp(34px,3.7vw,46px)}
+.hero.portrait-hero .hero-art,.practice-hero.portrait-hero .hero-art{border-left:1px solid #8f7b53;border-bottom:1px solid #8f7b53}
+.hero-kicker,.eyebrow,.focus-kicker,.practice-type{color:var(--rm-jade)}
+.hero .hero-kicker{color:var(--rm-jade);font-size:10px;letter-spacing:.18em}
+.hero .hero-kicker:before{background:var(--rm-jade)}
+.page-intro h2,.collection-head h2,.section-head h2,.section-head h3,.weekly-head h3,.focus-panel h3,.practice-section-head h3,.empty h3,.empty-state h3{font-family:var(--rm-font-display);font-weight:400;letter-spacing:-.015em}
+.section-head h2,.section-head h3,.practice-section-head h3{font-size:23px}
+.home-workspace .weekly-card{background:var(--panel);border:1px solid var(--line);border-top:2px solid var(--rm-jade);box-shadow:none}
+.home-workspace .focus-panel{background:transparent;border:0;border-top:1px solid var(--line);box-shadow:none;padding:24px 8px}
+.focus-panel:after{display:none}.focus-mark{color:var(--rm-jade)}
+.weekly-head h3{font-size:25px}.focus-panel h3{font-size:28px}.weekly-count{background:none;color:var(--text);border-color:var(--line)}
+.home-metrics .stat-card .v{color:var(--text);font-family:var(--rm-font-display);font-weight:400;font-size:27px}
+.focus-steps{gap:8px}.focus-steps span{padding:2px 0;border:0;background:none;color:var(--muted);font-size:12px}.focus-steps i{color:var(--rm-jade)}
+.weekly-progress span,.lab-progress span,.progress>span{background:var(--rm-jade)}
+.weekly-item.is-done .weekly-check{background:var(--rm-jade);border-color:var(--rm-jade)}
+.card,.lab-card,.insight-card,.list-item,.note,.lab-mini{background:var(--panel);border-color:var(--line);box-shadow:none}
+.lab-title{font-family:var(--rm-font-display);font-weight:400;letter-spacing:0}
+.lab-card .lab-title,.insight-card .lab-title{font-family:var(--rm-font);font-weight:600}
+.lab-navigation button.active{color:var(--text);background:#203027;box-shadow:inset 2px 0 var(--rm-jade)}
+.empty,.empty-state{background:transparent;border:1px solid var(--line);box-shadow:none}
+.empty-glyph{border:1px solid #6e775c;border-radius:0;background:none;color:var(--rm-jade)}
+.lab-panel>.empty,.insight-panel>.empty{border-top:1px solid var(--rm-jade)}
+.modal-card{background:var(--panel)}.modal-head,.editor-footer{background:#141b17fa;border-color:var(--line)}
+.modal-head h2{font-family:var(--rm-font-display);font-weight:400;font-size:23px;letter-spacing:0}
+input,select,textarea{background-color:#101612;border-color:#4b5a4f}
+input::placeholder,textarea::placeholder{color:#909e91}
+#screen-play .practice-option{background:var(--panel);border-color:var(--line);border-top-color:#68775e}
+#screen-play .practice-copy strong{font-family:var(--rm-font-display);font-size:22px;font-weight:400;line-height:1.25}
+#screen-play .practice-type{color:var(--rm-jade)}
+.save-status{background:transparent;border-color:var(--line);color:var(--good)}
+.session-strip{background:#1a2820;border-color:#5b705b}.session-strip .time{color:var(--text)}
+@media(max-width:560px){
+ .hero.portrait-hero h2,.practice-hero.portrait-hero h2,#screen-home .hero.portrait-hero h2{font-size:34px}
+ #screen-play .practice-copy strong{font-size:20px}.weekly-head h3{font-size:24px}
+ .home-workspace .focus-panel{padding:22px 0}.hero .hero-kicker{font-size:9px;letter-spacing:.12em}
+ .topbar h1{font-size:25px}
+}
