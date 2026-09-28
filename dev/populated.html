@@ -1,0 +1,386 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>RiftMastery — populated layout preview</title><link rel="stylesheet" href="../styles.css?v=0.11.0"><link rel="stylesheet" href="../lab.css?v=0.11.0"><link rel="stylesheet" href="../ui.css?v=0.11.0"><link rel="stylesheet" href="../brand.css?v=0.11.0"><style>body{padding-top:52px}.sample-bar{position:fixed;top:0;left:0;right:0;z-index:80;display:flex;align-items:center;gap:16px;padding:8px 18px;background:#c7ac72;color:#0b0e0d;font:12px system-ui}.sample-bar select{width:170px;min-height:34px;padding:5px 28px 5px 8px;color:#eee7d6}.sample-bar a{color:#0b0e0d;margin-left:auto}.topbar{top:52px}.bottom-nav{top:52px}.sample-bar span{font-weight:600}@media(max-width:819px){.bottom-nav{top:auto}.sample-bar span{font-size:10px}.sample-bar{gap:8px;padding:8px}.sample-bar select{width:126px}.sample-bar a{font-size:10px}}</style></head><body><aside class="sample-bar"><span>Fictional data · layout preview</span><select aria-label="Preview screen" id="sampleRoute"><option value="home">Home</option><option value="decks">Decks</option><option value="history">Review</option><option value="stats">Progress</option><option value="more">Journal</option><option value="studio">X Studio</option><option value="positions">Position reviews</option><option value="research">Research board</option><option value="skills">Skills</option><option value="explorer">Explorer</option></select><a href="../index.html">Live app ↗</a></aside><div id="sampleStage"></div><template data-sample="home"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Home</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      <section id="screen-home" class="screen active" data-screen="home">
+    <section class="hero portrait-hero">
+      <div class="hero-art"><img src="../assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high"></div>
+      <div class="hero-copy"><div class="hero-kicker">THE INNER COURTYARD · RIFTBOUND</div><h2>Build the edge.</h2><p>Train with intent. Review with honesty. Carry one lesson into the next game.</p></div>
+      
+      <div class="primary-actions">
+        <button class="btn primary" id="homePaper">Start Paper Session</button>
+        <button class="btn" id="homeOnline">Log Online Match</button>
+      </div>
+    </section>
+    
+    <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+
+    <div class="home-metrics home-widget" data-home-widget="stats">
+      <div class="card stat-card"><div class="k">Active development</div><div class="v">8h 00m</div></div>
+      <div class="card stat-card"><div class="k">Formal record</div><div class="v">8–4</div></div>
+      <div class="card stat-card"><div class="k">Matches</div><div class="v">12</div></div>
+      <div class="card stat-card"><div class="k">Games</div><div class="v">36</div></div>
+    </div>
+    <div class="home-workspace"><section class="focus-panel home-widget" data-home-widget="focus">
+      <div class="focus-topline"><div class="focus-kicker">Today’s development focus</div><span class="focus-mark" aria-hidden="true">✦</span></div>
+      <h3>Compare before committing</h3>
+      <p>Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.</p>
+      <div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>
+      <button class="focus-link" id="homeLab">Open the Development Lab <span aria-hidden="true">↗</span></button>
+    </section>
+    <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
+      <div class="weekly-head"><div><div class="focus-kicker">Preview season · WEEK OF Sep 28</div><h3 id="weeklyTitle">Weekly training checklist</h3><p>Read the whole board, compare two lines, and update the opponent’s range.</p></div><div class="weekly-count">0<span> / 5</span></div></div>
+      <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="5" aria-valuenow="0"><span style="width:0%"></span></div>
+      <div class="weekly-items"><button class="weekly-item" data-weekly-item="preview-question" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Pick one question the previews raise</strong><small>What are competitive players trying to figure out right now?</small></span></button><button class="weekly-item" data-weekly-item="preview-test" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Test one new-set idea</strong><small>Theorycraft or proxy a card, deck, or matchup idea; record what you observed.</small></span></button><button class="weekly-item" data-weekly-item="board-drill" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Run one open-board decision drill</strong><small>Name both roles, compare two lines, and say what changes your read.</small></span></button><button class="weekly-item" data-weekly-item="vod-1" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a high-level VOD</strong><small>Follow one concept that connects to your focus.</small></span></button><button class="weekly-item" data-weekly-item="vod-2" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Study a second high-level VOD</strong><small>Pause before a key decision and compare your line.</small></span></button><button class="weekly-item" data-weekly-item="preview-share" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Share a useful, evidence-backed finding <em>Optional</em></strong><small>Optional. A relevant reply counts; skip it when you have nothing defensible to add.</small></span></button><button class="weekly-item" data-weekly-item="preview-ranked" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Play ranked for a specific question <em>Optional</em></strong><small>Optional. Keep ladder reps purposeful during previews.</small></span></button><button class="weekly-item" data-weekly-item="preview-local" aria-pressed="false"><span class="weekly-check" aria-hidden="true"></span><span class="weekly-copy"><strong>Get local tournament reps <em>Optional</em></strong><small>Optional. Mark this when an event is available.</small></span></button></div>
+      <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
+    </section>
+    </div><div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    <div class="list"><div class="list-item"><div><div class="title">Windborne Control <span class="muted">vs</span> Jinx</div><div class="meta">BO3 • Online • Sep 26, 8:06 PM</div></div><div class="right"><span class="chip warn">L</span></div></div><div class="list-item"><div><div class="title">Jade Tempo — lower curve <span class="muted">vs</span> Yasuo</div><div class="meta">BO3 • Online • Sep 25, 8:05 PM</div></div><div class="right"><span class="chip good">W</span></div></div><div class="list-item"><div><div class="title">Tournament build — testing a more patient resource plan <span class="muted">vs</span> Yasuo</div><div class="meta">BO3 • Online • Sep 24, 8:11 PM</div></div><div class="right"><span class="chip good">W</span></div></div><div class="list-item"><div><div class="title">Jade Tempo <span class="muted">vs</span> Jinx</div><div class="meta">BO3 • Online • Sep 24, 8:04 PM</div></div><div class="right"><span class="chip good">W</span></div></div></div></div></section>
+      
+      
+      
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button aria-current="page" class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="decks"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Decks</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      <section id="screen-decks" class="screen active" data-screen="decks">
+    <div class="section-head collection-head"><div><div class="eyebrow">RIFTMASTERY · DECK WORKSHOP</div><h2>Your decks</h2><div class="sub">Build, branch, and compare versions without losing your history.</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small ghost" id="importDeck">Import</button><button class="btn small primary" id="newDeck">+ Deck</button></div></div>
+    <div class="grid-2" style="margin-bottom:10px"><input id="deckSearch" type="search" aria-label="Search decks" placeholder="Search decks" value=""><select id="deckLegendFilter" aria-label="Filter decks by Legend"><option value="">All Legends</option><option value="l1">Ahri</option><option value="l3">Jinx</option><option value="l2">Yasuo</option></select></div>
+    <div class="list deck-list"><div class="list-item deck-library-item"><div style="min-width:0;flex:1"><div class="title">★ Jade Tempo <span class="chip">v1</span></div><div class="meta">Ahri • 3 list lines • Baseline list for testing resource sequencing.</div><div class="deck-action-row"><button class="btn small ghost deckView" data-id="d1">View list</button><button class="btn small deckVersion" data-id="d1">New version</button><details class="deck-manage"><summary>Manage <span aria-hidden="true">⌄</span></summary><div><button class="btn small ghost deckPin" data-id="d1">Unpin</button><button class="btn small ghost deckDuplicate" data-id="d1">Duplicate</button><button class="btn small ghost deckEdit" data-id="d1">Edit</button><button class="btn small danger deckDelete" data-id="d1">Delete</button></div></details></div></div></div><div class="list-item deck-library-item"><div style="min-width:0;flex:1"><div class="title">Windborne Control <span class="chip">v3</span></div><div class="meta">Ahri • 3 list lines • Track when holding resources creates a stronger next turn.</div><div class="deck-action-row"><button class="btn small ghost deckView" data-id="d3">View list</button><button class="btn small deckVersion" data-id="d3">New version</button><details class="deck-manage"><summary>Manage <span aria-hidden="true">⌄</span></summary><div><button class="btn small ghost deckPin" data-id="d3">Pin</button><button class="btn small ghost deckDuplicate" data-id="d3">Duplicate</button><button class="btn small ghost deckEdit" data-id="d3">Edit</button><button class="btn small danger deckDelete" data-id="d3">Delete</button></div></details></div></div></div><div class="list-item deck-library-item"><div style="min-width:0;flex:1"><div class="title">Jade Tempo — lower curve <span class="chip">v2</span></div><div class="meta">Yasuo • 3 list lines • Testing two lower-cost threats. Compare before committing to a new baseline.</div><div class="deck-action-row"><button class="btn small ghost deckView" data-id="d2">View list</button><button class="btn small deckVersion" data-id="d2">New version</button><details class="deck-manage"><summary>Manage <span aria-hidden="true">⌄</span></summary><div><button class="btn small ghost deckPin" data-id="d2">Pin</button><button class="btn small ghost deckDuplicate" data-id="d2">Duplicate</button><button class="btn small ghost deckEdit" data-id="d2">Edit</button><button class="btn small danger deckDelete" data-id="d2">Delete</button></div></details></div></div></div><div class="list-item deck-library-item"><div style="min-width:0;flex:1"><div class="title">Tournament build — testing a more patient resource plan <span class="chip">v4</span></div><div class="meta">Yasuo • 3 list lines • Long-note layout fixture: this is a deliberately detailed deck record to check wrapping across phone and desktop views.</div><div class="deck-action-row"><button class="btn small ghost deckView" data-id="d4">View list</button><button class="btn small deckVersion" data-id="d4">New version</button><details class="deck-manage"><summary>Manage <span aria-hidden="true">⌄</span></summary><div><button class="btn small ghost deckPin" data-id="d4">Pin</button><button class="btn small ghost deckDuplicate" data-id="d4">Duplicate</button><button class="btn small ghost deckEdit" data-id="d4">Edit</button><button class="btn small danger deckDelete" data-id="d4">Delete</button></div></details></div></div></div></div>
+    </section>
+      
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="history"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Review</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      <section id="screen-history" class="screen active" data-screen="history">
+    <div class="section-head collection-head"><div><div class="eyebrow">THE ARCHIVE · MATCH RECORDS</div><h2>Match history</h2><div class="sub">12 matching records</div></div><div class="btn-row" style="flex:0 0 auto"><button class="btn small primary" id="logPastMatch">Log match</button><button class="btn small ghost" id="toggleFilters">Filters</button></div></div>
+    <div id="historyFilterBox" class="card filters" style="display:none">
+      <div class="row"><select id="hfLegend"><option value="">My Legend — all</option><option value="l1">Ahri</option><option value="l2">Yasuo</option><option value="l3">Jinx</option></select><select id="hfDeck"><option value="">My Deck — all</option><option value="d1">Jade Tempo v1</option><option value="d2">Jade Tempo — lower curve v2</option><option value="d3">Windborne Control v3</option><option value="d4">Tournament build — testing a more patient resource plan v4</option></select></div>
+      <div class="row"><select id="hfOpp"><option value="">Opponent — all</option><option value="l1">Ahri</option><option value="l2">Yasuo</option><option value="l3">Jinx</option></select><select id="hfMode"><option value="">Paper/Online — all</option><option value="paper">Paper</option><option value="online">Online</option></select></div>
+      <div class="row"><select id="hfContext"><option value="">Context — all</option><option value="testing">Testing</option><option value="local">Local</option><option value="tournament">Tournament</option><option value="online_ranked">Online Ranked</option><option value="casual">Casual</option></select><select id="hfFormat"><option value="">Format — all</option><option value="BO1">BO1</option><option value="BO3">BO3</option><option value="BO5">BO5</option><option value="FREE_PLAY">Free Play</option></select></div>
+      <div class="row"><select id="hfResult"><option value="">Result — all</option><option value="me">Win</option><option value="opponent">Loss</option></select><button class="btn small ghost" id="clearFilters">Clear</button></div>
+      <div class="row"><label><span class="label-title">From</span><input id="hfFrom" type="date" value=""></label><label><span class="label-title">To</span><input id="hfTo" type="date" value=""></label></div>
+    </div>
+    <div class="list history-list" style="margin-top:10px"><button class="list-item historyOpen" data-id="m6" style="width:100%;text-align:left;color:inherit"><div><div class="title">Windborne Control <span class="chip">v3</span> <span class="muted">vs</span> Jinx</div><div class="meta">Online • Testing • BO3 • Sep 26, 8:06 PM</div></div><div class="right"><span class="chip warn">L</span></div></button><button class="list-item historyOpen" data-id="m5" style="width:100%;text-align:left;color:inherit"><div><div class="title">Jade Tempo — lower curve <span class="chip">v2</span> <span class="muted">vs</span> Yasuo</div><div class="meta">Online • Testing • BO3 • Sep 25, 8:05 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m11" style="width:100%;text-align:left;color:inherit"><div><div class="title">Tournament build — testing a more patient resource plan <span class="chip">v4</span> <span class="muted">vs</span> Yasuo</div><div class="meta">Online • Testing • BO3 • Sep 24, 8:11 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m4" style="width:100%;text-align:left;color:inherit"><div><div class="title">Jade Tempo <span class="chip">v1</span> <span class="muted">vs</span> Jinx</div><div class="meta">Online • Testing • BO3 • Sep 24, 8:04 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m10" style="width:100%;text-align:left;color:inherit"><div><div class="title">Windborne Control <span class="chip">v3</span> <span class="muted">vs</span> Jinx</div><div class="meta">Online • Testing • BO3 • Sep 23, 8:10 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m3" style="width:100%;text-align:left;color:inherit"><div><div class="title">Tournament build — testing a more patient resource plan <span class="chip">v4</span> <span class="muted">vs</span> Yasuo</div><div class="meta">Online • Testing • BO3 • Sep 23, 8:03 PM</div></div><div class="right"><span class="chip warn">L</span></div></button><button class="list-item historyOpen" data-id="m9" style="width:100%;text-align:left;color:inherit"><div><div class="title">Jade Tempo — lower curve <span class="chip">v2</span> <span class="muted">vs</span> Yasuo</div><div class="meta">Online • Testing • BO3 • Sep 22, 8:09 PM</div></div><div class="right"><span class="chip warn">L</span></div></button><button class="list-item historyOpen" data-id="m2" style="width:100%;text-align:left;color:inherit"><div><div class="title">Windborne Control <span class="chip">v3</span> <span class="muted">vs</span> Jinx</div><div class="meta">Online • Testing • BO3 • Sep 22, 8:02 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m8" style="width:100%;text-align:left;color:inherit"><div><div class="title">Jade Tempo <span class="chip">v1</span> <span class="muted">vs</span> Jinx</div><div class="meta">Online • Testing • BO3 • Sep 21, 8:08 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m1" style="width:100%;text-align:left;color:inherit"><div><div class="title">Jade Tempo — lower curve <span class="chip">v2</span> <span class="muted">vs</span> Yasuo</div><div class="meta">Online • Testing • BO3 • Sep 21, 8:01 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m7" style="width:100%;text-align:left;color:inherit"><div><div class="title">Tournament build — testing a more patient resource plan <span class="chip">v4</span> <span class="muted">vs</span> Yasuo</div><div class="meta">Online • Testing • BO3 • Sep 20, 8:07 PM</div></div><div class="right"><span class="chip good">W</span></div></button><button class="list-item historyOpen" data-id="m0" style="width:100%;text-align:left;color:inherit"><div><div class="title">Jade Tempo <span class="chip">v1</span> <span class="muted">vs</span> Jinx</div><div class="meta">Online • Testing • BO3 • Sep 20, 8:00 PM</div></div><div class="right"><span class="chip warn">L</span></div></button></div></section>
+      
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="stats"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Progress</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      <section id="screen-stats" class="screen active" data-screen="stats">
+    <div class="section-head stats-head"><div><div class="eyebrow">PLAYER CHRONICLE · ANALYTICS</div><h2>Progress</h2><div class="sub">A clear read on what your games are teaching you.</div></div></div>
+    <label><span class="label-title">Stats scope</span><select id="statsScope"><option value="overall" selected>Overall</option><option value="legend:l1">Legend — Ahri</option><option value="legend:l2">Legend — Yasuo</option><option value="legend:l3">Legend — Jinx</option><option value="deck:d1">Deck — Jade Tempo v1</option><option value="deck:d2">Deck — Jade Tempo — lower curve v2</option><option value="deck:d3">Deck — Windborne Control v3</option><option value="deck:d4">Deck — Tournament build — testing a more patient resource plan v4</option></select></label>
+    <div class="grid-2"><div class="card stat-card"><div class="k">Tracked time</div><div class="v">8h 00m</div></div><div class="card stat-card"><div class="k">Match record</div><div class="v">8–4</div><div class="tiny muted">66.7% • n=12</div></div><div class="card stat-card"><div class="k">Game record</div><div class="v">16–20</div><div class="tiny muted">44.4% • n=36</div></div><div class="card stat-card"><div class="k">Avg points</div><div class="v">8.0–6.0</div><div class="tiny muted">For / Against • scored n=36</div></div></div>
+    <div class="section-head"><h3>Your point sources</h3><div class="sub">0 tracked points</div></div><div class="card source-bars"><div class="source-row"><span>Conquer</span><div class="progress"><span style="width:0%"></span></div><strong>—</strong></div><div class="source-row"><span>Hold</span><div class="progress"><span style="width:0%"></span></div><strong>—</strong></div><div class="source-row"><span>Effect</span><div class="progress"><span style="width:0%"></span></div><strong>—</strong></div></div>
+    <div class="section-head"><h3>Opponent point sources</h3><div class="sub">0 tracked points</div></div><div class="card source-bars"><div class="source-row"><span>Conquer</span><div class="progress"><span style="width:0%"></span></div><strong>—</strong></div><div class="source-row"><span>Hold</span><div class="progress"><span style="width:0%"></span></div><strong>—</strong></div><div class="source-row"><span>Effect</span><div class="progress"><span style="width:0%"></span></div><strong>—</strong></div></div>
+    </section>
+      
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="more"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Journal</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      
+      
+      
+      
+      <section id="screen-more" class="screen active" data-screen="more">
+    <div class="section-head collection-head"><div><div class="eyebrow">FIELD NOTES · REFLECTION</div><h2>Journal</h2><div class="sub">Quick notes stay attached to their original context.</div></div></div>
+    <input id="noteSearch" type="search" aria-label="Search notes" placeholder="Search notes" value="">
+    <div class="list" style="margin-top:10px"><div class="note">Draft: judge a line by the position it leaves behind.<div class="context">Sep 26, 9:00 PM</div></div><div class="note">Review: compare the next turn after each line. Winning the visible exchange is only part of the decision.<div class="context">Sep 26, 8:00 PM</div></div><div class="note">Research: does the new threat change our early-turn plan?<div class="context">Sep 26, 7:00 PM</div></div><div class="note">Position review: when did my role in the game change?<div class="context">Sep 25, 8:00 PM</div></div></div>
+    </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="studio"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">X Studio</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      
+      
+      <section id="screen-studio" class="screen active" data-screen="studio"><div class="lab-shell studio-shell" id="riftLab"><div id="labPanel" class="lab-panel"><div id="insightPanel" class="insight-panel"><div class="lab-row insight-header"><div><div class="lab-title">X Studio</div><div class="lab-meta">Draft from evidence, then track original posts and substantive replies. Record results to learn what readers save and discuss.</div></div><button class="btn small primary" id="newXPost">+ Draft Insight</button></div><article class="insight-card"><div class="lab-row"><div><div class="lab-title">The next turn matters more than the cleanest trade.</div><div class="lab-meta">Draft · original · Any time · working hypothesis</div></div><button class="btn small ghost editXPost" data-id="x1">Open</button></div><p><b>Audience:</b> Players reviewing close matches</p><p><b>Claim:</b> Judge a line by the position it leaves behind.</p><p><b>Proof:</b> A reviewed practice position compared two possible commitments.</p><div class="x-draft-preview">A trade can look efficient and still leave you without a useful next turn.
+
+When reviewing a close decision, write down both candidate lines—then compare what each lets you do one turn later.</div><div class="lab-wrap"><button class="btn small copyXPost" data-id="x1">Copy draft</button></div></article></div></div></div></section>
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="positions"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Lab</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      
+      <section id="screen-lab" class="screen active" data-screen="lab"><div class="lab-shell" id="riftLab"><div class="lab-navigation" aria-label="Lab tools"><div class="lab-nav-group"><span>PRACTICE</span><button data-lab-tab="blocks" aria-current="false">Testing blocks</button><button data-lab-tab="matchups" aria-current="false">Matchups</button><button data-lab-tab="positions" class="active" aria-current="page">Position reviews</button><button data-lab-tab="queue" aria-current="false">Training queue</button><button data-lab-tab="events" aria-current="false">Events</button><button data-lab-tab="experiments" aria-current="false">Deck experiments</button></div><div class="lab-nav-group"><span>RESEARCH</span><button data-lab-tab="research" aria-current="false">Research board</button><button data-lab-tab="pulse" aria-current="false">Format pulse</button></div><div class="lab-nav-group"><span>DEVELOPMENT</span><button data-lab-tab="goals" aria-current="false">Goals</button><button data-lab-tab="skills" aria-current="false">Skills</button><button data-lab-tab="explorer" aria-current="false">Explorer</button><button data-lab-tab="chronicle" aria-current="false">Chronicle</button><button data-lab-tab="tools" aria-current="false">Tools</button></div></div><label class="lab-mobile-picker"><span class="label-title">Lab workspace</span><select id="labToolSelect"><optgroup label="PRACTICE"><option value="blocks">Testing blocks</option><option value="matchups">Matchups</option><option value="positions" selected>Position reviews</option><option value="queue">Training queue</option><option value="events">Events</option><option value="experiments">Deck experiments</option></optgroup><optgroup label="RESEARCH"><option value="research">Research board</option><option value="pulse">Format pulse</option></optgroup><optgroup label="DEVELOPMENT"><option value="goals">Goals</option><option value="skills">Skills</option><option value="explorer">Explorer</option><option value="chronicle">Chronicle</option><option value="tools">Tools</option></optgroup></select></label><div id="labPanel" class="lab-panel"><div id="insightPanel" class="insight-panel"><div class="lab-row insight-header"><div><div class="lab-title">Position Lab</div><div class="lab-meta">After a game, unpack one difficult decision: role, two lines, opponent range, and what changed your read.</div></div><button class="btn small primary" id="newPositionReview">+ Review a Position</button></div><article class="insight-card"><div class="lab-row"><div><div class="lab-title">Commit to the contested battlefield, or hold resources for the next turn?</div><div class="lab-meta">Windborne Control vs Jinx · Sep 26, 8:00 PM · Reviewed</div></div><button class="btn small ghost editPositionReview" data-id="p1">Open</button></div><div class="insight-pair"><div><b>Your role</b><span>opponent</span></div><div><b>Line A</b><span>Commit another unit to contest immediately. This wins the visible exchange but leaves no resource buffer for a response.</span></div><div><b>Line B</b><span>Concede the current point and build a stronger next turn with two resources available.</span></div></div><p><b>Opponent range:</b> A response that removes the second unit, or a pass that preserves a more efficient turn.</p><p><b>What changed your read:</b> The opponent declined to spend resources after the first commitment, increasing the value of patience.</p><p><b>Review takeaway:</b> Compare the next turn after each line. Winning the visible exchange is only part of the decision.</p><div class="lab-wrap"><button class="btn small draftFromPosition" data-id="p1">Draft a supported insight</button></div></article><article class="insight-card"><div class="lab-row"><div><div class="lab-title">When did my role in the game change?</div><div class="lab-meta">Sep 25, 8:00 PM · Unreviewed</div></div><button class="btn small ghost editPositionReview" data-id="p2">Open</button></div><div class="insight-pair"><div><b>Your role</b><span>changed</span></div><div><b>Line A</b><span>Keep trading resources and preserve flexibility.</span></div><div><b>Line B</b><span>Convert the current advantage before the opponent can stabilize.</span></div></div><p><b>Review takeaway:</b> Revisit after comparing the next two turns.</p><div class="lab-wrap"><button class="btn small draftFromPosition" data-id="p2">Draft a supported insight</button></div></article></div></div></div></section>
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="research"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Lab</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      
+      <section id="screen-lab" class="screen active" data-screen="lab"><div class="lab-shell" id="riftLab"><div class="lab-navigation" aria-label="Lab tools"><div class="lab-nav-group"><span>PRACTICE</span><button data-lab-tab="blocks" aria-current="false">Testing blocks</button><button data-lab-tab="matchups" aria-current="false">Matchups</button><button data-lab-tab="positions" aria-current="false">Position reviews</button><button data-lab-tab="queue" aria-current="false">Training queue</button><button data-lab-tab="events" aria-current="false">Events</button><button data-lab-tab="experiments" aria-current="false">Deck experiments</button></div><div class="lab-nav-group"><span>RESEARCH</span><button data-lab-tab="research" class="active" aria-current="page">Research board</button><button data-lab-tab="pulse" aria-current="false">Format pulse</button></div><div class="lab-nav-group"><span>DEVELOPMENT</span><button data-lab-tab="goals" aria-current="false">Goals</button><button data-lab-tab="skills" aria-current="false">Skills</button><button data-lab-tab="explorer" aria-current="false">Explorer</button><button data-lab-tab="chronicle" aria-current="false">Chronicle</button><button data-lab-tab="tools" aria-current="false">Tools</button></div></div><label class="lab-mobile-picker"><span class="label-title">Lab workspace</span><select id="labToolSelect"><optgroup label="PRACTICE"><option value="blocks">Testing blocks</option><option value="matchups">Matchups</option><option value="positions">Position reviews</option><option value="queue">Training queue</option><option value="events">Events</option><option value="experiments">Deck experiments</option></optgroup><optgroup label="RESEARCH"><option value="research" selected>Research board</option><option value="pulse">Format pulse</option></optgroup><optgroup label="DEVELOPMENT"><option value="goals">Goals</option><option value="skills">Skills</option><option value="explorer">Explorer</option><option value="chronicle">Chronicle</option><option value="tools">Tools</option></optgroup></select></label><div id="labPanel" class="lab-panel"><div id="insightPanel" class="insight-panel"><div class="lab-row insight-header"><div><div class="lab-title">Research Board</div><div class="lab-meta">Track the question, evidence, and next test. Your saved notes stay useful after a release window moves on.</div></div><button class="btn small primary" id="newResearch">+ Research Idea</button></div><article class="insight-card"><div class="lab-row"><div><div class="lab-title">Does the new threat change our early-turn plan?</div><div class="lab-meta">Any time · working hypothesis · Sep 28, 6:11 AM</div></div><button class="btn small ghost editResearch" data-id="r1">Update</button></div><p><b>Question:</b> What does this card let the opponent do earlier?</p><p><b>Hypothesis:</b> The first contested turn may require a larger resource buffer.</p><p><b>Evidence:</b> A small sample of practice positions suggests that an early commitment can be punished.</p><p><b>Next test:</b> Compare ten positions with one resource held back.</p><div class="lab-wrap"><button class="btn small draftFromResearch" data-id="r1">Draft for X</button><button class="btn small ghost queueResearch" data-id="r1">Add next test to Training Queue</button></div></article></div></div></div></section>
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="skills"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Lab</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      
+      <section id="screen-lab" class="screen active" data-screen="lab"><div class="lab-shell" id="riftLab"><div class="lab-navigation" aria-label="Lab tools"><div class="lab-nav-group"><span>PRACTICE</span><button data-lab-tab="blocks" aria-current="false">Testing blocks</button><button data-lab-tab="matchups" aria-current="false">Matchups</button><button data-lab-tab="positions" aria-current="false">Position reviews</button><button data-lab-tab="queue" aria-current="false">Training queue</button><button data-lab-tab="events" aria-current="false">Events</button><button data-lab-tab="experiments" aria-current="false">Deck experiments</button></div><div class="lab-nav-group"><span>RESEARCH</span><button data-lab-tab="research" aria-current="false">Research board</button><button data-lab-tab="pulse" aria-current="false">Format pulse</button></div><div class="lab-nav-group"><span>DEVELOPMENT</span><button data-lab-tab="goals" aria-current="false">Goals</button><button data-lab-tab="skills" class="active" aria-current="page">Skills</button><button data-lab-tab="explorer" aria-current="false">Explorer</button><button data-lab-tab="chronicle" aria-current="false">Chronicle</button><button data-lab-tab="tools" aria-current="false">Tools</button></div></div><label class="lab-mobile-picker"><span class="label-title">Lab workspace</span><select id="labToolSelect"><optgroup label="PRACTICE"><option value="blocks">Testing blocks</option><option value="matchups">Matchups</option><option value="positions">Position reviews</option><option value="queue">Training queue</option><option value="events">Events</option><option value="experiments">Deck experiments</option></optgroup><optgroup label="RESEARCH"><option value="research">Research board</option><option value="pulse">Format pulse</option></optgroup><optgroup label="DEVELOPMENT"><option value="goals">Goals</option><option value="skills" selected>Skills</option><option value="explorer">Explorer</option><option value="chronicle">Chronicle</option><option value="tools">Tools</option></optgroup></select></label><div id="labPanel" class="lab-panel">
+    <div class="lab-row"><div><div class="strong">Training Areas</div><div class="small muted">Rate consistency: 1 Learning · 2 Developing · 3 Reliable · 4 Strong · 5 Consistent under pressure.</div></div><button class="btn small primary" id="newTrainingArea">+ Area</button></div>
+    <div class="lab-panel"><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Event Discipline</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="8aa90b93-e6b4-43f9-a0dd-325450117acc">Edit</button></div><div class="segmented trainingRate" data-id="8aa90b93-e6b4-43f9-a0dd-325450117acc" style="margin-top:9px"><button data-rate="1" aria-label="Event Discipline: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Event Discipline: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Event Discipline: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Event Discipline: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Event Discipline: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Matchup Knowledge</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="6686de04-411c-4cf3-8a0e-21541f429acc">Edit</button></div><div class="segmented trainingRate" data-id="6686de04-411c-4cf3-8a0e-21541f429acc" style="margin-top:9px"><button data-rate="1" aria-label="Matchup Knowledge: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Matchup Knowledge: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Matchup Knowledge: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Matchup Knowledge: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Matchup Knowledge: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Mulligan</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="1638ade6-6f7a-4a41-a7ff-aa919b6466c3">Edit</button></div><div class="segmented trainingRate" data-id="1638ade6-6f7a-4a41-a7ff-aa919b6466c3" style="margin-top:9px"><button data-rate="1" aria-label="Mulligan: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Mulligan: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Mulligan: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Mulligan: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Mulligan: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Resource Management</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="84dec44d-6440-4150-8a6b-005f1cf1eaca">Edit</button></div><div class="segmented trainingRate" data-id="84dec44d-6440-4150-8a6b-005f1cf1eaca" style="margin-top:9px"><button data-rate="1" aria-label="Resource Management: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Resource Management: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Resource Management: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Resource Management: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Resource Management: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Scoring Windows</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="129cca7f-6986-4054-9e9a-c1ebbe93b983">Edit</button></div><div class="segmented trainingRate" data-id="129cca7f-6986-4054-9e9a-c1ebbe93b983" style="margin-top:9px"><button data-rate="1" aria-label="Scoring Windows: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Scoring Windows: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Scoring Windows: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Scoring Windows: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Scoring Windows: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Sequencing</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="12afc6ea-54c4-4fcc-8757-6721054b443b">Edit</button></div><div class="segmented trainingRate" data-id="12afc6ea-54c4-4fcc-8757-6721054b443b" style="margin-top:9px"><button data-rate="1" aria-label="Sequencing: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Sequencing: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Sequencing: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Sequencing: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Sequencing: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div><div class="lab-card skill-row"><div class="lab-row"><div><div class="lab-title">Tempo Planning</div><div class="lab-meta">Current self-rating: 0/5</div></div><button class="btn small ghost trainingEdit" data-id="c1ed75b3-181e-4d69-ac56-cf015f339e8c">Edit</button></div><div class="segmented trainingRate" data-id="c1ed75b3-181e-4d69-ac56-cf015f339e8c" style="margin-top:9px"><button data-rate="1" aria-label="Tempo Planning: 1 of 5" aria-pressed="false" title="Learning">1</button><button data-rate="2" aria-label="Tempo Planning: 2 of 5" aria-pressed="false" title="Developing">2</button><button data-rate="3" aria-label="Tempo Planning: 3 of 5" aria-pressed="false" title="Reliable">3</button><button data-rate="4" aria-label="Tempo Planning: 4 of 5" aria-pressed="false" title="Strong">4</button><button data-rate="5" aria-label="Tempo Planning: 5 of 5" aria-pressed="false" title="Consistent under pressure">5</button></div></div></div></div></div></section>
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><template data-sample="explorer"><div id="app" class="app-shell">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">RIFTMASTERY</div>
+        <h1 id="screenTitle">Lab</h1>
+      </div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div style="color:var(--good)" id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+    </header>
+
+    <main id="main" class="main-content" tabindex="-1">
+      
+      
+      
+      
+      
+      <section id="screen-lab" class="screen active" data-screen="lab"><div class="lab-shell" id="riftLab"><div class="lab-navigation" aria-label="Lab tools"><div class="lab-nav-group"><span>PRACTICE</span><button data-lab-tab="blocks" aria-current="false">Testing blocks</button><button data-lab-tab="matchups" aria-current="false">Matchups</button><button data-lab-tab="positions" aria-current="false">Position reviews</button><button data-lab-tab="queue" aria-current="false">Training queue</button><button data-lab-tab="events" aria-current="false">Events</button><button data-lab-tab="experiments" aria-current="false">Deck experiments</button></div><div class="lab-nav-group"><span>RESEARCH</span><button data-lab-tab="research" aria-current="false">Research board</button><button data-lab-tab="pulse" aria-current="false">Format pulse</button></div><div class="lab-nav-group"><span>DEVELOPMENT</span><button data-lab-tab="goals" aria-current="false">Goals</button><button data-lab-tab="skills" aria-current="false">Skills</button><button data-lab-tab="explorer" class="active" aria-current="page">Explorer</button><button data-lab-tab="chronicle" aria-current="false">Chronicle</button><button data-lab-tab="tools" aria-current="false">Tools</button></div></div><label class="lab-mobile-picker"><span class="label-title">Lab workspace</span><select id="labToolSelect"><optgroup label="PRACTICE"><option value="blocks">Testing blocks</option><option value="matchups">Matchups</option><option value="positions">Position reviews</option><option value="queue">Training queue</option><option value="events">Events</option><option value="experiments">Deck experiments</option></optgroup><optgroup label="RESEARCH"><option value="research">Research board</option><option value="pulse">Format pulse</option></optgroup><optgroup label="DEVELOPMENT"><option value="goals">Goals</option><option value="skills">Skills</option><option value="explorer" selected>Explorer</option><option value="chronicle">Chronicle</option><option value="tools">Tools</option></optgroup></select></label><div id="labPanel" class="lab-panel"><div id="insightPanel" class="insight-panel"><div class="insight-intro"><div class="lab-title">Development Explorer</div><div class="lab-meta">See your practice rhythm, review habits, and weekly follow-through.</div></div>
+    <div class="insight-stats"><div class="lab-mini"><div class="tiny muted">COMPLETED SESSIONS</div><div class="big">12</div></div><div class="lab-mini"><div class="tiny muted">PRACTICE HOURS</div><div class="big">8.0</div></div><div class="lab-mini"><div class="tiny muted">POSITION REVIEWS</div><div class="big">2</div></div><div class="lab-mini"><div class="tiny muted">RESEARCH NOTES</div><div class="big">1</div></div></div>
+    <div class="lab-card"><div class="lab-title">Practice rhythm</div><div class="lab-meta">Completed sessions by month</div><div class="insight-bars"><div class="insight-bar"><span></span><i><b style="height:0%"></b></i><small>Apr</small></div><div class="insight-bar"><span></span><i><b style="height:0%"></b></i><small>May</small></div><div class="insight-bar"><span></span><i><b style="height:0%"></b></i><small>Jun</small></div><div class="insight-bar"><span></span><i><b style="height:0%"></b></i><small>Jul</small></div><div class="insight-bar"><span></span><i><b style="height:0%"></b></i><small>Aug</small></div><div class="insight-bar"><span>12</span><i><b style="height:100%"></b></i><small>Sep</small></div></div></div>
+    <div class="lab-card"><div class="lab-title">Follow-through</div><div class="lab-meta">Required weekly checklist tasks completed across saved weeks</div><div class="lab-row" style="margin-top:9px"><strong>0 / 5</strong><span class="lab-chip">0%</span></div><div class="lab-progress"><span style="width:0%"></span></div></div>
+    <div class="lab-card"><div class="lab-title">Repeated review tags</div><div class="lab-meta">Counts show how often you applied a tag; they are prompts for review, not diagnoses.</div><div class="lab-wrap" style="margin-top:9px"><span class="small muted">No tagged review notes yet.</span></div></div>
+    <div class="lab-card"><div class="lab-title">Research and creator work</div><div class="lab-meta">0 research notes marked observed · 0 posts marked posted · 0 testing blocks completed</div></div></div></div></div></section>
+      
+      
+      
+    </main>
+
+    <nav class="bottom-nav" aria-label="Primary navigation">
+      <button class="nav-item" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6" /><path d="m12 9 2 5-2 4-2-4z" /></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4" /></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12" /><path d="m13.5 7 3 4-3 4-3-4z" /></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6" /></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2" /></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6" /></svg></span><small>Journal</small></button>
+      <button aria-current="page" class="nav-item active" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5" /><path d="m12 8 3 4-3 4-3-4z" /></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8" /></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6" /></svg></span><small>Settings</small></button>
+    </nav>
+  </div></template><script>const route=document.querySelector("#sampleRoute"),stage=document.querySelector("#sampleStage");function show(key){const template=[...document.querySelectorAll("template")].find(t=>t.dataset.sample===key);if(!template)return;route.value=key;stage.replaceChildren(template.content.cloneNode(true));window.scrollTo(0,0)}route.onchange=()=>show(route.value);stage.addEventListener("click",e=>{const nav=e.target.closest("[data-nav]");if(nav){show(nav.dataset.nav==="lab"?"positions":nav.dataset.nav);return}const tool=e.target.closest("[data-lab-tab]");if(tool){show(tool.dataset.labTab);return}if(e.target.closest("button"))e.preventDefault()});stage.addEventListener("change",e=>{if(e.target.id==="labToolSelect")show(e.target.value)});show("home");</script></body></html>

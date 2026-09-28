@@ -9,14 +9,15 @@
   <meta name="apple-mobile-web-app-title" content="RiftMastery" />
   <title>RiftMastery</title>
   <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./icon.svg?v=0.10.0" type="image/svg+xml" />
-  <link rel="apple-touch-icon" href="./icon.svg?v=0.10.0" />
-  <link rel="stylesheet" href="./styles.css?v=0.10.0" />
-  <link rel="stylesheet" href="./lab.css?v=0.10.0" />
-  <link rel="stylesheet" href="./ui.css?v=0.10.0" />
-  <link rel="stylesheet" href="./brand.css?v=0.10.0" />
+  <link rel="icon" href="./icon.svg?v=0.11.0" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="./icon.svg?v=0.11.0" />
+  <link rel="stylesheet" href="./styles.css?v=0.11.0" />
+  <link rel="stylesheet" href="./lab.css?v=0.11.0" />
+  <link rel="stylesheet" href="./ui.css?v=0.11.0" />
+  <link rel="stylesheet" href="./brand.css?v=0.11.0" />
 </head>
 <body>
+  <a class="skip-link" href="#main">Skip to content</a>
   <div id="app" class="app-shell">
     <header class="topbar">
       <div>
@@ -26,7 +27,7 @@
       <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
     </header>
 
-    <main id="main" class="main-content">
+    <main id="main" class="main-content" tabindex="-1">
       <section id="screen-home" class="screen active" data-screen="home"></section>
       <section id="screen-play" class="screen" data-screen="play"></section>
       <section id="screen-decks" class="screen" data-screen="decks"></section>
@@ -39,15 +40,15 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Primary navigation">
-      <button class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3.5 10 8.5-7 8.5 7v10a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z"/><path d="M9 21v-7h6v7"/></svg></span><small>Home</small></button>
-      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 5 11 7-11 7z"/></svg></span><small>Train</small></button>
-      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7z"/><path d="M4 6v15h13M10 7h7M10 11h7M10 15h5"/></svg></span><small>Decks</small></button>
-      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span><small>Review</small></button>
-      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V11h4v9M10 20V5h4v15M16 20V8h4v12"/></svg></span><small>Progress</small></button>
-      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h14v18H5zM8 3v18M11 8h5M11 12h5"/></svg></span><small>Journal</small></button>
-      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6M10 3v6l-6 10q-1 2 2 2h12q3 0 2-2L14 9V3M8 14h8"/></svg></span><small>Lab</small></button>
-      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 4h4l12 16h-4zM20 4 4 20"/></svg></span><small>X Studio</small></button>
-      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="m9 3-1 3-3 1 1 3-2 2 2 2-1 3 3 1 1 3h6l1-3 3-1-1-3 2-2-2-2 1-3-3-1-1-3z"/></svg></span><small>Settings</small></button>
+      <button class="nav-item active" data-nav="home" aria-label="Home"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 21V10l6-6M20 21V10l-6-6M8 21V12l2-2M16 21V12l-2-2M9 21h6"/><path d="m12 9 2 5-2 4-2-4z"/></svg></span><small>Home</small></button>
+      <button class="nav-item" data-nav="play" aria-label="Train"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 3 5 1-1 5-9 9-4-4zM5 13l6 6M7 17l-4 4M12 8l4 4"/></svg></span><small>Train</small></button>
+      <button class="nav-item" data-nav="decks" aria-label="Decks"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h13v16H7zM4 7v14h12"/><path d="m13.5 7 3 4-3 4-3-4z"/></svg></span><small>Decks</small></button>
+      <button class="nav-item" data-nav="history" aria-label="Review"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h14v16H5zM3 4h4M17 4h4M3 20h4M17 20h4M8 12l3 3 5-6"/></svg></span><small>Review</small></button>
+      <button class="nav-item" data-nav="stats" aria-label="Progress"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 21h18M4 18l5-7 3 3 5-9 4 13M14 5h3v4M8 18h2M13 18h2"/></svg></span><small>Progress</small></button>
+      <button class="nav-item" data-nav="more" aria-label="Journal"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v14H4zM8 5v14M12 5v14M16 5v14M3 8h18M3 16h18M9 22h6"/></svg></span><small>Journal</small></button>
+      <button class="nav-item" data-nav="lab" aria-label="Lab"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 4 8 0 4 4v8l-4 4H8l-4-4V8zM12 1v5M23 12h-5M12 23v-5M1 12h5"/><path d="m12 8 3 4-3 4-3-4z"/></svg></span><small>Lab</small></button>
+      <button class="nav-item" data-nav="studio" aria-label="X Studio"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m17 3 4 4-10 10-4-4zM7 13l-3 7 7-3M14 6l4 4M13 21h8"/></svg></span><small>X Studio</small></button>
+      <button class="nav-item" data-nav="settings" aria-label="Settings"><span><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16M8 3v6M16 9v6M10 15v6"/></svg></span><small>Settings</small></button>
     </nav>
   </div>
 
@@ -76,8 +77,8 @@
       }
     }
   </script>
-  <script type="module" src="./app.js?v=0.10.0"></script>
-  <script type="module" src="./lab.js?v=0.10.0"></script>
-  <script type="module" src="./sync.js?v=0.10.0"></script>
+  <script type="module" src="./app.js?v=0.11.0"></script>
+  <script type="module" src="./lab.js?v=0.11.0"></script>
+  <script type="module" src="./sync.js?v=0.11.0"></script>
 </body>
 </html>
