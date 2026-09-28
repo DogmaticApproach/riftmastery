@@ -1,5 +1,5 @@
 import {mountCardLibrary} from './card-library.js?v=0.16.0';
-import { mountCultivation } from './cultivation.js?v=0.16.0';
+import { mountCultivation } from './cultivation.js?v=0.17.0';
 import { prepareEditor } from './ui.js?v=0.13.0';
 export const RIFTMASTERY_LAB_VERSION = '0.13.0';
 

@@ -18,16 +18,18 @@
   <link rel="stylesheet" href="./cultivation.css?v=0.13.0" />
   <link rel="stylesheet" href="./art-direction.css?v=0.15.1" />
   <link rel="stylesheet" href="./redesign.css?v=0.16.0" />
+  <link rel="stylesheet" href="./experience.css?v=0.17.0" />
+  <link rel="preload" href="./assets/fonts/rift-display.woff" as="font" type="font/woff" crossorigin>
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div id="app" class="app-shell">
-    <header class="topbar">
-      <div>
+    <header class="topbar"><button type="button" class="masthead-brand" id="brandHome" aria-label="RiftMastery home"><img src="./icon.svg" width="32" height="32" alt=""><span>RIFT<span>MASTERY</span><small>A PERSONAL CULTIVATION JOURNAL</small></span></button>
+      <div class="masthead-location">
         <div class="eyebrow">RIFTMASTERY</div>
         <h1 id="screenTitle">Home</h1>
       </div>
-      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation">Menu</button><div id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
+      <button id="navigationMenu" class="btn small ghost navigation-menu" aria-label="Open navigation"><span class="menu-lines" aria-hidden="true">☰</span><span>Explore</span></button><div id="saveStatus" class="save-status" aria-live="polite">Saved on this device</div>
     </header>
 
     <main id="main" class="main-content" tabindex="-1">
@@ -80,8 +82,8 @@
       }
     }
   </script>
-  <script type="module" src="./app.js?v=0.16.0"></script>
-  <script type="module" src="./lab.js?v=0.16.0"></script>
+  <script type="module" src="./app.js?v=0.17.0"></script>
+  <script type="module" src="./lab.js?v=0.17.0"></script>
   <script type="module" src="./sync.js?v=0.13.0"></script>
 </body>
 </html>

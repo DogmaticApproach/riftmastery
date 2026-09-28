@@ -1,5 +1,5 @@
-import {mountHomePractice} from './practice.js?v=0.13.0';
-import { configureCultivation, mountCultivation } from './cultivation.js?v=0.16.0';
+import {mountHomePractice} from './practice.js?v=0.17.0';
+import { configureCultivation, mountCultivation } from './cultivation.js?v=0.17.0';
 import { prepareEditor } from './ui.js?v=0.13.0';
 import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.13.0';
 
@@ -117,6 +117,7 @@ function intervalActiveMs(start,end,pauses=[]){
 
 function setScreen(name){
   state.screen=name;
+  app.dataset.view=name;
   $$('.screen').forEach(s=>s.classList.toggle('active',s.dataset.screen===name));
   $$('.nav-item').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const titles={home:'Home',play:'Train',decks:'Decks',history:'Review',stats:'Progress',more:'Journal',lab:'Lab',studio:'X Studio',settings:'Settings'};
@@ -126,6 +127,7 @@ function setScreen(name){
 }
 
 $$('.nav-item').forEach(b=>b.addEventListener('click',()=>setScreen(b.dataset.nav)));
+$('#brandHome').onclick=()=>setScreen('home');
 $('#navigationMenu').onclick=()=>{
   const items=$$('.nav-item').map(b=>`<button type="button" class="menu-destination ${state.screen===b.dataset.nav?'active':''}" data-destination="${b.dataset.nav}">${b.innerHTML}</button>`).join('');
   showModal('Your workspace',`<div class="mobile-destinations">${items}</div>`);
@@ -360,12 +362,12 @@ async function renderDecks(){
   const archived=decks.filter(d=>!d.deleted_at&&d.archived);
   const hasAnyActiveDeck=decks.some(d=>!d.deleted_at&&!d.archived);
   const hasAnyDeck=decks.some(d=>!d.deleted_at);
-  const deckEmpty=activeDecks.length?activeDecks.map((d,i)=>`<div class='list-item deck-library-item'><div class='deck-folio-art' aria-hidden='true'><span class='folio-number'>${String(i+1).padStart(2,'0')}</span><img src='./assets/jade-seal.svg' alt=''><span>${esc(legendMap[d.legend_id]?.name||'UNASSIGNED')}</span></div><div style='min-width:0;flex:1'><div class='title'>${d.pinned?'★ ':''}${esc(d.name)} ${d.version?`<span class='chip'>${esc(d.version)}</span>`:''}</div><div class='meta'>${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.parent_deck_id?' • versioned':''}${d.deck_list?` • ${d.deck_list.split(/\n/).filter(Boolean).length} list lines`:''}${d.notes?` • ${esc(d.notes)}`:''}</div><div class='deck-action-row'><button class='btn small ghost deckView' data-id='${d.id}'>View list</button><button class='btn small deckVersion' data-id='${d.id}'>New version</button><details class='deck-manage'><summary>Manage <span aria-hidden='true'>⌄</span></summary><div><button class='btn small ghost deckPin' data-id='${d.id}'>${d.pinned?'Unpin':'Pin'}</button><button class='btn small ghost deckDuplicate' data-id='${d.id}'>Duplicate</button><button class='btn small ghost deckEdit' data-id='${d.id}'>Edit</button><button class='btn small danger deckDelete' data-id='${d.id}'>Delete</button></div></details></div></div></div>`).join(''):
+  const deckEmpty=activeDecks.length?activeDecks.map((d,i)=>`<div class='list-item deck-library-item'><button type='button' class='deck-folio-art deckView' data-id='${d.id}' aria-label='Inspect ${esc(d.name)}'><span class='folio-number'>BUILD / ${String(i+1).padStart(2,'0')}</span><span class='folio-initial' aria-hidden='true'>${esc((legendMap[d.legend_id]?.name||d.name).slice(0,1))}</span><span>${esc(legendMap[d.legend_id]?.name||'UNASSIGNED')} <b aria-hidden='true'>↗</b></span></button><div style='min-width:0;flex:1'><div class='title'>${d.pinned?'★ ':''}${esc(d.name)} ${d.version?`<span class='chip'>${esc(d.version)}</span>`:''}</div><div class='meta'>${esc(legendMap[d.legend_id]?.name||'Unknown Legend')}${d.parent_deck_id?' • versioned':''}${d.deck_list?` • ${d.deck_list.split(/\n/).filter(Boolean).length} list lines`:''}${d.notes?` • ${esc(d.notes)}`:''}</div><div class='deck-action-row'><button class='btn small ghost deckView' data-id='${d.id}'>View list</button><button class='btn small deckVersion' data-id='${d.id}'>New version</button><details class='deck-manage'><summary>Manage <span aria-hidden='true'>⌄</span></summary><div><button class='btn small ghost deckPin' data-id='${d.id}'>${d.pinned?'Unpin':'Pin'}</button><button class='btn small ghost deckDuplicate' data-id='${d.id}'>Duplicate</button><button class='btn small ghost deckEdit' data-id='${d.id}'>Edit</button><button class='btn small danger deckDelete' data-id='${d.id}'>Delete</button></div></details></div></div></div>`).join(''):
     !hasAnyDeck&&!q&&!legendFilter?`<div class='empty-state deck-empty'><div class='empty-art deck-art' aria-hidden='true'><svg viewBox='0 0 180 150'><defs><linearGradient id='deckGlow' x1='0' y1='0' x2='1' y2='1'><stop stop-color='#d8c087'/><stop offset='1' stop-color='#719789'/></linearGradient></defs><rect x='48' y='25' width='78' height='106' rx='12' transform='rotate(-12 48 25)' fill='#13211f' stroke='#536760'/><rect x='68' y='18' width='78' height='106' rx='12' transform='rotate(8 68 18)' fill='#1b2e2b' stroke='#75846b'/><rect x='57' y='22' width='78' height='106' rx='12' fill='#101a1a' stroke='url(#deckGlow)' stroke-width='2'/><path d='M96 45 112 72 96 99 80 72z' fill='url(#deckGlow)' opacity='.88'/><circle cx='96' cy='72' r='28' fill='none' stroke='#d9c795' stroke-opacity='.25'/><path d='M96 57v30M86 72h20' stroke='#f1e3bb' stroke-width='2' stroke-linecap='round'/></svg></div><span class='eyebrow'>YOUR LIBRARY STARTS HERE</span><h3>Give your next idea a home.</h3><p>Create a deck record to track the list, version changes, and the results that follow.</p><button class='btn primary' id='firstDeck'>Create your first deck</button><div class='empty-footnote'>Decks stay attached to their Legend and version history.</div></div>`:
     !hasAnyActiveDeck&&!q&&!legendFilter?`<div class='empty-state compact-empty'><span class='empty-symbol' aria-hidden='true'>✦</span><h3>No active decks</h3><p>Restore a build from Archived or create a new version to keep testing.</p></div>`:
     `<div class='empty-state compact-empty'><span class='empty-symbol' aria-hidden='true'>⌕</span><h3>No decks found</h3><p>Try a different search or Legend filter.</p><button class='btn small ghost' id='clearDeckFilters'>Clear filters</button></div>`;
   el.innerHTML=`
-    <div class='section-head collection-head'><div><div class='eyebrow'>RIFTMASTERY · DECK WORKSHOP</div><h2>The deck workshop.</h2><div class='sub'>Build, branch, and compare versions without losing your history.</div></div><div class='btn-row' style='flex:0 0 auto'><button class='btn small ghost' id='deckCardLibrary'>Card library ↗</button><button class='btn small ghost' id='importDeck'>Import</button>${hasAnyDeck?`<button class='btn small primary' id='newDeck'>+ Deck</button>`:''}</div></div>
+    <div class='section-head collection-head deck-opening'><div><div class='eyebrow'>03 / THE DECK WORKSHOP</div><h2>Ideas into<br><em>instruments.</em></h2><div class='sub'>Build, branch, and compare versions without losing your history.</div></div><div class='btn-row' style='flex:0 0 auto'><button class='btn small ghost' id='deckCardLibrary'>Card library ↗</button><button class='btn small ghost' id='importDeck'>Import</button>${hasAnyDeck?`<button class='btn small primary' id='newDeck'>+ Deck</button>`:''}</div></div>
     <div class='grid-2' style='margin-bottom:10px'><input id='deckSearch' type='search' aria-label='Search decks' placeholder='Search decks' value='${esc(state.deckFilters.query||'')}'><select id='deckLegendFilter' aria-label='Filter decks by Legend'><option value=''>All Legends</option>${legends.filter(l=>!l.archived).sort((a,b)=>a.name.localeCompare(b.name)).map(l=>`<option value='${l.id}' ${legendFilter===l.id?'selected':''}>${esc(l.name)}</option>`).join('')}</select></div>
     <div class='list deck-list'>${deckEmpty}</div>
     ${archived.length?`<div class='section-head'><h3>Archived</h3></div><div class='list'>${archived.map(d=>`<div class='list-item'><div><div class='title'>${esc(d.name)} ${d.version?`<span class='chip'>${esc(d.version)}</span>`:''}</div><div class='meta'>${esc(legendMap[d.legend_id]?.name||'Unknown')}</div></div><button class='btn small ghost deckRestore' data-id='${d.id}'>Restore</button></div>`).join('')}</div>`:''}`;
@@ -705,9 +707,9 @@ async function renderPlay(){
   const el=$('#screen-play'); await refreshActive();
   if(!state.activeSession){
     el.innerHTML=`
-      <section class="practice-hero portrait-hero">
+      <section class="practice-hero portrait-hero training-entrance">
         <div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" /></div>
-        <div class="practice-hero-copy"><span class="eyebrow">THE TRAINING HALL · RIFTBOUND</span><h2>Every game can teach you something.</h2><p>Choose how you’re playing. Keep your attention on the match; log the useful detail after.</p></div>
+        <div class="practice-hero-copy"><span class="eyebrow">THE TRAINING HALL · RIFTBOUND</span><h2>Enter the<br><em>training hall.</em></h2><p>Choose how you’re playing. Keep your attention on the match; log the useful detail after.</p></div>
         <div class="practice-hero-mark" aria-hidden="true"><svg viewBox="0 0 180 180"><circle cx="90" cy="90" r="70"/><circle cx="90" cy="90" r="52"/><path d="M90 45 105 78 90 135 75 78zM45 90h90"/></svg></div>
       </section>
       <div class="practice-section-head"><div><span class="eyebrow">SESSION SETUP</span><h3>How do you want to train?</h3></div><span class="practice-note">No notes during play</span></div>
@@ -1114,7 +1116,7 @@ async function renderStats(){
   let matrix=''; if(type==='legend'){
     const rows=legends.map(opp=>{const msx=scoped.filter(m=>m.opponent_legend_id===opp.id);if(!msx.length)return null;const f=msx.filter(m=>m.result);const w=f.filter(m=>m.result==='me').length;const ids=new Set(msx.map(m=>m.id));const gs=scopedGames.filter(g=>ids.has(g.match_id));const gw=gs.filter(g=>g.winner==='me').length;const pgs=gs.filter(g=>g.final_my_points!=null&&g.final_opponent_points!=null),pf=pgs.reduce((a,g)=>a+Number(g.final_my_points),0),pa=pgs.reduce((a,g)=>a+Number(g.final_opponent_points),0);return `<tr class="matrixRow" data-opp="${opp.id}"><td>${esc(opp.name)}</td><td>${msx.length}</td><td>${w}–${f.length-w}</td><td>${gs.length}</td><td>${gw}–${gs.length-gw}</td><td>${avg(pf,pgs.length)}</td><td>${avg(pa,pgs.length)}</td></tr>`;}).filter(Boolean).join(''); matrix=rows?`<div class="section-head"><h3>Matchup matrix</h3><div class="sub">Tap a row for filtered history</div></div><div class="table-wrap"><table class="matrix"><thead><tr><th>Opponent</th><th>Matches</th><th>W-L</th><th>Games</th><th>Game W-L</th><th>Avg PF</th><th>Avg PA</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No matchup data for this Legend yet.</div>`; }
   el.innerHTML=`
-    <div class="section-head stats-head"><div><div class="eyebrow">THE CULTIVATION PATH</div><h2>Progress</h2><div class="sub">Turn deliberate practice into a visible journey. Carry each lesson into the next test.</div></div></div>
+    <header class="ascent-heading"><span class="eyebrow">02 / THE CULTIVATION PATH</span><h2>The long <em>ascent.</em></h2><p>A practice title marks the work. Your evidence tells the story.</p></header>
     <div id="cultProgress" class="cultivation"></div>
     <div class="section-head"><h3>Match analytics</h3><span class="sub">Results alongside your learning evidence</span></div>
     <label><span class="label-title">Stats scope</span><select id="statsScope">${scopeOptions}</select></label>
@@ -1136,7 +1138,7 @@ async function renderMore(){
   const searchFocused=document.activeElement?.id==='noteSearch',searchCursor=$('#noteSearch')?.selectionStart;
   settings.replaceChildren();
   el.innerHTML=`
-    <div class="section-head collection-head"><div><div class="eyebrow">FIELD NOTES · REFLECTION</div><h2>The learning journal.</h2><div class="sub">Decisions, discoveries, and lessons worth carrying forward.</div></div></div>
+    <div class="section-head collection-head"><div><div class="eyebrow">06 / THE LEARNING JOURNAL</div><h2>What stays<br><em>with you.</em></h2><div class="sub">Decisions, discoveries, and lessons worth carrying forward.</div></div></div>
     <input id="noteSearch" type="search" aria-label="Search notes" placeholder="Search notes" value="${esc(state.notesQuery)}">
     <div class="list" style="margin-top:10px">${shown.length?shown.slice(0,50).map(n=>`<article class="note"><span class="journal-entry-label">${n.record_type==='cultivation_trial'?'PRACTICE OBSERVATION':'FIELD NOTE'}</span><div class="journal-entry-text">${esc(n.text)}</div><div class="context">${n.score_snapshot?`Score ${esc(n.score_snapshot)} • `:''}${fmtDate(n.timestamp||n.created_at)}</div></article>`).join(''):`<div class="empty">${q?'<h3>No matching notes</h3><p>Try another search.</p>':'<span class="empty-glyph" aria-hidden="true">◇</span><h3>Keep the lessons that matter.</h3><p>Your saved reviews and research will collect here.</p><button type="button" class="btn primary" id="journalStart">Review a position</button>'}</div>`}</div>
     <div id="settingsContents"><div class="page-intro"><span class="eyebrow">YOUR WORKSPACE</span><h2>Settings</h2><p>Manage your library, account, and backups.</p></div><div class="section-head"><div><h2>Legends</h2><div class="sub">Manage the Legends available in your decks and records.</div></div><button class="btn small primary" id="addLegend">+ Legend</button></div>
