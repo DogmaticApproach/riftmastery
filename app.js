@@ -1,5 +1,5 @@
-import { prepareEditor } from './ui.js?v=0.8.0';
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.8.0';
+import { prepareEditor } from './ui.js?v=0.8.1';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.8.1';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -116,7 +116,7 @@ function intervalActiveMs(start,end,pauses=[]){
 function setScreen(name){
   state.screen=name;
   $$('.screen').forEach(s=>s.classList.toggle('active',s.dataset.screen===name));
-  $$('.nav-item').forEach(b=>b.classList.toggle('active',b.dataset.nav===name));
+  $$('.nav-item').forEach(b=>{b.classList.toggle('active',b.dataset.nav===name);if(b.dataset.nav===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
   const titles={home:'Home',play:'Train',decks:'Decks',history:'Review',stats:'Progress',more:'Journal',lab:'Lab',studio:'X Studio',settings:'Settings'};
   $('#screenTitle').textContent=titles[name]||'RiftMastery';
   window.scrollTo(0,0);
@@ -1124,6 +1124,7 @@ function sourceBars(obj,total){ return `<div class="card source-bars">${['conque
 
 async function renderMore(){
   const el=$('#screen-more'); const settings=$('#screen-settings'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).sort((a,b)=>ms(b.timestamp)-ms(a.timestamp)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>(n.text||'').toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
+  const searchFocused=document.activeElement?.id==='noteSearch',searchCursor=$('#noteSearch')?.selectionStart;
   settings.replaceChildren();
   el.innerHTML=`
     <div class="section-head"><div><h2>Journal</h2><div class="sub">Quick notes stay attached to their original context.</div></div></div>
@@ -1138,13 +1139,14 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.8.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.8.1 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
   $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
   $('#exportJson').onclick=downloadJSON; $('#importJson').onclick=openImportBackup; $('#exportCsv').onclick=downloadCSV; $('#resetData').onclick=()=>confirmModal('Reset RiftMastery data','This clears decks, sessions, matches, games, point events, notes, and Lab records on this device and in your signed-in cloud account. Your account, Legend library, and skill categories stay.',async()=>{try{if(typeof window.riftmasteryResetCloudData!=='function')throw new Error('Cloud reset is still loading. Try again in a moment.');const cloud=await window.riftmasteryResetCloudData();await clearAll();await seedLegends();await window.riftmasterySeedLabDefaults?.();state.activeSession=state.activeMatch=state.activeGame=null;window.dispatchEvent(new Event('riftmastery:localchange'));setScreen('home');toast(cloud?.signedIn?`Reset complete • ${cloud.cleared} cloud records cleared.`:'Device reset complete • sign in to clear cloud data.');}catch(err){toast(`Reset failed: ${err?.message||'Cloud sync error.'}`);}},'Reset data');
   settings.replaceChildren($('#settingsContents',el));
+  if(searchFocused){$('#noteSearch').focus();$('#noteSearch').setSelectionRange?.(searchCursor,searchCursor);}
   $('#legendSearch').oninput=e=>$$('[data-legend-name]',settings).forEach(row=>row.hidden=!row.dataset.legendName.includes(e.target.value.toLowerCase()));
   window.dispatchEvent(new Event('riftmastery:more-rendered'));
 }

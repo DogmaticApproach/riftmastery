@@ -1,9 +1,9 @@
-import { prepareEditor } from './ui.js?v=0.8.0';
-export const RIFTMASTERY_LAB_VERSION = '0.8.0';
+import { prepareEditor } from './ui.js?v=0.8.1';
+export const RIFTMASTERY_LAB_VERSION = '0.8.1';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.8.0';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.8.1';
 
-const VERSION='0.8.0';
+const VERSION='0.8.1';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -121,7 +121,8 @@ async function renderLab(){
     insightTab='x';root.innerHTML="<div id='labPanel' class='lab-panel'><div id='insightPanel' class='insight-panel'></div></div>";await renderXStudio();polishEmpty(root);return;
   }
   if(labTab==='insights')labTab=insightTab==='x'?'research':insightTab;
-  root.innerHTML=`<div class="lab-navigation" aria-label="Lab tools">${workspaces.map(([label,items])=>`<div class="lab-nav-group"><span>${label}</span>${items.map(([id,name])=>`<button data-lab-tab="${id}" class="${labTab===id?'active':''}" aria-current="${labTab===id?'page':'false'}">${name}</button>`).join('')}</div>`).join('')}</div><div id="labPanel" class="lab-panel"></div>`;
+  root.innerHTML=`<div class="lab-navigation" aria-label="Lab tools">${workspaces.map(([label,items])=>`<div class="lab-nav-group"><span>${label}</span>${items.map(([id,name])=>`<button data-lab-tab="${id}" class="${labTab===id?'active':''}" aria-current="${labTab===id?'page':'false'}">${name}</button>`).join('')}</div>`).join('')}</div><label class="lab-mobile-picker"><span class="label-title">Lab workspace</span><select id="labToolSelect">${workspaces.map(([label,items])=>`<optgroup label="${label}">${items.map(([id,name])=>`<option value="${id}" ${labTab===id?'selected':''}>${name}</option>`).join('')}</optgroup>`).join('')}</select></label><div id="labPanel" class="lab-panel"></div>`;
+  $('#labToolSelect').onchange=e=>{labTab=e.target.value;renderLab();};
   $$('[data-lab-tab]',root).forEach(b=>b.onclick=()=>{labTab=b.dataset.labTab;renderLab();});
   const renders={blocks:renderBlocksTab,matchups:renderMatchupsTab,events:renderEventsTab,experiments:renderExperimentsTab,goals:renderGoalsTab,skills:renderSkillsTab,tools:renderToolsTab};
   if(renders[labTab])await renders[labTab]();else{insightTab=labTab;await renderInsightsTab();}
@@ -613,7 +614,7 @@ async function renderXStudio(){
 async function openXPostModal(prefill={},id=null){
   const existing=id?await get('notes',id):null,n=existing||prefill||{};
   modal(existing?'Edit X insight':'Draft an X insight',`<p class='small muted'>Build from evidence and write for a specific reader. RiftMastery saves a draft; it never posts for you.</p>
-    <div class='x-evidence'><h3>01 · Shape the idea</h3><label><span class='label-title'>Post type</span><select id='xPostType'><option value='original'>Original post</option><option value='reply'>Substantive reply</option><option value='repost_test'>Rewritten repost test</option></select></label>
+    <div class='editor-step-tabs' role='tablist' aria-label='Draft steps'><button type='button' role='tab' aria-selected='true' data-editor-step='idea'>1. Shape the idea</button><button type='button' role='tab' aria-selected='false' data-editor-step='writing'>2. Write the post</button></div><div class='x-evidence'><h3>01 · Shape the idea</h3><label><span class='label-title'>Post type</span><select id='xPostType'><option value='original'>Original post</option><option value='reply'>Substantive reply</option><option value='repost_test'>Rewritten repost test</option></select></label>
     <label><span class='label-title'>Information window</span><select id='xWindow'><option>Any time</option><option>Card previews</option><option>Pre-release testing</option><option>New set launch</option><option>Rules / errata</option><option>Ban announcement</option><option>Major event prep</option><option>Fresh decklist</option><option>Post-event review</option></select></label>
     <label><span class='label-title'>Audience</span><input id='xAudience' maxlength='100' placeholder='e.g. Jayce players preparing for locals'></label>
     <label><span class='label-title'>Hook</span><input id='xHook' maxlength='160' placeholder='Name the reader and the assumption or question'></label>
@@ -629,13 +630,15 @@ async function openXPostModal(prefill={},id=null){
     <label><span class='label-title'>Post URL <span class='muted'>(optional)</span></span><input id='xPostUrl' type='url' placeholder='https://x.com/...'></label>
     </div><button class='btn primary full' id='saveXPost'>Save X record</button>`);
   $('#xPostType').value=n.post_type||'original';$('#xWindow').value=n.window_label||'Any time';$('#xAudience').value=n.audience||'';$('#xHook').value=n.hook||'';$('#xClaim').value=n.claim||'';$('#xEvidenceStatus').value=n.evidence_status||'working_hypothesis';$('#xEvidence').value=n.evidence||'';$('#xImplication').value=n.implication||'';$('#xPostText').value=n.post_text||'';$('#xPostStatus').value=n.post_status||'draft';$('#xViews').value=n.metrics?.views||0;$('#xLikes').value=n.metrics?.likes||0;$('#xBookmarks').value=n.metrics?.bookmarks||0;$('#xReplies').value=n.metrics?.replies||0;$('#xReposts').value=n.metrics?.reposts||0;$('#xProfileVisits').value=n.metrics?.profile_visits||0;$('#xFollows').value=n.metrics?.follows||0;$('#xSourceLink').value=n.source_link||'';$('#xPostUrl').value=n.post_url||'';
-  const performance=$('#xPerformance');const updatePerformance=()=>{performance.hidden=$('#xPostStatus').value!=='posted';performance.open=!performance.hidden;};$('#xPostStatus').onchange=updatePerformance;updatePerformance();
+  const performance=$('#xPerformance');const updatePerformance=()=>{performance.hidden=$('#xPostStatus').value!=='posted';performance.open=!performance.hidden;$('#xPostUrl').closest('label').hidden=performance.hidden;};$('#xPostStatus').onchange=updatePerformance;updatePerformance();
+  const body=$('#modalBody');body.dataset.editorStep='idea';$$('[data-editor-step]',body).forEach(b=>b.onclick=()=>{body.dataset.editorStep=b.dataset.editorStep;$$('[data-editor-step]',body).forEach(t=>t.setAttribute('aria-selected',String(t===b)));$('#modalCard').scrollTop=0;});
   $('#xBuildDraft').onclick=()=>{
     const audience=$('#xAudience').value.trim(),hook=$('#xHook').value.trim(),claim=$('#xClaim').value.trim(),evidence=$('#xEvidence').value.trim(),implication=$('#xImplication').value.trim(),status=$('#xEvidenceStatus').value;
     if(!claim||!evidence)return toast('Add a claim and its evidence before building a draft.');
     const lead=hook||(audience?audience.toUpperCase()+':':'');
     const qualifier=status==='observed'?'Observed: ':status==='unresolved'?'Question I’m still testing: ':'Working hypothesis: ';
     $('#xPostText').value=[lead,qualifier+claim,evidence?'Evidence: '+evidence:'',implication?'Why it matters: '+implication:''].filter(Boolean).join('\n\n');
+    $('[data-editor-step=writing]').click();
   };
   $('#saveXPost').onclick=async()=>{
     const claim=$('#xClaim').value.trim(),postText=$('#xPostText').value.trim();if(!claim&&!postText)return toast('Add a claim or draft text.');

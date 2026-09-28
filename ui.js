@@ -1,7 +1,7 @@
 // Shared presentation for every editor. Existing inputs and handlers retain their identity.
 export function prepareEditor() {
   const dialog=document.querySelector('#modal'), body=document.querySelector('#modalBody');
-  dialog.classList.remove('editor-wide');
+  dialog.classList.remove('editor-wide');delete body.dataset.editorStep;
   body.classList.remove('editor-grid');
   const fields=body.querySelectorAll('input:not([type=checkbox]),select,textarea');
   const wide=fields.length>=6 || !!body.querySelector('#weeklyEditorItems,.lab-notebook,#deckList,#deckImportRaw');
