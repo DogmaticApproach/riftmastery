@@ -1,8 +1,8 @@
-export const RIFTMASTERY_LAB_VERSION = '0.7.0';
+export const RIFTMASTERY_LAB_VERSION = '0.7.1';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.7.0';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.7.1';
 
-const VERSION='0.7.0';
+const VERSION='0.7.1';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -839,6 +839,8 @@ async function enhanceStats(stats){
   const formal=matches.filter(m=>m.result==='me'||m.result==='opponent');
   const statsNotes=await all('notes'),statsMu=await all('matchupNotes'),statsSessions=await all('sessions');
   const labKey=[scope,matches.length,matches[0]?.updated_at||'',statsNotes.length,statsNotes.at(-1)?.updated_at||'',statsMu.length,statsMu.at(-1)?.updated_at||'',statsSessions.length,statsSessions.at(-1)?.updated_at||''].join('|');
+  if(!matches.length&&!statsSessions.length&&!statsNotes.length&&!statsMu.length){extra.innerHTML='';extra.hidden=true;extra.dataset.labKey=labKey;return;}
+  extra.hidden=false;
   if(extra.dataset.labKey===labKey)return;
   extra.dataset.labKey=labKey;
   const matchIds=new Set(matches.map(m=>m.id)),games=(await all('games')).filter(g=>matchIds.has(g.match_id)&&g.ended_at);
