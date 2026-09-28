@@ -1,0 +1,56 @@
+/* RiftMastery brand system 1.0 — shared by the app and brand guide.
+   Semantic roles first. Keep new components on this scale. */
+:root {
+  --rm-ink:#080e0f; --rm-surface:#111d1d; --rm-raised:#192625;
+  --rm-ivory:#f2f0e9; --rm-muted:#aab7b2; --rm-border:#2b3b37;
+  --rm-gold:#d4b878; --rm-gold-light:#ead8ad; --rm-sage:#8bd0aa;
+  --rm-amber:#e8bd6a; --rm-coral:#f17d79;
+  --rm-font:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --rm-text-xs:11px; --rm-text-sm:13px; --rm-text-base:14px; --rm-text-lg:18px;
+  --rm-heading:28px; --rm-display:40px;
+  --rm-space-1:4px; --rm-space-2:8px; --rm-space-3:12px; --rm-space-4:16px;
+  --rm-space-5:24px; --rm-space-6:32px; --rm-space-7:48px; --rm-space-8:64px;
+  --rm-radius-control:10px; --rm-radius-card:14px; --rm-radius-hero:18px;
+  --rm-icon-size:20px; --rm-icon-stroke:1.7; --rm-motion-fast:160ms;
+  --bg:var(--rm-ink); --panel:var(--rm-surface); --panel-2:var(--rm-raised);
+  --text:var(--rm-ivory); --muted:var(--rm-muted); --line:var(--rm-border);
+  --accent:var(--rm-gold); --good:var(--rm-sage); --warn:var(--rm-amber); --danger:var(--rm-coral);
+}
+body{font-family:var(--rm-font)}
+.card,.lab-card,.insight-card{background:var(--panel);border-color:var(--line);border-radius:var(--rm-radius-card)}
+.btn{border-radius:var(--rm-radius-control);background:var(--panel-2);transition:background var(--rm-motion-fast),border-color var(--rm-motion-fast)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--rm-ink)}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--danger);background:#2a1418;border-color:#71413f}
+.btn.good{color:var(--good);background:#10281d;border-color:#426b53}
+@media(hover:hover){.btn:not(:disabled):hover{border-color:var(--muted)}.btn.primary:not(:disabled):hover{background:var(--rm-gold-light);border-color:var(--rm-gold-light)}}
+:where(button,a,input,select,textarea,summary):focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.nav-item svg,.menu-destination svg,.practice-icon svg,.brand-icon svg{width:var(--rm-icon-size);height:var(--rm-icon-size);fill:none;stroke:currentColor;stroke-width:var(--rm-icon-stroke);stroke-linecap:round;stroke-linejoin:round}
+.icon-btn{width:44px;height:44px}
+input,select,textarea{border-radius:var(--rm-radius-control)}
+/* Protected art zone: text never overlaps the face. The source image remains intact.
+   28% vertical crop position keeps the head inside every supported art aspect ratio. */
+#screen-home .hero.portrait-hero,.practice-hero.portrait-hero{
+ display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,30%);grid-template-rows:auto auto auto;
+ gap:12px 28px;padding:24px;align-items:center;min-height:260px;border-radius:var(--rm-radius-hero);background:var(--panel);
+}
+#screen-home .portrait-hero:before,#screen-home .portrait-hero:after,.practice-hero.portrait-hero:before,.practice-hero.portrait-hero:after{display:none}
+.portrait-hero>.hero-art{grid-column:2;grid-row:1 / 4;align-self:stretch;position:relative;overflow:hidden;border-radius:12px;min-height:216px;isolation:isolate}
+.hero-art img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:65% 28%;display:block}
+#screen-home .portrait-hero>.hero-copy,.portrait-hero>.practice-hero-copy{grid-column:1;grid-row:1;max-width:none;min-width:0}
+#screen-home .portrait-hero>.session-strip{grid-column:1;grid-row:2;margin:0}
+#screen-home .portrait-hero>.primary-actions{grid-column:1;grid-row:3;margin:0;gap:8px}
+#screen-home .portrait-hero h2{font-size:clamp(30px,3.4vw,40px)}
+.practice-hero.portrait-hero>.practice-hero-copy{grid-row:1 / 4}
+.practice-hero.portrait-hero h2{font-size:clamp(28px,3vw,37px)}
+.brand-guide-link{display:inline-flex;align-items:center;min-height:44px;margin-top:16px;color:var(--accent);font-size:14px;text-underline-offset:4px}
+@media(max-width:1100px) and (min-width:820px){#screen-home .hero.portrait-hero,.practice-hero.portrait-hero{gap:12px 20px;grid-template-columns:minmax(0,1fr) 180px}.portrait-hero .hero-kicker{font-size:9px}}
+@media(max-width:560px){
+ #screen-home .hero.portrait-hero,.practice-hero.portrait-hero{display:flex;flex-direction:column;align-items:stretch;gap:18px;padding:20px;min-height:0}
+ .portrait-hero>.hero-art{order:-1;min-height:0;height:150px;flex:none;border-radius:10px}
+ #screen-home .portrait-hero>.hero-copy{max-width:none}
+ #screen-home .portrait-hero h2{font-size:32px}
+ #screen-home .portrait-hero>.primary-actions{display:grid;grid-template-columns:1fr 1fr}
+ .practice-hero.portrait-hero h2{font-size:30px}
+}
+@media(prefers-reduced-motion:reduce){:root{--rm-motion-fast:0ms}}

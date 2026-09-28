@@ -1,5 +1,5 @@
-import { prepareEditor } from './ui.js?v=0.8.1';
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.8.1';
+import { prepareEditor } from './ui.js?v=0.9.0';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.9.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -296,7 +296,8 @@ async function renderHome(){
   const focusTitle=activeBlock?.name||'Compare before committing';
   const focusDescription=activeBlock?.hypothesis||'Evaluate the open board, name your role, compare two viable lines, then update the opponent’s range when new information appears.';
   el.innerHTML=`
-    <section class="hero">
+    <section class="hero portrait-hero">
+      <div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" fetchpriority="high" /></div>
       <div class="hero-copy"><div class="hero-kicker">Riftbound • Player development</div><h2>${active?'Your session is underway':'Build the edge.'}</h2><p>${active?`${titleCase(active.mode)} • ${titleCase(active.context)} • ${fmtDuration(sessionActiveMs(active))}`:'Train with intent. Review with honesty. Carry one lesson into the next game.'}</p></div>
       ${active?`<div class="session-strip"><div><div class="strong">${active.event_name?esc(active.event_name):titleCase(active.context)}</div><div class="small muted">${active.status==='paused'?'Paused':'Active'} • ${titleCase(active.mode)}${active.planned_bo3_count?` • Committed: ${active.planned_bo3_count} BO3s`:''}</div></div><div class="time">${fmtDuration(sessionActiveMs(active))}</div></div>`:''}
       <div class="primary-actions">
@@ -701,7 +702,8 @@ async function renderPlay(){
   const el=$('#screen-play'); await refreshActive();
   if(!state.activeSession){
     el.innerHTML=`
-      <section class="practice-hero">
+      <section class="practice-hero portrait-hero">
+        <div class="hero-art"><img src="./assets/training-portrait.webp" width="320" height="566" alt="A sleeping warrior resting beneath a tree" /></div>
         <div class="practice-hero-copy"><span class="eyebrow">THE TRAINING HALL · RIFTBOUND</span><h2>Every game can teach you something.</h2><p>Choose how you’re playing. Keep your attention on the match; log the useful detail after.</p></div>
         <div class="practice-hero-mark" aria-hidden="true"><svg viewBox="0 0 180 180"><circle cx="90" cy="90" r="70"/><circle cx="90" cy="90" r="52"/><path d="M90 45 105 78 90 135 75 78zM45 90h90"/></svg></div>
       </section>
@@ -1139,7 +1141,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.8.1 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.9.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
   $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
