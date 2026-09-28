@@ -18,6 +18,7 @@ const ts=v=>v?new Date(v).getTime():0;
 let session=null;
 let currentUser=null;
 let syncing=false;
+let resettingCloud=false;
 let lastSyncAt=localStorage.getItem('riftmastery-last-sync')||null;
 let lastError='';
 let syncTimer=null;
@@ -316,7 +317,7 @@ async function pushLocalNewer(remoteRows){
   return changes.length;
 }
 async function syncNow({manual=false}={}){
-  if(syncing||!currentUser||!navigator.onLine)return;
+  if(syncing||resettingCloud||!currentUser||!navigator.onLine)return;
   syncing=true;lastError='';renderCloudCard();setTopStatus('Syncing…','warn');
   try{
     let localBefore=await localSnapshot();
@@ -343,6 +344,36 @@ async function syncNow({manual=false}={}){
     syncing=false;renderCloudCard();
   }
 }
+async function resetCloudData(){
+  if(!currentUser)return {signedIn:false,cleared:0};
+  while(syncing)await new Promise(resolve=>setTimeout(resolve,100));
+  resettingCloud=true;
+  try{
+    const remote=await fetchRemoteRows();
+    const resetAt=new Date().toISOString();
+    const changes=remote.filter(row=>!['legends','skillAreas'].includes(row.store_name)).map(row=>({
+      user_id:currentUser.id,
+      store_name:row.store_name,
+      record_id:row.record_id,
+      payload:{id:row.record_id,updated_at:resetAt,deleted_at:resetAt},
+      record_updated_at:resetAt,
+      deleted_at:resetAt,
+      server_updated_at:resetAt
+    }));
+    for(let i=0;i<changes.length;i+=200){
+      const qs=new URLSearchParams({on_conflict:'user_id,store_name,record_id'});
+      await apiFetch('/rest/v1/riftmastery_records?'+qs.toString(),{
+        method:'POST',body:changes.slice(i,i+200),
+        prefer:'resolution=merge-duplicates,return=minimal'
+      });
+    }
+    return {signedIn:true,cleared:changes.length};
+  }finally{
+    resettingCloud=false;
+  }
+}
+window.riftmasteryResetCloudData=resetCloudData;
+
 async function requestPersistentStorage(){
   try{if(navigator.storage?.persist)await navigator.storage.persist();}catch{}
 }

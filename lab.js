@@ -41,6 +41,7 @@ async function seedLab(){
   if(await getMeta('score_sources',null)===null) await setMeta('score_sources',scoreDefaults());
   if(await getMeta('leak_tags',null)===null) await setMeta('leak_tags',leakDefaults());
 }
+window.riftmasterySeedLabDefaults=seedLab;
 function recordFor(matches){
   const formal=matches.filter(m=>m.result==='me'||m.result==='opponent');
   const w=formal.filter(m=>m.result==='me').length;
