@@ -220,6 +220,13 @@ h1{font-size:23px;letter-spacing:-.025em}
 .home-season-label{display:flex;justify-content:space-between;align-items:center;margin:5px 2px 8px;padding:8px 10px;border-left:2px solid var(--accent);color:var(--text);font-size:11px;font-weight:750;letter-spacing:.04em}
 .home-season-label span{color:var(--muted);font-size:9px;letter-spacing:.15em}
 .home-toolbar{display:flex;align-items:center;justify-content:space-between;margin:9px 2px 0;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.16em}
+.legend-library{overflow:hidden;border:1px solid var(--line);border-radius:16px;background:linear-gradient(140deg,rgba(19,31,33,.96),rgba(15,23,26,.96))}
+.legend-library summary{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;color:var(--text);font-size:13px;font-weight:750;cursor:pointer;list-style:none}
+.legend-library summary::-webkit-details-marker{display:none}
+.legend-library summary:after{content:'+';order:1;color:var(--accent);font-size:19px;line-height:1}
+.legend-library[open] summary:after{content:'−'}
+.legend-library summary .chip{margin-left:auto;font-size:10px}
+.legend-library>.list{padding:0 9px 9px}
 body[data-home-theme="ember"]{--accent:#dfa06f;--accent-2:#995a42;--good:#9fd0a7;--warn:#f0bd73}
 body[data-home-theme="moon"]{--accent:#a8b7d6;--accent-2:#62779e;--good:#a3d3c2;--warn:#dbc389}
 body[data-home-theme="ember"] #screen-home .hero:before{background-image:linear-gradient(90deg,rgba(25,12,12,.91) 0%,rgba(34,16,15,.69) 48%,rgba(35,18,18,.28) 100%),linear-gradient(0deg,rgba(26,12,11,.7),transparent 64%),url("./assets/training-portrait.webp")}
