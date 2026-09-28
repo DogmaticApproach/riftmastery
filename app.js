@@ -1,5 +1,5 @@
-import { prepareEditor } from './ui.js?v=0.9.0';
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.9.0';
+import { prepareEditor } from './ui.js?v=0.9.1';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.9.1';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -727,7 +727,7 @@ async function renderSessionHub(el){
   const {deckMap,legendMap}=await lookups();
   el.innerHTML=`
     <div class='session-strip'><div><div class='strong'>${esc(s.event_name||titleCase(s.context))}</div><div class='small muted'>Paper • ${s.status==='paused'?'Paused':'Active'}</div></div><div class='time' id='hubTimer'>${fmtDuration(sessionActiveMs(s))}</div></div>
-    <div class='hero'><h2>${sessionMatches.length} match${sessionMatches.length===1?'':'es'} logged</h2><p>Keep the same session running and switch decks freely between matches.</p></div>
+    <div class='hero portrait-hero'><div class='hero-art'><img src='./assets/training-portrait.webp' width='320' height='566' alt='A sleeping warrior resting beneath a tree' /></div><div class='hero-copy'><h2>${sessionMatches.length} match${sessionMatches.length===1?'':'es'} logged</h2><p>Keep the same session running and switch decks freely between matches.</p></div></div>
     <div class='primary-actions'><button class='btn primary' id='hubNewMatch'>New Match</button>${lastMatch?`<div class='btn-row'><button class='btn' id='hubRematch'>Rematch same setup</button><button class='btn ghost' id='hubSameOpp'>Same opponent</button><button class='btn ghost' id='hubFixLast'>Fix last result</button></div>`:''}<button class='btn' id='hubPause'>${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class='btn danger' id='hubEnd'>End Session</button></div>
     <div class='section-head'><h3>This session</h3><div class='sub'>${fmtHours(sessionActiveMs(s))} active</div></div>
     <div class='list'>${sessionMatches.length?sessionMatches.slice().reverse().map(m=>`<div class='list-item'><div><div class='title'>${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${titleCase(m.format)} • ${fmtDuration(m.active_duration_ms||0)}</div></div><span class='chip ${m.result==='me'?'good':m.result==='opponent'?'warn':''}'>${m.result==='me'?'W':m.result==='opponent'?'L':'—'}</span></div>`).join(''):`<div class='empty'>No completed matches yet.</div>`}</div>`;
@@ -951,7 +951,7 @@ async function renderOnlineSession(el){
   const {deckMap,legendMap}=await lookups();
   el.innerHTML=`
     <div class='session-strip'><div><div class='strong'>${esc(s.event_name||titleCase(s.context))}</div><div class='small muted'>Online • ${s.status==='paused'?'Paused':'Active'}${s.planned_bo3_count?` • Committed: ${s.planned_bo3_count} BO3s`:''}</div></div><div class='time' id='onlineSessionTimer'>${fmtDuration(sessionActiveMs(s))}</div></div>
-    <div class='hero'><h2>${matches.length} match${matches.length===1?'':'es'} logged</h2><p>Keep the timer running while you play, then add each result manually.</p></div>
+    <div class='hero portrait-hero'><div class='hero-art'><img src='./assets/training-portrait.webp' width='320' height='566' alt='A sleeping warrior resting beneath a tree' /></div><div class='hero-copy'><h2>${matches.length} match${matches.length===1?'':'es'} logged</h2><p>Keep the timer running while you play, then add each result manually.</p></div></div>
     <div class='primary-actions'><button class='btn primary' id='onlineLogMatch'>Log Match</button>${lastMatch?`<div class='btn-row'><button class='btn' id='onlineSameSetup'>Log same setup</button><button class='btn ghost' id='onlineSameOpp'>Same opponent</button></div>`:''}<button class='btn' id='onlinePause'>${s.status==='paused'?'Resume Session':'Pause Session'}</button><button class='btn danger' id='onlineEndSession'>End Session</button></div>
     <div class='section-head'><h3>This session</h3><div class='sub'>${fmtHours(sessionActiveMs(s))} active</div></div>
     <div class='list'>${matches.length?matches.slice().reverse().map(m=>`<div class='list-item'><div><div class='title'>${esc(deckMap[m.my_deck_id]?.name||'Deck')} vs ${esc(legendMap[m.opponent_legend_id]?.name||'Unknown')}</div><div class='meta'>${m.format} • ${fmtDate(m.started_at)}</div></div><span class='chip ${m.result==='me'?'good':'warn'}'>${m.result==='me'?'W':'L'}</span></div>`).join(''):`<div class='empty'>No online matches logged yet.</div>`}</div>`;
@@ -1141,7 +1141,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.9.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.9.1 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
   $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
