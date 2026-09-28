@@ -196,4 +196,20 @@ h1{font-size:23px;letter-spacing:-.025em}
 .weekly-copy strong{font-size:12px;line-height:1.35}
 .weekly-copy small{color:var(--muted);font-size:10px;line-height:1.4}
 .weekly-copy em{margin-left:4px;color:#d8c18d;font-size:9px;font-style:normal;font-weight:650;letter-spacing:.04em;text-transform:uppercase}
+.weekly-footer{display:flex;justify-content:space-between;gap:12px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(200,168,107,.12)}
+.weekly-editor-head{display:flex;align-items:center;justify-content:space-between;margin:16px 0 8px}
+.weekly-editor-items{display:grid;gap:10px;margin-bottom:14px}
+.weekly-edit-row{padding:12px;border:1px solid var(--line);border-radius:14px;background:rgba(255,255,255,.025)}
+.weekly-edit-field{display:grid;gap:5px;margin:0 0 10px}
+.weekly-edit-field input{width:100%;min-width:0}
+.weekly-edit-actions{display:flex;align-items:center;justify-content:space-between}
+.weekly-optional{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px}
+.weekly-optional input{width:16px;height:16px;accent-color:#cdb17a}
+.danger-text{color:#e19a8e}
+.weekly-history{display:grid;gap:7px}
+.weekly-history-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}
+.weekly-history-row>div{display:grid;gap:4px;min-width:0}
+.weekly-history-row strong{font-size:12px}
+.weekly-history-row small{color:var(--muted);font-size:10px;line-height:1.4}
+.weekly-history-row>span{flex:none;color:#d8c18d;font-size:12px;font-weight:750}
 @media(max-width:480px){.weekly-card{padding:15px;margin-top:15px}.weekly-item{padding:10px 6px}.weekly-head h3{font-size:17px}}

@@ -1,4 +1,4 @@
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.4.12';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.4.13';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -146,20 +146,108 @@ function currentWeekKey(){
   d.setDate(d.getDate()-daysSinceMonday);d.setHours(0,0,0,0);
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
-const weeklyChecklistDefaults=()=>[
-  {id:'ranked',title:'Complete a ranked session',detail:'Decide on 2 or 3 BO3s before you queue.'},
-  {id:'lab',title:'Run one matchup or bad-draw lab',detail:'Practice one specific scenario.'},
-  {id:'vod-1',title:'Study a high-level VOD',detail:'Pause before an unfamiliar decision.'},
-  {id:'vod-2',title:'Study a second high-level VOD',detail:'Track one concept across the game.'},
-  {id:'event',title:'Get local tournament reps',detail:'When an event is available.',optional:true}
-];
-async function getWeeklyChecklist(){
-  const week=currentWeekKey();let row=await get('weeklyChecklists',week);
-  if(!row){row=stampBase({id:week,week_start:week,items:weeklyChecklistDefaults()});await save('weeklyChecklists',row);return row;}
-  const items=Array.isArray(row.items)?row.items:[];
-  const changed=weeklyChecklistDefaults().some(item=>!items.some(saved=>saved.id===item.id));
-  if(changed){row.items=[...items,...weeklyChecklistDefaults().filter(item=>!items.some(saved=>saved.id===item.id))];await save('weeklyChecklists',row);}
+const weeklyPhaseTemplates={
+  preview:{label:'Preview season',focus:'Read the whole board, compare two lines, and update the opponent’s range.',items:[
+    {id:'preview-question',title:'Pick one question the previews raise',detail:'What are competitive players trying to figure out right now?'},
+    {id:'preview-test',title:'Test one new-set idea',detail:'Theorycraft or proxy a card, deck, or matchup idea; record what you observed.'},
+    {id:'board-drill',title:'Run one open-board decision drill',detail:'Name both roles, compare two lines, and say what changes your read.'},
+    {id:'vod-1',title:'Study a high-level VOD',detail:'Follow one concept that connects to your focus.'},
+    {id:'vod-2',title:'Study a second high-level VOD',detail:'Pause before a key decision and compare your line.'},
+    {id:'preview-share',title:'Share a useful, evidence-backed finding',detail:'Optional. A relevant reply counts; skip it when you have nothing defensible to add.',optional:true},
+    {id:'preview-ranked',title:'Play ranked for a specific question',detail:'Optional. Keep ladder reps purposeful during previews.',optional:true},
+    {id:'preview-local',title:'Get local tournament reps',detail:'Optional. Mark this when an event is available.',optional:true}
+  ]},
+  prerift:{label:'Pre-release testing',focus:'Turn preview hypotheses into tested game plans and identify what still needs evidence.',items:[
+    {id:'prerift-deck',title:'Choose a deck or matchup to test',detail:'Write down what you expect before the reps.'},
+    {id:'prerift-reps',title:'Run focused games or a matchup lab',detail:'Test the plan, opening hands, and bad-draw branches.'},
+    {id:'board-drill',title:'Run one open-board decision drill',detail:'Compare at least two lines before committing.'},
+    {id:'vod-1',title:'Study a high-level VOD',detail:'Look for evidence that supports or challenges your hypothesis.'},
+    {id:'vod-2',title:'Study a second high-level VOD',detail:'Track one concept across the game.'},
+    {id:'prerift-notes',title:'Update your evidence and unresolved questions',detail:'Separate what you observed from what you still suspect.'},
+    {id:'preview-share',title:'Share a useful, evidence-backed finding',detail:'Optional. No post quota; share when the evidence is ready.',optional:true},
+    {id:'preview-local',title:'Get local tournament reps',detail:'Optional. Mark this when an event is available.',optional:true}
+  ]},
+  launch:{label:'Set launch',focus:'Lock one enjoyable, viable archetype for the first 30 ranked BO3s; review at 10, 20, and 30.',items:[
+    {id:'launch-ranked',title:'Complete this week’s planned ranked reps',detail:'Choose 2 or 3 BO3s before each ranked session.'},
+    {id:'launch-lab',title:'Run one matchup or bad-draw lab',detail:'Practice a specific branch from the current deck.'},
+    {id:'vod-1',title:'Study a high-level VOD',detail:'Focus on one decision skill or matchup.'},
+    {id:'vod-2',title:'Study a second high-level VOD',detail:'Track the same concept or compare a different line.'},
+    {id:'launch-review',title:'Check your 10-BO3 review point',detail:'At 10, 20, and 30 BO3s, choose one next skill target.'},
+    {id:'preview-local',title:'Get local tournament reps',detail:'Optional. Treat events as tournament-execution practice.',optional:true},
+    {id:'launch-share',title:'Explain one lesson you learned',detail:'Optional. Share when you have a clear, useful takeaway.',optional:true}
+  ]},
+  ongoing:{label:'Ongoing practice / event prep',focus:'Keep one skill target active and adapt the week to your next event or current format.',items:[
+    {id:'ongoing-focus',title:'Choose one skill target for the week',detail:'Use a recurring leak or upcoming event to set the focus.'},
+    {id:'ongoing-reps',title:'Complete deliberate reps for that target',detail:'Choose ranked, paper games, or a focused lab.'},
+    {id:'ongoing-review',title:'Review a match or testing block',detail:'Separate decision quality from the result.'},
+    {id:'vod-1',title:'Study a high-level VOD',detail:'Pause before a decision connected to your target.'},
+    {id:'ongoing-event',title:'Prepare for a local event',detail:'Optional. Skip when no event is coming up.',optional:true}
+  ]},
+  custom:{label:'Custom week',focus:'Choose one focus that makes this week useful to your development.',items:[
+    {id:'custom-focus',title:'Choose this week’s focus',detail:'Edit this checklist to fit your schedule and goals.'}
+  ]}
+};
+const weeklyPhaseOptions=Object.entries(weeklyPhaseTemplates).map(([id,x])=>({id,label:x.label}));
+function weeklyItemsFor(phase,existing=[]){
+  const prior=new Map(existing.map(item=>[item.id,item]));
+  return (weeklyPhaseTemplates[phase]||weeklyPhaseTemplates.custom).items.map(item=>({...item,done:Boolean(prior.get(item.id)?.done)}));
+}
+function previousWeekKey(week){const d=new Date(`${week}T12:00:00`);d.setDate(d.getDate()-7);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;}
+async function getWeeklyChecklist(week=currentWeekKey()){
+  let row=await get('weeklyChecklists',week);
+  if(!row){
+    const prior=await get('weeklyChecklists',previousWeekKey(week));
+    const phase=weeklyPhaseTemplates[prior?.phase]?prior.phase:'preview';
+    const items=prior?.phase&&prior?.items?.length?prior.items.map(item=>({...item,done:false})):weeklyItemsFor(phase,prior?.items||[]);
+    row=stampBase({id:week,week_start:week,phase,focus:prior?.focus||weeklyPhaseTemplates[phase].focus,items});
+    await save('weeklyChecklists',row);return row;
+  }
+  if(!row.phase){row.phase='preview';row.focus=weeklyPhaseTemplates.preview.focus;row.items=weeklyItemsFor('preview',row.items||[]);await save('weeklyChecklists',row);}
   return row;
+}
+
+function weeklyEditorRow(item={}){
+  return `<div class="weekly-edit-row" data-weekly-edit-row data-id="${esc(item.id||`custom-${uid()}`)}">
+    <label class="weekly-edit-field"><span class="label-title">Task</span><input data-weekly-title maxlength="90" value="${esc(item.title||'')}" placeholder="What do you want to do?"></label>
+    <label class="weekly-edit-field"><span class="label-title">Note</span><input data-weekly-detail maxlength="140" value="${esc(item.detail||'')}" placeholder="Optional reminder"></label>
+    <div class="weekly-edit-actions"><label class="weekly-optional"><input type="checkbox" data-weekly-optional ${item.optional?'checked':''}> Optional</label><button type="button" class="link-btn small danger-text" data-weekly-remove>Remove</button></div>
+  </div>`;
+}
+function readWeeklyEditorItems(){return $$('[data-weekly-edit-row]',modalBody).map(row=>({id:row.dataset.id,title:row.querySelector('[data-weekly-title]').value.trim(),detail:row.querySelector('[data-weekly-detail]').value.trim(),optional:row.querySelector('[data-weekly-optional]').checked,done:false})).filter(item=>item.title);}
+function weeklyEditorBody(row){
+  const phase=row.phase||'preview';
+  return `<p class="small muted">Each week is saved separately. Changing the phase loads that phase’s starter checklist; you can edit every task.</p>
+    <label><span class="label-title">Week type</span><select id="weeklyPhase">${weeklyPhaseOptions.map(x=>`<option value="${x.id}" ${x.id===phase?'selected':''}>${x.label}</option>`).join('')}</select></label>
+    <label><span class="label-title">This week’s focus</span><textarea id="weeklyFocus" rows="2" maxlength="180" placeholder="One skill or question to carry through the week">${esc(row.focus||'')}</textarea></label>
+    <div class="weekly-editor-head"><span class="label-title">Checklist items</span><button type="button" class="link-btn small" id="weeklyAddItem">+ Add item</button></div>
+    <div class="weekly-editor-items" id="weeklyEditorItems">${(row.items||[]).map(weeklyEditorRow).join('')}</div>
+    <button type="button" class="btn primary full" id="weeklySave">Save this week</button>`;
+}
+function bindWeeklyEditor(row){
+  const list=$('#weeklyEditorItems',modalBody);
+  $('#weeklyPhase',modalBody).onchange=()=>{
+    const phase=$('#weeklyPhase',modalBody).value,prior=readWeeklyEditorItems();
+    list.innerHTML=weeklyItemsFor(phase,prior).map(weeklyEditorRow).join('');
+    $('#weeklyFocus',modalBody).value=weeklyPhaseTemplates[phase].focus;
+  };
+  $('#weeklyAddItem',modalBody).onclick=()=>{list.insertAdjacentHTML('beforeend',weeklyEditorRow({id:`custom-${uid()}`,title:'',detail:'',optional:false}));list.lastElementChild?.querySelector('[data-weekly-title]')?.focus();};
+  list.onclick=e=>{if(e.target.closest('[data-weekly-remove]'))e.target.closest('[data-weekly-edit-row]').remove();};
+  $('#weeklySave',modalBody).onclick=async()=>{
+    const phase=$('#weeklyPhase',modalBody).value,items=readWeeklyEditorItems();
+    if(!items.length)return toast('Add at least one checklist item.');
+    const prior=new Map((row.items||[]).map(item=>[item.id,item]));
+    row.phase=phase;row.focus=$('#weeklyFocus',modalBody).value.trim()||weeklyPhaseTemplates[phase].focus;
+    row.items=items.map(item=>({...item,done:Boolean(prior.get(item.id)?.done)}));
+    await save('weeklyChecklists',row);closeModal();await renderHome();toast('Weekly checklist saved.');
+  };
+}
+async function openWeeklyEditor(row){showModal('Edit weekly plan',weeklyEditorBody(row));bindWeeklyEditor(row);}
+async function openWeeklyHistory(){
+  const now=currentWeekKey(),rows=(await all('weeklyChecklists')).filter(row=>row.week_start<now).sort((a,b)=>b.week_start.localeCompare(a.week_start)).slice(0,12);
+  showModal('Past weeks',rows.length?`<p class="small muted">Your completed and in-progress weekly checklists stay here.</p><div class="weekly-history">${rows.map(row=>{
+    const required=(row.items||[]).filter(i=>!i.optional),done=required.filter(i=>i.done).length,label=weeklyPhaseTemplates[row.phase]?.label||'Custom week';
+    return `<div class="weekly-history-row"><div><strong>Week of ${new Date(row.week_start+'T12:00:00').toLocaleDateString([],{month:'short',day:'numeric',year:'numeric'})}</strong><small>${esc(label)}${row.focus?` · ${esc(row.focus)}`:''}</small></div><span>${done}/${required.length}</span></div>`;
+  }).join('')}</div>`:'<div class="empty">Your past weekly checklists will appear here.</div>');
 }
 
 async function renderHome(){
@@ -201,9 +289,10 @@ async function renderHome(){
       <button class="focus-link" id="homeLab">${activeBlock?'Review your training block':'Open the Development Lab'} <span aria-hidden="true">↗</span></button>
     </section>
     <section class="weekly-card" aria-labelledby="weeklyTitle">
-      <div class="weekly-head"><div><div class="focus-kicker">WEEK OF ${new Date(weeklyChecklist.week_start+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'})}</div><h3 id="weeklyTitle">Weekly training checklist</h3><p>Keep the reps deliberate. This resets each Monday.</p></div><div class="weekly-count">${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}<span> / ${weeklyChecklist.items.filter(i=>!i.optional).length}</span></div></div>
+      <div class="weekly-head"><div><div class="focus-kicker">${esc(weeklyPhaseTemplates[weeklyChecklist.phase]?.label||'CUSTOM WEEK')} · WEEK OF ${new Date(weeklyChecklist.week_start+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'})}</div><h3 id="weeklyTitle">Weekly training checklist</h3><p>${esc(weeklyChecklist.focus||'Set a focus for this week, then shape the tasks around it.')}</p></div><div class="weekly-count">${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}<span> / ${weeklyChecklist.items.filter(i=>!i.optional).length}</span></div></div>
       <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="${weeklyChecklist.items.filter(i=>!i.optional).length}" aria-valuenow="${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}"><span style="width:${weeklyChecklist.items.filter(i=>!i.optional).length?Math.round(weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length/weeklyChecklist.items.filter(i=>!i.optional).length*100):0}%"></span></div>
       <div class="weekly-items">${weeklyChecklist.items.map(item=>`<button class="weekly-item ${item.done?'is-done':''}" data-weekly-item="${esc(item.id)}" aria-pressed="${Boolean(item.done)}"><span class="weekly-check" aria-hidden="true">${item.done?'✓':''}</span><span class="weekly-copy"><strong>${esc(item.title)}${item.optional?` <em>Optional</em>`:''}</strong><small>${esc(item.detail)}</small></span></button>`).join('')}</div>
+      <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
     </section>
     <div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
     <div class="list">${matches.length?matches.map(m=>{
@@ -215,6 +304,8 @@ async function renderHome(){
   $('#homeOnline').onclick=()=>{ if(active?.mode==='online') setScreen('play'); else openOnlineChoice(); };
   $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="more"]')?.click();
   $$('.weekly-item',el).forEach(button=>button.onclick=async()=>{const row=await get('weeklyChecklists',weeklyChecklist.week_start);const item=row?.items?.find(x=>x.id===button.dataset.weeklyItem);if(!item)return;item.done=!item.done;await save('weeklyChecklists',row);renderHome();});
+  $('#weeklyEdit').onclick=()=>openWeeklyEditor(weeklyChecklist);
+  $('#weeklyHistory').onclick=openWeeklyHistory;
   $('#goHistory').onclick=()=>setScreen('history');
 }
 
@@ -979,7 +1070,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4.12 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.4.13 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
