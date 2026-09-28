@@ -1,5 +1,6 @@
-import { prepareEditor } from './ui.js?v=0.11.0';
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.11.0';
+import { configureCultivation, mountCultivation } from './cultivation.js?v=0.12.0';
+import { prepareEditor } from './ui.js?v=0.12.0';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.12.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -279,6 +280,8 @@ async function openWeeklyHistory(){
   }).join('')}</div>`:'<div class="empty">Your past weekly checklists will appear here.</div>');
 }
 
+configureCultivation({showModal,closeModal,toast,refresh:renderCurrent,navigate:async(name,tool)=>{await setScreen(name);if(tool)await window.riftmasterySelectTool?.(tool);}});
+
 async function renderHome(){
   const el=$('#screen-home');
   const homePrefs=homePreferences();applyHomeTheme(homePrefs.theme||'grove');
@@ -306,6 +309,7 @@ async function renderHome(){
       </div>
     </section>
     ${homePrefs.season?`<div class="home-season-label">${esc(homePrefs.season)} <span>FIELD JOURNAL</span></div>`:''}
+    <div id="cultHome" class="cultivation"></div>
     <div class="home-toolbar"><span>YOUR PRACTICE JOURNAL</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
 
     <div class="home-metrics home-widget" data-home-widget="stats">
@@ -342,6 +346,7 @@ async function renderHome(){
   $('#weeklyEdit').onclick=()=>openWeeklyEditor(weeklyChecklist);
   $('#weeklyHistory').onclick=openWeeklyHistory;
   $('#goHistory').onclick=()=>setScreen('history');
+  await mountCultivation($('#cultHome'),'home');
 }
 
 async function renderDecks(){
@@ -709,9 +714,9 @@ async function renderPlay(){
       </section>
       <div class="practice-section-head"><div><span class="eyebrow">SESSION SETUP</span><h3>How do you want to train?</h3></div><span class="practice-note">No notes during play</span></div>
       <div class="practice-options">
-        <button class="practice-option paper-option" id="playStartPaper"><span class="practice-index">01</span><span class="practice-icon" aria-hidden="true"><img src="./assets/jade-seal.svg?v=0.11.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">PAPER PLAY</span><strong>Start a paper session</strong><small>Track rounds, games, and score in one place.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
-        <button class="practice-option online-option" id="playStartOnline"><span class="practice-index">02</span><span class="practice-icon" aria-hidden="true"><img src="./assets/cultivation-array.svg?v=0.11.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">ONLINE PLAY</span><strong>Start a timed session</strong><small>Keep the timer running while you play online.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
-        <button class="practice-option log-option" id="playLogOnline"><span class="practice-index">03</span><span class="practice-icon" aria-hidden="true"><img src="./assets/bamboo-scroll.svg?v=0.11.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">AFTER THE GAME</span><strong>Log a finished match</strong><small>Add the result when you’re ready to review.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option paper-option" id="playStartPaper"><span class="practice-index">01</span><span class="practice-icon" aria-hidden="true"><img src="./assets/jade-seal.svg?v=0.12.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">PAPER PLAY</span><strong>Start a paper session</strong><small>Track rounds, games, and score in one place.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option online-option" id="playStartOnline"><span class="practice-index">02</span><span class="practice-icon" aria-hidden="true"><img src="./assets/cultivation-array.svg?v=0.12.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">ONLINE PLAY</span><strong>Start a timed session</strong><small>Keep the timer running while you play online.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
+        <button class="practice-option log-option" id="playLogOnline"><span class="practice-index">03</span><span class="practice-icon" aria-hidden="true"><img src="./assets/bamboo-scroll.svg?v=0.12.0" width="72" height="72" alt="" /></span><span class="practice-copy"><span class="practice-type">AFTER THE GAME</span><strong>Log a finished match</strong><small>Add the result when you’re ready to review.</small></span><span class="practice-arrow" aria-hidden="true">↗</span></button>
       </div>`;
     $('#playStartPaper').onclick=()=>openStartSession('paper'); $('#playStartOnline').onclick=()=>openStartSession('online'); $('#playLogOnline').onclick=()=>openOnlineMatchModal(null); return;
   }
@@ -1072,7 +1077,7 @@ async function openMatchDetail(id){
     <div class="small muted">${fmtDate(m.started_at)} • ${fmtDuration(m.active_duration_ms||0)} tracked match time</div>
     ${m.opponent_build?`<p class="small"><strong>Opponent build:</strong> ${esc(m.opponent_build)}</p>`:''}
     ${gameHtml||'<div class="empty">No completed game detail.</div>'}
-    ${notes.length?`<div class="section-head"><h3>Notes</h3></div>${notes.map(n=>`<div class="note">${esc(n.text)}<div class="context">${fmtDate(n.timestamp)}</div></div>`).join('')}`:''}
+    ${notes.length?`<div class="section-head"><h3>Notes</h3></div>${notes.map(n=>`<div class="note">${esc(n.text)}<div class="context">${fmtDate(n.timestamp||n.created_at)}</div></div>`).join('')}`:''}
     <div class="divider"></div><div class="btn-row"><button type="button" class="btn ghost" id="editMatch">Edit</button><button type="button" class="btn danger" id="deleteMatch">Delete</button></div>`);
   $('#editMatch').onclick=()=>openEditMatch(id); $('#deleteMatch').onclick=()=>confirmModal('Delete match','Remove this match from normal history and stats? The local record will be soft-deleted so future sync can respect the deletion.',async()=>{await softDelete('matches',id);closeModal();renderHistory();toast('Match deleted.');},'Delete');
 }
@@ -1111,27 +1116,31 @@ async function renderStats(){
   let matrix=''; if(type==='legend'){
     const rows=legends.map(opp=>{const msx=scoped.filter(m=>m.opponent_legend_id===opp.id);if(!msx.length)return null;const f=msx.filter(m=>m.result);const w=f.filter(m=>m.result==='me').length;const ids=new Set(msx.map(m=>m.id));const gs=scopedGames.filter(g=>ids.has(g.match_id));const gw=gs.filter(g=>g.winner==='me').length;const pgs=gs.filter(g=>g.final_my_points!=null&&g.final_opponent_points!=null),pf=pgs.reduce((a,g)=>a+Number(g.final_my_points),0),pa=pgs.reduce((a,g)=>a+Number(g.final_opponent_points),0);return `<tr class="matrixRow" data-opp="${opp.id}"><td>${esc(opp.name)}</td><td>${msx.length}</td><td>${w}–${f.length-w}</td><td>${gs.length}</td><td>${gw}–${gs.length-gw}</td><td>${avg(pf,pgs.length)}</td><td>${avg(pa,pgs.length)}</td></tr>`;}).filter(Boolean).join(''); matrix=rows?`<div class="section-head"><h3>Matchup matrix</h3><div class="sub">Tap a row for filtered history</div></div><div class="table-wrap"><table class="matrix"><thead><tr><th>Opponent</th><th>Matches</th><th>W-L</th><th>Games</th><th>Game W-L</th><th>Avg PF</th><th>Avg PA</th></tr></thead><tbody>${rows}</tbody></table></div>`:`<div class="empty">No matchup data for this Legend yet.</div>`; }
   el.innerHTML=`
-    <div class="section-head stats-head"><div><div class="eyebrow">PLAYER CHRONICLE · ANALYTICS</div><h2>Progress</h2><div class="sub">A clear read on what your games are teaching you.</div></div></div>
+    <div class="section-head stats-head"><div><div class="eyebrow">THE CULTIVATION PATH</div><h2>Progress</h2><div class="sub">Turn deliberate practice into a visible journey. Carry each lesson into the next test.</div></div></div>
+    <div id="cultProgress" class="cultivation"></div>
+    <div class="section-head"><h3>Match analytics</h3><span class="sub">Results alongside your learning evidence</span></div>
     <label><span class="label-title">Stats scope</span><select id="statsScope">${scopeOptions}</select></label>
     ${hasScopedHistory||timeMs?`<div class="grid-2"><div class="card stat-card"><div class="k">Tracked time</div><div class="v">${fmtHours(timeMs)}</div></div><div class="card stat-card"><div class="k">Match record</div><div class="v">${wins}–${formal.length-wins}</div><div class="tiny muted">${pct(wins,formal.length)} • n=${formal.length}</div></div><div class="card stat-card"><div class="k">Game record</div><div class="v">${gameWins}–${scopedGames.length-gameWins}</div><div class="tiny muted">${pct(gameWins,scopedGames.length)} • n=${scopedGames.length}</div></div><div class="card stat-card"><div class="k">Avg points</div><div class="v">${avg(pointsFor,pointGames.length)}–${avg(pointsAgainst,pointGames.length)}</div><div class="tiny muted">For / Against • scored n=${pointGames.length}</div></div></div>
     <div class="section-head"><h3>Your point sources</h3><div class="sub">${myTotal} tracked points</div></div>${sourceBars(mySource,myTotal)}
     <div class="section-head"><h3>Opponent point sources</h3><div class="sub">${oppTotal} tracked points</div></div>${sourceBars(oppSource,oppTotal)}
     ${matrix}`:`<section class="empty-state analytics-empty"><div class="empty-emblem" aria-hidden="true"><svg viewBox="0 0 120 120"><path d="M24 91V57h17v34M52 91V39h17v52M80 91V27h17v64"/><path d="m22 45 26-17 20 8 28-22"/><circle cx="96" cy="14" r="3"/></svg></div><span class="eyebrow">YOUR DATA, YOUR EDGE</span><h3>Your first match starts the story.</h3><p>Record a game and this space will turn it into trends, matchup reads, and progress you can trust.</p><button class="btn primary" id="statsStartMatch">Log a match</button></section>`}`;
+  await mountCultivation($('#cultProgress'));
   $('#statsScope').onchange=e=>{state.statsScope=e.target.value;renderStats();};
   $('#statsStartMatch')?.addEventListener('click',openPastMatchModal);
   $$('.matrixRow',el).forEach(r=>r.onclick=()=>{state.historyFilters={legend:id,opp:r.dataset.opp,_open:true};setScreen('history');});
+  const analytics=document.createElement('details');analytics.id='matchAnalytics';analytics.className='cult-ledger';analytics.innerHTML='<summary>Match analytics & session history</summary>';const chartStart=$('#cultProgress').nextElementSibling;let node=chartStart;while(node){const next=node.nextElementSibling;analytics.append(node);node=next;}el.append(analytics);
 }
 
 function sourceBars(obj,total){ return `<div class="card source-bars">${['conquer','hold','effect'].map(k=>{const v=obj[k]||0,p=total?v/total*100:0;return `<div class="source-row"><span>${titleCase(k)}</span><div class="progress"><span style="width:${p}%"></span></div><strong>${total?`${p.toFixed(0)}%`:'—'}</strong></div>`}).join('')}</div>`; }
 
 async function renderMore(){
-  const el=$('#screen-more'); const settings=$('#screen-settings'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).sort((a,b)=>ms(b.timestamp)-ms(a.timestamp)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>(n.text||'').toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
+  const el=$('#screen-more'); const settings=$('#screen-settings'); const legendsOpen=$('#legendLibrary')?.open||false; const notes=(await all('notes')).filter(n=>!['cultivation_focus','cultivation_assessment'].includes(n.record_type)).sort((a,b)=>ms(b.timestamp||b.created_at)-ms(a.timestamp||a.created_at)); const q=state.notesQuery.toLowerCase(); const shown=q?notes.filter(n=>(n.text||'').toLowerCase().includes(q)):notes; const legends=(await all('legends')).sort((a,b)=>a.name.localeCompare(b.name)); const activeLegends=legends.filter(l=>!l.archived).length; const archivedLegends=legends.length-activeLegends;
   const searchFocused=document.activeElement?.id==='noteSearch',searchCursor=$('#noteSearch')?.selectionStart;
   settings.replaceChildren();
   el.innerHTML=`
     <div class="section-head collection-head"><div><div class="eyebrow">FIELD NOTES · REFLECTION</div><h2>Journal</h2><div class="sub">Quick notes stay attached to their original context.</div></div></div>
     <input id="noteSearch" type="search" aria-label="Search notes" placeholder="Search notes" value="${esc(state.notesQuery)}">
-    <div class="list" style="margin-top:10px">${shown.length?shown.slice(0,50).map(n=>`<div class="note">${esc(n.text)}<div class="context">${n.score_snapshot?`Score ${esc(n.score_snapshot)} • `:''}${fmtDate(n.timestamp)}</div></div>`).join(''):`<div class="empty">${q?'<h3>No matching notes</h3><p>Try another search.</p>':'<span class="empty-glyph" aria-hidden="true">◇</span><h3>Keep the lessons that matter.</h3><p>Your saved reviews and research will collect here.</p><button type="button" class="btn primary" id="journalStart">Review a position</button>'}</div>`}</div>
+    <div class="list" style="margin-top:10px">${shown.length?shown.slice(0,50).map(n=>`<div class="note">${esc(n.text)}<div class="context">${n.score_snapshot?`Score ${esc(n.score_snapshot)} • `:''}${fmtDate(n.timestamp||n.created_at)}</div></div>`).join(''):`<div class="empty">${q?'<h3>No matching notes</h3><p>Try another search.</p>':'<span class="empty-glyph" aria-hidden="true">◇</span><h3>Keep the lessons that matter.</h3><p>Your saved reviews and research will collect here.</p><button type="button" class="btn primary" id="journalStart">Review a position</button>'}</div>`}</div>
     <div id="settingsContents"><div class="page-intro"><span class="eyebrow">YOUR WORKSPACE</span><h2>Settings</h2><p>Manage your library, account, and backups.</p></div><div class="section-head"><div><h2>Legends</h2><div class="sub">Manage the Legends available in your decks and records.</div></div><button class="btn small primary" id="addLegend">+ Legend</button></div>
     <details id="legendLibrary" class="legend-library" ${legendsOpen?'open':''}>
       <summary><span>Legend library</span><span class="chip">${activeLegends} active · ${archivedLegends} archived</span></summary>
@@ -1141,7 +1150,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.11.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.12.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div><a class="brand-guide-link" href="./brand.html">Brand &amp; interface guide ↗</a></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div></div>`;
   $('#journalStart')?.addEventListener('click',async()=>{await setScreen('lab');await window.riftmasterySelectTool?.('positions');});
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};

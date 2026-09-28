@@ -1,9 +1,10 @@
-import { prepareEditor } from './ui.js?v=0.11.0';
-export const RIFTMASTERY_LAB_VERSION = '0.11.0';
+import { mountCultivation } from './cultivation.js?v=0.12.0';
+import { prepareEditor } from './ui.js?v=0.12.0';
+export const RIFTMASTERY_LAB_VERSION = '0.12.0';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.11.0';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.12.0';
 
-const VERSION='0.11.0';
+const VERSION='0.12.0';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -809,8 +810,10 @@ async function renderSkillsTab(){
   const p=$('#labPanel');if(!p)return;
   const rows=(await all('skillAreas')).filter(x=>!x.archived).sort((a,b)=>a.name.localeCompare(b.name));
   p.innerHTML=`
-    <div class='lab-row'><div><div class='strong'>Training Areas</div><div class='small muted'>Rate consistency: 1 Learning · 2 Developing · 3 Reliable · 4 Strong · 5 Consistent under pressure.</div></div><button class='btn small primary' id='newTrainingArea'>+ Area</button></div>
+    <div class='lab-row'><div><div class='strong'>Additional training areas</div><div class='small muted'>Your earlier personal ratings are preserved here, separately from the evidence-based skill path.</div></div><button class='btn small primary' id='newTrainingArea'>+ Area</button></div>
     <div class='lab-panel'>${rows.length?rows.map(x=>`<div class='lab-card skill-row'><div class='lab-row'><div><div class='lab-title'>${esc(x.name)}</div><div class='lab-meta'>Current self-rating: ${Number(x.rating)||0}/5</div></div><button class='btn small ghost trainingEdit' data-id='${x.id}'>Edit</button></div><div class='segmented trainingRate' data-id='${x.id}' style='margin-top:9px'>${[1,2,3,4,5].map(n=>`<button data-rate='${n}' aria-label='${esc(x.name)}: ${n} of 5' aria-pressed='${Number(x.rating)===n}' title='${['Learning','Developing','Reliable','Strong','Consistent under pressure'][n-1]}' class='${Number(x.rating)===n?'active':''}'>${n}</button>`).join('')}</div>${x.notes?`<div class='small muted' style='margin-top:8px'>${esc(x.notes)}</div>`:''}</div>`).join(''):`<div class='empty'>No training areas yet.</div>`}</div>`;
+  p.innerHTML=`<div id='cultSkills' class='cultivation'></div><details class='cult-legacy'><summary>Additional areas & earlier self-ratings</summary>${p.innerHTML}</details>`;
+  await mountCultivation($('#cultSkills'),'skills');
   $('#newTrainingArea').onclick=()=>openTrainingAreaModal();
   $$('.trainingEdit',p).forEach(b=>b.onclick=()=>openTrainingAreaModal(b.dataset.id));
   $$('.trainingRate button',p).forEach(b=>b.onclick=async()=>{const id=b.closest('.trainingRate').dataset.id,row=await get('skillAreas',id);row.rating=Number(b.dataset.rate);await save('skillAreas',row);renderLab();});
@@ -857,7 +860,7 @@ async function calendarHtml(){
   return `<div class='small muted' style='margin-bottom:6px'>${first.toLocaleString([], {month:'long',year:'numeric'})}</div><div class='lab-calendar'>${cells}</div>`;
 }
 async function enhanceStats(stats){
-  let extra=$('#labStatsExtra',stats);if(!extra){extra=document.createElement('div');extra.id='labStatsExtra';extra.className='lab-shell';stats.appendChild(extra);}
+  let extra=$('#labStatsExtra',stats);if(!extra){extra=document.createElement('div');extra.id='labStatsExtra';extra.className='lab-shell';(stats.querySelector('#matchAnalytics')||stats).appendChild(extra);}
   const scope=$('#statsScope')?.value||'overall',parts=scope.split(':'),type=parts[0],id=parts[1];
   const {deckMap,legendMap}=await maps();
   let matches=(await all('matches')).filter(m=>m.ended_at).sort((a,b)=>ms(b.started_at)-ms(a.started_at));
@@ -887,7 +890,7 @@ async function enhanceStats(stats){
     <div class='section-head'><h3>First / Second</h3><div class='sub'>Game results</div></div>
     <div class='grid-2'><div class='lab-card'><div class='tiny muted'>GOING FIRST</div><div class='lab-title'>${first.filter(g=>g.winner==='me').length}–${first.filter(g=>g.winner==='opponent').length}</div><div class='lab-meta'>n=${first.length}</div></div><div class='lab-card'><div class='tiny muted'>GOING SECOND</div><div class='lab-title'>${second.filter(g=>g.winner==='me').length}–${second.filter(g=>g.winner==='opponent').length}</div><div class='lab-meta'>n=${second.length}</div></div></div>
     <div class='section-head'><h3>Development Rhythm</h3></div>
-    <div class='grid-2'><div class='lab-card'><div class='tiny muted'>CURRENT STREAK</div><div class='lab-title'>${streak.current} day${streak.current===1?'':'s'}</div></div><div class='lab-card'><div class='tiny muted'>LONGEST STREAK</div><div class='lab-title'>${streak.longest} day${streak.longest===1?'':'s'}</div></div></div>
+    <div class='lab-card'><div class='tiny muted'>PRACTICE DAYS RECORDED</div><div class='lab-title'>${new Set(days).size}</div><p class='small muted'>Return when you can train with intent. Rest days do not erase your work.</p></div>
     <div class='section-head'><h3>Calendar</h3></div>${await calendarHtml()}
     ${fav}
     <div class='section-head'><h3>Repeated Review Tags</h3></div>${leaks.length?`<div class='lab-wrap'>${leaks.slice(0,8).map(x=>`<span class='lab-chip'>${esc(x.tag)} ×${x.count}</span>`).join('')}</div>`:`<div class='empty'>No tagged review patterns in this scope yet.</div>`}

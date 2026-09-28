@@ -142,7 +142,7 @@ input::placeholder,textarea::placeholder{color:#909e91}
 .nav-item svg,.menu-destination svg,.brand-icon svg{stroke-width:1.55;stroke-linecap:square;stroke-linejoin:miter}
 .nav-item svg{width:22px;height:22px}
 .hero.portrait-hero,.practice-hero.portrait-hero,#screen-home .hero.portrait-hero{grid-template-columns:minmax(0,1fr) minmax(210px,37%);padding:30px;gap:14px 22px;overflow:hidden;min-height:268px}
-.hero.portrait-hero>.hero-art,.practice-hero.portrait-hero>.hero-art{margin:-30px -30px -30px 0;border:0;min-height:268px;mask-image:linear-gradient(90deg,transparent,#000 22%)}
+.hero.portrait-hero>.hero-art,.practice-hero.portrait-hero>.hero-art{margin:-30px -30px -30px 0;border:0;min-height:268px;mask-image:linear-gradient(90deg,transparent,#000 14%)}
 .hero-art img{object-position:65% 28%}
 .hero.portrait-hero>.hero-copy,.practice-hero.portrait-hero>.practice-hero-copy{padding:6px 0}
 .hero.portrait-hero>.primary-actions{gap:10px}
@@ -201,7 +201,7 @@ input::placeholder,textarea::placeholder{color:#909e91}
 @media(max-width:819px){.deck-list{grid-template-columns:1fr}.collection-head h2,.screen>.section-head:first-child h2{font-size:29px}.lab-panel>.lab-row:first-child .lab-title,.insight-header .lab-title{font-size:28px}#screen-stats>.grid-2:has(.stat-card){grid-template-columns:repeat(2,minmax(0,1fr))}#screen-stats>.grid-2>.stat-card:nth-child(2){border-right:0}.hero.portrait-hero,.practice-hero.portrait-hero,#screen-home .hero.portrait-hero{padding:24px}.hero.portrait-hero>.hero-art,.practice-hero.portrait-hero>.hero-art{margin:-24px -24px -24px 0}}
 @media(max-width:560px){
  .hero.portrait-hero,.practice-hero.portrait-hero,#screen-home .hero.portrait-hero{display:flex;gap:16px;padding:22px;min-height:0}
- .hero.portrait-hero>.hero-art,.practice-hero.portrait-hero>.hero-art{height:170px;min-height:170px;margin:-22px -22px 0;mask-image:linear-gradient(0deg,transparent,#000 20%)}
+ .hero.portrait-hero>.hero-art,.practice-hero.portrait-hero>.hero-art{height:170px;min-height:170px;margin:-22px -22px 0;mask-image:linear-gradient(0deg,transparent,#000 12%)}
  .hero.portrait-hero h2,.practice-hero.portrait-hero h2,#screen-home .hero.portrait-hero h2{font-size:34px}
  .hero.portrait-hero>.hero-copy,.practice-hero.portrait-hero>.practice-hero-copy{padding:0}
  .deck-library-item,.insight-card{padding:18px}.deck-action-row .btn{flex:0 1 auto}
@@ -211,3 +211,6 @@ input::placeholder,textarea::placeholder{color:#909e91}
  .history-list>.historyOpen{padding:18px 2px;gap:12px}.historyOpen .title{font-size:15px}
  #screen-stats>.grid-2>.stat-card{padding:16px 12px}.empty-state h3{font-size:25px}
 }
+
+/* Readable supporting copy throughout the journal. */
+:root{--muted:#b4bdb3}.hero-kicker,.focus-kicker,.eyebrow{color:#a4b29f}
