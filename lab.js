@@ -1,9 +1,9 @@
-import { prepareEditor } from './ui.js?v=0.9.2';
-export const RIFTMASTERY_LAB_VERSION = '0.9.2';
+import { prepareEditor } from './ui.js?v=0.9.3';
+export const RIFTMASTERY_LAB_VERSION = '0.9.3';
 
-import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.9.2';
+import { all, get, put, byIndex, stampBase, getMeta, setMeta, softDelete } from './db.js?v=0.9.3';
 
-const VERSION='0.9.2';
+const VERSION='0.9.3';
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
