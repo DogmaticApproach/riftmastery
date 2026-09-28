@@ -47,6 +47,23 @@
 .insight-metrics{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
 .insight-metrics span{border:1px solid #344443;border-radius:999px;padding:5px 8px;color:#b2bfba;font-size:10px}
 @media(max-width:520px){.insight-header{align-items:stretch;flex-direction:column}.insight-pair{grid-template-columns:1fr}.insight-pair>div{display:grid;grid-template-columns:85px 1fr;gap:8px}.insight-pair b{margin:0}}
+.insight-stats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.insight-bars{height:132px;display:flex;align-items:flex-end;justify-content:space-around;gap:9px;margin-top:16px;padding:0 4px}
+.insight-bar{height:100%;flex:1;display:grid;grid-template-rows:17px 1fr 20px;justify-items:center;align-items:end;gap:4px;color:#9aa7a4;font-size:10px}
+.insight-bar>span{font-size:10px;color:#e0d3b3}
+.insight-bar>i{height:100%;width:min(28px,70%);display:flex;align-items:flex-end;overflow:hidden;border-radius:99px;background:#0b1416;border:1px solid #2d3e3e;font-style:normal}
+.insight-bar>i>b{display:block;width:100%;min-height:0;background:linear-gradient(0deg,#638f7d,#c8a86b);border-radius:inherit}
+.insight-bar>small{font-size:10px}
+.milestone-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.milestone-card{display:grid;grid-template-columns:25px 1fr;gap:7px;align-items:start;padding:10px;border:1px solid #2d3e3e;border-radius:13px;background:rgba(10,17,19,.38);opacity:.66}
+.milestone-card.earned{opacity:1;border-color:#59674e;background:linear-gradient(145deg,rgba(46,67,55,.45),rgba(12,20,22,.5))}
+.milestone-card>span{color:#d6bc80;font-size:18px}.milestone-card>div{display:grid;gap:4px}.milestone-card b{font-size:11px;color:#e4e7dd}.milestone-card small{font-size:10px;line-height:1.4;color:#9aa7a4}.milestone-card em{grid-column:2;font-size:9px;color:#d6bc80;font-style:normal;text-transform:uppercase;letter-spacing:.08em}
+.chronicle-list{display:grid;margin-top:12px}
+.chronicle-event{position:relative;display:grid;grid-template-columns:16px 1fr;gap:10px;min-height:54px}
+.chronicle-event>i{position:relative;width:8px;height:8px;margin-top:4px;border-radius:50%;background:#c8a86b;box-shadow:0 0 0 4px rgba(200,168,107,.12)}
+.chronicle-event:not(:last-child)>i:after{content:"";position:absolute;left:3px;top:11px;width:1px;height:43px;background:#344443}
+.chronicle-event>div{display:grid;align-content:start;gap:4px;padding-bottom:12px}.chronicle-event b{font-size:11px}.chronicle-event small{font-size:10px;color:#9aa7a4;line-height:1.4}
+@media(max-width:480px){.milestone-grid{grid-template-columns:1fr}.insight-stats .lab-mini .big{font-size:16px}}
 
 /* Keep Development Lab components in step with the RiftMastery ink-and-brass palette. */
 .lab-tabs button{background:#121e20}

@@ -213,3 +213,14 @@ h1{font-size:23px;letter-spacing:-.025em}
 .weekly-history-row small{color:var(--muted);font-size:10px;line-height:1.4}
 .weekly-history-row>span{flex:none;color:#d8c18d;font-size:12px;font-weight:750}
 @media(max-width:480px){.weekly-card{padding:15px;margin-top:15px}.weekly-item{padding:10px 6px}.weekly-head h3{font-size:17px}}
+
+.home-widget[hidden]{display:none!important}
+.home-pref-row{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--line);border-radius:12px;background:rgba(255,255,255,.025);color:var(--text)}
+.home-pref-row input{width:18px;height:18px;min-height:0;margin:0;accent-color:var(--accent)}
+.home-season-label{display:flex;justify-content:space-between;align-items:center;margin:5px 2px 8px;padding:8px 10px;border-left:2px solid var(--accent);color:var(--text);font-size:11px;font-weight:750;letter-spacing:.04em}
+.home-season-label span{color:var(--muted);font-size:9px;letter-spacing:.15em}
+.home-toolbar{display:flex;align-items:center;justify-content:space-between;margin:9px 2px 0;color:var(--muted);font-size:9px;font-weight:800;letter-spacing:.16em}
+body[data-home-theme="ember"]{--accent:#dfa06f;--accent-2:#995a42;--good:#9fd0a7;--warn:#f0bd73}
+body[data-home-theme="moon"]{--accent:#a8b7d6;--accent-2:#62779e;--good:#a3d3c2;--warn:#dbc389}
+body[data-home-theme="ember"] #screen-home .hero:before{background-image:linear-gradient(90deg,rgba(25,12,12,.91) 0%,rgba(34,16,15,.69) 48%,rgba(35,18,18,.28) 100%),linear-gradient(0deg,rgba(26,12,11,.7),transparent 64%),url("./assets/training-portrait.webp")}
+body[data-home-theme="moon"] #screen-home .hero:before{background-image:linear-gradient(90deg,rgba(9,15,29,.92) 0%,rgba(14,22,39,.7) 48%,rgba(20,28,48,.26) 100%),linear-gradient(0deg,rgba(11,16,30,.72),transparent 64%),url("./assets/training-portrait.webp")}

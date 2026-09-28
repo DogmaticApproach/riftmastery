@@ -1,4 +1,4 @@
-import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.5.0';
+import { openDB, all, get, put, byIndex, softDelete, clearAll, exportAll, stampBase, uid, getMeta, setMeta } from './db.js?v=0.6.0';
 
 const LEGEND_SEED = [
   'Akali','Ambessa','Annie','Azir','Diana','Draven','Ezreal','Fiora','Irelia','Jax','Jayce','Kennen',
@@ -141,6 +141,20 @@ async function homeStats(){
   return {total,matches:matches.length,games:games.length,wins,losses:formal.length-wins};
 }
 
+const HOME_PREFS_KEY='riftmastery-home-prefs-v1';
+function homePreferences(){try{return JSON.parse(localStorage.getItem(HOME_PREFS_KEY)||'{}');}catch{return {};}}
+function applyHomeTheme(theme='grove'){document.body.dataset.homeTheme=['grove','ember','moon'].includes(theme)?theme:'grove';}
+function openHomeCustomizer(){
+  const prefs=homePreferences(),widgets=prefs.widgets||{stats:true,focus:true,weekly:true,recent:true};
+  showModal('Shape your command center',`<p class='small muted'>Choose what stays on your home screen. These settings apply on this device.</p>
+    <label><span class='label-title'>Atmosphere</span><select id='homeTheme'><option value='grove'>Verdant grove</option><option value='ember'>Ember dusk</option><option value='moon'>Moonlit field</option></select></label>
+    ${[['stats','Development snapshot'],['focus','Current focus'],['weekly','Weekly checklist'],['recent','Recent activity']].map(([id,label])=>`<label class='home-pref-row'><input type='checkbox' data-home-pref='${id}' ${widgets[id]!==false?'checked':''}><span>${label}</span></label>`).join('')}
+    <label><span class='label-title'>Season / chapter name</span><input id='homeSeason' maxlength='32' placeholder='e.g. Radiance testing' value='${esc(prefs.season||'')}'></label>
+    <button class='btn primary full' id='homePrefsSave'>Save home layout</button>`);
+  $('#homeTheme').value=prefs.theme||'grove';
+  $('#homePrefsSave').onclick=()=>{const next={theme:$('#homeTheme').value,season:$('#homeSeason').value.trim(),widgets:Object.fromEntries($$('[data-home-pref]',modalBody).map(x=>[x.dataset.homePref,x.checked]))};localStorage.setItem(HOME_PREFS_KEY,JSON.stringify(next));applyHomeTheme(next.theme);closeModal();renderHome();toast('Command center updated.');};
+}
+
 function currentWeekKey(){
   const d=new Date(),daysSinceMonday=(d.getDay()+6)%7;
   d.setDate(d.getDate()-daysSinceMonday);d.setHours(0,0,0,0);
@@ -260,6 +274,7 @@ async function openWeeklyHistory(){
 
 async function renderHome(){
   const el=$('#screen-home');
+  const homePrefs=homePreferences();applyHomeTheme(homePrefs.theme||'grove');
   const s=await homeStats();
   const {legendMap,deckMap}=await lookups();
   const [allMatches,allGames,blocks,weeklyChecklist]=await Promise.all([all('matches'),all('games'),all('testingBlocks'),getWeeklyChecklist()]);
@@ -282,35 +297,39 @@ async function renderHome(){
         <button class="btn" id="homeOnline">${active?.mode==='online'?'Resume Online Session':'Log Online Match'}</button>
       </div>
     </section>
-    <div class="section-head"><div><h3>Your development</h3><div class="sub">Progress is built through deliberate reps.</div></div></div>
-    <div class="grid-2">
+    ${homePrefs.season?`<div class="home-season-label">${esc(homePrefs.season)} <span>FIELD JOURNAL</span></div>`:''}
+    <div class="home-toolbar"><span>YOUR COMMAND CENTER</span><button class="btn small ghost" id="homeCustomize">Customize</button></div>
+    <div class="section-head" data-home-widget="stats"><div><h3>Your development</h3><div class="sub">Progress is built through deliberate reps.</div></div></div>
+    <div class="grid-2 home-widget" data-home-widget="stats">
       <div class="card stat-card"><div class="k">Active development</div><div class="v">${fmtHours(s.total)}</div></div>
       <div class="card stat-card"><div class="k">Formal record</div><div class="v">${s.wins}–${s.losses}</div></div>
       <div class="card stat-card"><div class="k">Matches</div><div class="v">${s.matches}</div></div>
       <div class="card stat-card"><div class="k">Games</div><div class="v">${s.games}</div></div>
     </div>
-    <section class="focus-panel">
+    <section class="focus-panel home-widget" data-home-widget="focus">
       <div class="focus-topline"><div class="focus-kicker">${activeBlock?'Active testing block':'Today’s development focus'}</div><span class="focus-mark" aria-hidden="true">✦</span></div>
       <h3>${esc(focusTitle)}</h3>
       <p>${esc(focusDescription)}</p>
       ${activeBlock?`<div class="focus-meta"><span>${esc(activeDeck?.name||'Deck not found')}</span><span>${blockProgress} / ${target} ${targetMatches?'BO3s':'games'}</span></div><div class="focus-progress" role="progressbar" aria-label="Testing block progress" aria-valuemin="0" aria-valuemax="${target}" aria-valuenow="${Math.min(blockProgress,target)}"><span style="width:${blockPct}%"></span></div>`:`<div class="focus-steps"><span>Read the board</span><b>›</b><span>Compare lines</span><b>›</b><span>Update the range</span></div>`}
       <button class="focus-link" id="homeLab">${activeBlock?'Review your training block':'Open the Development Lab'} <span aria-hidden="true">↗</span></button>
     </section>
-    <section class="weekly-card" aria-labelledby="weeklyTitle">
+    <section class="weekly-card home-widget" data-home-widget="weekly" aria-labelledby="weeklyTitle">
       <div class="weekly-head"><div><div class="focus-kicker">${esc(weeklyPhaseTemplates[weeklyChecklist.phase]?.label||'CUSTOM WEEK')} · WEEK OF ${new Date(weeklyChecklist.week_start+'T12:00:00').toLocaleDateString([], {month:'short',day:'numeric'})}</div><h3 id="weeklyTitle">Weekly training checklist</h3><p>${esc(weeklyChecklist.focus||'Set a focus for this week, then shape the tasks around it.')}</p></div><div class="weekly-count">${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}<span> / ${weeklyChecklist.items.filter(i=>!i.optional).length}</span></div></div>
       <div class="weekly-progress" role="progressbar" aria-label="Weekly checklist progress" aria-valuemin="0" aria-valuemax="${weeklyChecklist.items.filter(i=>!i.optional).length}" aria-valuenow="${weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length}"><span style="width:${weeklyChecklist.items.filter(i=>!i.optional).length?Math.round(weeklyChecklist.items.filter(i=>!i.optional).filter(i=>i.done).length/weeklyChecklist.items.filter(i=>!i.optional).length*100):0}%"></span></div>
       <div class="weekly-items">${weeklyChecklist.items.map(item=>`<button class="weekly-item ${item.done?'is-done':''}" data-weekly-item="${esc(item.id)}" aria-pressed="${Boolean(item.done)}"><span class="weekly-check" aria-hidden="true">${item.done?'✓':''}</span><span class="weekly-copy"><strong>${esc(item.title)}${item.optional?` <em>Optional</em>`:''}</strong><small>${esc(item.detail)}</small></span></button>`).join('')}</div>
       <div class="weekly-footer"><button class="link-btn small" id="weeklyEdit">Edit this week</button><button class="link-btn small" id="weeklyHistory">Past weeks</button></div>
     </section>
-    <div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
+    <div class="home-widget" data-home-widget="recent"><div class="section-head"><h3>Recent activity</h3><button class="link-btn small" id="goHistory">View all</button></div>
     <div class="list">${matches.length?matches.map(m=>{
       const d=deckMap[m.my_deck_id], l=legendMap[m.opponent_legend_id];
       const result=m.result==='me'?'W':m.result==='opponent'?'L':'—';
       return `<div class="list-item"><div><div class="title">${esc(d?.name||'Unknown deck')} <span class="muted">vs</span> ${esc(l?.name||'Unknown')}</div><div class="meta">${titleCase(m.format)} • ${titleCase(m.mode||'paper')} • ${fmtDate(m.started_at)}</div></div><div class="right"><span class="chip ${result==='W'?'good':result==='L'?'warn':''}">${result}</span></div></div>`;
-    }).join(''):`<div class="empty">No matches yet. Create a deck, then start your first session.</div>`}</div>`;
+    }).join(''):`<div class="empty">No matches yet. Create a deck, then start your first session.</div>`}</div></div>`;
+  const hidden=new Set(Object.entries(homePrefs.widgets||{}).filter(([,shown])=>!shown).map(([id])=>id));$$('.home-widget[data-home-widget], [data-home-widget]',el).forEach(node=>node.hidden=hidden.has(node.dataset.homeWidget));
   $('#homePaper').onclick=()=>{ if(active?.mode==='paper') setScreen('play'); else openStartSession('paper'); };
   $('#homeOnline').onclick=()=>{ if(active?.mode==='online') setScreen('play'); else openOnlineChoice(); };
   $('#homeLab').onclick=()=>document.querySelector('.nav-item[data-nav="more"]')?.click();
+  $('#homeCustomize').onclick=openHomeCustomizer;
   $$('.weekly-item',el).forEach(button=>button.onclick=async()=>{const row=await get('weeklyChecklists',weeklyChecklist.week_start);const item=row?.items?.find(x=>x.id===button.dataset.weeklyItem);if(!item)return;item.done=!item.done;await save('weeklyChecklists',row);renderHome();});
   $('#weeklyEdit').onclick=()=>openWeeklyEditor(weeklyChecklist);
   $('#weeklyHistory').onclick=openWeeklyHistory;
@@ -386,6 +405,8 @@ async function openDeckViewModal(id){
   showModal(deck.name+(deck.version?' • '+deck.version:''),`
     <div class='btn-row' style='margin-bottom:10px'><span class='chip'>${esc(legendMap[deck.legend_id]?.name||'Unknown Legend')}</span>${deck.pinned?`<span class='chip accent'>Pinned</span>`:''}${deck.import_source?`<span class='chip'>Imported: ${esc(titleCase(deck.import_source))}</span>`:''}</div>
     ${parent?`<div class='small muted' style='margin-bottom:10px'>Version lineage: ${esc(parent.name)} ${esc(parent.version||'previous')} → ${esc(deck.version||'current')}</div>`:''}
+    ${deck.change_reason?`<div class='note' style='margin:0 0 8px'><strong>Change reason</strong><div class='context'>${esc(deck.change_reason)}</div></div>`:''}
+    ${deck.test_hypothesis?`<div class='note' style='margin:0 0 8px'><strong>Test hypothesis</strong><div class='context'>${esc(deck.test_hypothesis)}${deck.review_after_bo3?` · Review after ${Number(deck.review_after_bo3)} BO3s`:''}</div></div>`:''}
     <label><span class='label-title'>Deck list</span><textarea rows='16' readonly id='viewDeckList'>${esc(deck.deck_list||'No deck list saved.')}</textarea></label>
     ${deck.notes?`<div class='note'>${esc(deck.notes)}</div>`:''}
     <div class='btn-row' style='margin-top:10px'><button type='button' class='btn primary' id='copyDeckList'>Copy list</button>${parent?`<button type='button' class='btn' id='comparePrevious'>Compare previous</button>`:''}<button type='button' class='btn ghost' id='editFromView'>Edit</button></div>`);
@@ -556,11 +577,15 @@ async function openDeckVersionModal(id){
     <p class="small muted">This keeps ${esc(old.name)} ${esc(old.version||'')} frozen in history and creates a separate version for future matches.</p>
     <label><span class="label-title">Deck name</span><input id="newVersionName" value="${esc(old.name)}"></label>
     <label><span class="label-title">New version label</span><input id="newVersionLabel" placeholder="e.g. v2"></label>
-    <label><span class="label-title">Deck list</span><textarea id="newVersionList" rows="12" placeholder="Paste or edit the full list for this version.">${esc(old.deck_list||'')}</textarea></label>\n    <label><span class="label-title">Notes</span><textarea id="newVersionNotes">${esc(old.notes||'')}</textarea></label>
+    <label><span class="label-title">Deck list</span><textarea id="newVersionList" rows="12" placeholder="Paste or edit the full list for this version.">${esc(old.deck_list||'')}</textarea></label>
+    <label><span class="label-title">What changed and why?</span><textarea id="newVersionReason" rows="2" placeholder="Name the problem this version is meant to solve."></textarea></label>
+    <label><span class="label-title">Test hypothesis</span><textarea id="newVersionHypothesis" rows="2" placeholder="What would you expect to observe if the change helps?"></textarea></label>
+    <label><span class="label-title">Review after how many BO3s?</span><input id="newVersionReps" type="number" min="1" max="100" value="10"></label>
+    <label><span class="label-title">Notes</span><textarea id="newVersionNotes">${esc(old.notes||'')}</textarea></label>
     <button type="button" class="btn primary full" id="createVersion">Create version</button>`);
   $('#createVersion').onclick=async()=>{
     const version=$('#newVersionLabel').value.trim(); if(!version) return toast('Add a version label.');
-    const row=stampBase({name:$('#newVersionName').value.trim()||old.name,legend_id:old.legend_id,version,deck_list:$('#newVersionList').value.trim(),notes:$('#newVersionNotes').value.trim(),archived:false,parent_deck_id:old.id});
+    const row=stampBase({name:$('#newVersionName').value.trim()||old.name,legend_id:old.legend_id,version,deck_list:$('#newVersionList').value.trim(),change_reason:$('#newVersionReason').value.trim(),test_hypothesis:$('#newVersionHypothesis').value.trim(),review_after_bo3:Number($('#newVersionReps').value)||10,notes:$('#newVersionNotes').value.trim(),archived:false,parent_deck_id:old.id});
     await save('decks',row); await setMeta('last_deck_id',row.id); closeModal(); renderDecks(); toast('New version created.');
   };
 }
@@ -1078,7 +1103,7 @@ async function renderMore(){
     <div id="cloudSyncMount"><div class="card"><div class="section-head" style="margin:0"><div><h3>Cloud Sync</h3><div class="sub">Loading account status…</div></div><span class="chip">Cloud</span></div></div></div>
     <div class="section-head"><h2>Data</h2></div>
     <div class="card"><div class="btn-row"><button class="btn" id="exportJson">Export JSON backup</button><button class="btn" id="importJson">Import JSON backup</button><button class="btn" id="exportCsv">Export CSV</button></div><p class="tiny muted">Local-first + private cloud sync. JSON export remains your manual backup.</p></div>
-    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.5.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
+    <div class="section-head"><h2>App</h2></div><div class="card"><div class="list-item" style="border:0;padding:0;background:transparent"><div><div class="title">RiftMastery</div><div class="meta">Version 0.6.0 • Cloud Sync</div></div><span class="chip">Personal build</span></div></div>
     <div class="section-head"><h2>Danger zone</h2></div><div class="card danger-zone"><p class="small muted">Clears activity and testing records on this device and in your signed-in cloud account. Built-in Legends and skill categories stay.</p><button class="btn danger full" id="resetData">Reset device + cloud data</button></div>`;
   $('#noteSearch').oninput=e=>{state.notesQuery=e.target.value;clearTimeout(state._noteTimer);state._noteTimer=setTimeout(renderMore,180);};
   $('#addLegend').onclick=()=>openLegendModal(); $$('.legendToggle',el).forEach(b=>b.onclick=async()=>{const l=await get('legends',b.dataset.id);l.archived=!l.archived;await save('legends',l);renderMore();});
