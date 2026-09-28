@@ -168,3 +168,12 @@ h1{font-size:23px;letter-spacing:-.025em}
   .focus-steps{gap:6px}
   .focus-steps span{font-size:10px;padding:6px 7px}
 }
+
+
+/* Use the supplied training portrait in the Home and Train hero panels. */
+#screen-home .hero:before,#screen-play .hero:before{
+  background-image:linear-gradient(90deg,rgba(7,15,16,.96) 0%,rgba(7,15,16,.78) 45%,rgba(7,15,16,.42) 100%),linear-gradient(0deg,rgba(7,15,16,.68),transparent 64%),url("./assets/training-portrait.webp");
+  background-size:cover,cover,auto 128%;
+  background-position:center,center,right 47%;
+  background-repeat:no-repeat;
+}
